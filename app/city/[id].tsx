@@ -74,6 +74,9 @@ export default function CityScreen() {
       const dest = nearbyEntity.data['destination'] as string
       setPosition(id as any, playerRef.current.x, playerRef.current.y)
       router.push(`/building/${dest}`)
+    } else if (nearbyEntity.type === 'sandbox_portal') {
+      const dest = nearbyEntity.data['destination'] as string
+      router.push(`/sandbox/${dest}`)
     } else if (nearbyEntity.type === 'gate') {
       const dest = nearbyEntity.data['destination'] as string
       const bossId = nearbyEntity.data['bossId'] as string | undefined
@@ -96,7 +99,11 @@ export default function CityScreen() {
   }
 
   const interactLabel = nearbyEntity
-    ? nearbyEntity.type === 'npc' ? `[E] Talk to ${nearbyEntity.data['name']}` : '[E] Enter'
+    ? nearbyEntity.type === 'npc'
+      ? `[E] Talk to ${nearbyEntity.data['name']}`
+      : nearbyEntity.type === 'sandbox_portal'
+      ? '[E] Open Terminal'
+      : '[E] Enter'
     : null
 
   return (

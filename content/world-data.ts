@@ -1,7 +1,7 @@
 import type { CityId } from '../store/game-store'
 import { makeGrid, setTile } from '../engine/tilemap'
 import type { TileGrid } from '../engine/tilemap'
-import { makeNPC, makeBuildingEntrance, makeGate } from '../engine/entity'
+import { makeNPC, makeBuildingEntrance, makeGate, makeSandboxPortal } from '../engine/entity'
 import type { Entity } from '../engine/entity'
 
 export interface CityDef {
@@ -88,6 +88,7 @@ export const LLAMATOWN: CityDef = {
       bossGate.data = { ...bossGate.data, bossId: 'frozen-boot' }
       return bossGate
     })(),
+    makeSandboxPortal('sandbox-firstchat', 16, 8, 'firstchat'),
   ],
   gateExit: { x: 9, y: 13, destination: 'overworld' },
 }
