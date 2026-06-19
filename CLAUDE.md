@@ -51,7 +51,7 @@ This document contains:
 | 5 — Remaining Cities | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 5 section |
 | 6 — Mobile Polish | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 6 section |
 
-**When a phase completes:** Update the Status column above to `✅ Complete` and add the plan file path. Also mark it done in `.superpowers/sdd/progress.md`.
+**When a phase completes:** Update the Status column above to `✅ Complete` and add the plan file path. Also mark it done in `.superpowers/sdd/progress.md`. Also update `Architecture.md` to reflect any new files, exports, constants, or infrastructure added in the phase.
 
 ## Commands
 
