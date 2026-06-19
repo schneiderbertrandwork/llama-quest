@@ -1,5 +1,5 @@
 export type Facing = 'up' | 'down' | 'left' | 'right'
-export type EntityType = 'player' | 'npc' | 'sign' | 'building_entrance' | 'gate'
+export type EntityType = 'player' | 'npc' | 'sign' | 'building_entrance' | 'gate' | 'sandbox_portal'
 
 export interface Entity {
   id: string
@@ -30,6 +30,10 @@ export function makeBuildingEntrance(id: string, x: number, y: number, destinati
 
 export function makeGate(id: string, x: number, y: number, destination: string, locked: boolean): Entity {
   return { id, type: 'gate', x, y, facing: 'down', interactable: true, data: { destination, locked } }
+}
+
+export function makeSandboxPortal(id: string, x: number, y: number, destination: string): Entity {
+  return { id, type: 'sandbox_portal', x, y, facing: 'down', interactable: true, data: { destination } }
 }
 
 export function nearestInteractable(entities: Entity[], playerX: number, playerY: number, maxDist = 1.5): Entity | null {

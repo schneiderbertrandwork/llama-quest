@@ -44,6 +44,7 @@ interface GameState {
   updateSettings: (partial: Partial<SettingsData>) => void
   awardBossKill: (bossId: string) => void
   setPlayerHp: (hp: number) => void
+  markSandboxCompleted: (sandboxId: string) => void
 }
 
 const DEFAULT_PLAYER: PlayerData = {
@@ -151,6 +152,18 @@ export const useGameStore = create<GameState>()(
         set((state) => ({
           player: { ...state.player, hp: Math.min(Math.max(1, hp), state.player.maxHp) },
         })),
+
+      markSandboxCompleted: (sandboxId) => {
+        const { progression } = get()
+        if (progression.completedSandboxes[sandboxId]) return
+        set((state) => ({
+          progression: {
+            ...state.progression,
+            completedSandboxes: { ...state.progression.completedSandboxes, [sandboxId]: true },
+          },
+        }))
+        get().awardXP(15)
+      },
     }),
     {
       name: 'llama_quest_v1',

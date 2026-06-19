@@ -88,3 +88,21 @@ describe('setPlayerHp', () => {
     expect(result.current.player.hp).toBe(result.current.player.maxHp)
   })
 })
+
+describe('markSandboxCompleted', () => {
+  it('marks sandbox completed and awards 15 XP', () => {
+    const { result } = renderHook(() => useGameStore())
+    act(() => result.current.initPlayer('Ada', 'Tinkerer'))
+    act(() => result.current.markSandboxCompleted('firstchat'))
+    expect(result.current.progression.completedSandboxes['firstchat']).toBe(true)
+    expect(result.current.player.xp).toBe(15)
+  })
+
+  it('is idempotent — second call awards no extra XP', () => {
+    const { result } = renderHook(() => useGameStore())
+    act(() => result.current.initPlayer('Ada', 'Tinkerer'))
+    act(() => result.current.markSandboxCompleted('firstchat'))
+    act(() => result.current.markSandboxCompleted('firstchat'))
+    expect(result.current.player.xp).toBe(15)
+  })
+})
