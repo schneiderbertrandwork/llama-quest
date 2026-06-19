@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\schneider.bertrand\\\\Documents\\\\Learning\\\\My learning Apps\\\\Llama Quest\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "PowerShell($file = \"C:\\\\Users\\\\schneider.bertrand\\\\Documents\\\\Learning\\\\My learning Apps\\\\Llama Quest\\\\localhost-quest.html\"; \\(Get-Item $file\\).Length | foreach {Write-Output \"File size: $_ bytes\"})",
+      "Bash(bash *)",
+      "PowerShell(New-Item *)",
+      "PowerShell(cd \"C:\\\\Users\\\\schneider.bertrand\\\\Documents\\\\Learning\\\\My learning Apps\\\\Llama Quest\"; npx create-expo-app@latest llama-quest-temp --template blank-typescript 2>&1; Write-Host \"EXIT: $LASTEXITCODE\")",
+      "PowerShell(git add *)"
+    ]
+  }
+}

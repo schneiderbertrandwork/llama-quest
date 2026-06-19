@@ -1,0 +1,2473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>LOCALHOST QUEST — Master Ollama &amp; ChromaDB</title>
+<meta name="description" content="A pixel-art learning RPG that takes you from beginner to expert in Ollama and ChromaDB through exploration, hands-on sandboxes, readable lessons, and mastery trials.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   LOCALHOST QUEST — design system
+   Palette: dusk-indigo world, warm "llama" amber (Ollama),
+   teal mastery, and a reserved prism gradient that belongs
+   ONLY to vectors / ChromaDB (the signature element).
+   ============================================================ */
+:root{
+  --bg:#0d0b1f; --bg2:#13102a; --bg3:#0a0818;
+  --panel:#1b1740; --panel2:#241f52; --panel3:#2c2660;
+  --line:#3a3270; --line2:#4a3f8c;
+  --ink:#ece9ff; --muted:#a8a2da; --dim:#726cab;
+  --amber:#ffb061; --amber2:#ff8c42; --amber-deep:#c96a28;
+  --teal:#4fe0cf; --teal-deep:#1f9f90;
+  --gold:#ffd45f;
+  --red:#ff5d6c; --red-deep:#b8333f;
+  --green:#7ee787;
+  /* prism — the Chroma signature */
+  --chroma1:#ff5fae; --chroma2:#a06bff; --chroma3:#5fd0ff;
+  --chroma:linear-gradient(100deg,#ff5fae 0%,#a06bff 48%,#5fd0ff 100%);
+
+  --font-hud:'Press Start 2P', ui-monospace, monospace;
+  --font-mono:'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+  --font-read:'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+  --r:4px;
+  --shadow:0 8px 0 rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:
+    radial-gradient(1200px 600px at 75% -10%, rgba(160,107,255,.12), transparent 60%),
+    radial-gradient(900px 500px at 10% 110%, rgba(255,140,66,.10), transparent 60%),
+    var(--bg);
+  color:var(--ink);
+  font-family:var(--font-read);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+img,canvas{image-rendering:pixelated}
+::selection{background:rgba(160,107,255,.45)}
+
+/* pixel frame helper */
+.frame{
+  background:var(--panel);
+  border:0;
+  box-shadow:
+    0 0 0 3px var(--bg3),
+    0 0 0 6px var(--line),
+    inset 0 0 0 2px rgba(255,255,255,.04),
+    var(--shadow);
+  border-radius:var(--r);
+}
+.hud-label{font-family:var(--font-hud);letter-spacing:.5px;line-height:1.7;text-transform:uppercase}
+
+/* ---------- App shell ---------- */
+#app{position:fixed;inset:0;display:flex;flex-direction:column}
+
+/* ---------- Top HUD ---------- */
+#hud{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 16px;
+  background:linear-gradient(180deg,var(--bg2),var(--bg3));
+  border-bottom:3px solid var(--line);
+  z-index:40;flex-wrap:wrap;
+}
+#hud .brand{display:flex;align-items:center;gap:10px;min-width:0}
+#hud .brand .logo{
+  width:30px;height:30px;flex:0 0 auto;border-radius:5px;
+  background:var(--chroma);
+  box-shadow:0 0 0 2px var(--bg3), 0 0 14px rgba(160,107,255,.5);
+  position:relative;
+}
+#hud .brand .logo::after{content:"";position:absolute;inset:7px;border-radius:2px;background:var(--bg3);box-shadow:inset 0 0 0 2px var(--chroma3)}
+#hud .brand b{font-family:var(--font-hud);font-size:10px;color:var(--ink);letter-spacing:.5px;white-space:nowrap}
+#hud .brand span{font-size:11px;color:var(--dim);white-space:nowrap}
+
+#hud .stats{display:flex;align-items:center;gap:16px;margin-left:6px}
+.stat{display:flex;flex-direction:column;gap:4px;min-width:84px}
+.stat .k{font-family:var(--font-hud);font-size:7px;color:var(--dim);letter-spacing:.5px}
+.stat .v{font-family:var(--font-hud);font-size:10px;color:var(--ink)}
+.bar{height:10px;background:var(--bg3);border:2px solid var(--line);border-radius:3px;overflow:hidden;position:relative;width:140px}
+.bar > i{display:block;height:100%;width:0;border-radius:1px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.bar.xp > i{background:linear-gradient(90deg,var(--gold),#ffb347)}
+.bar.mas > i{background:var(--chroma)}
+.bar small{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-hud);font-size:7px;color:var(--ink);text-shadow:0 1px 0 rgba(0,0,0,.6)}
+
+#hud .spacer{flex:1 1 auto}
+#nav{display:flex;gap:6px;flex-wrap:wrap}
+.navbtn{
+  font-family:var(--font-hud);font-size:8px;letter-spacing:.5px;
+  color:var(--muted);background:var(--panel);
+  border:2px solid var(--line);border-bottom-width:4px;border-radius:4px;
+  padding:8px 10px;cursor:pointer;text-transform:uppercase;
+  transition:transform .06s, background .15s, color .15s;
+  display:flex;align-items:center;gap:6px;
+}
+.navbtn:hover{color:var(--ink);background:var(--panel2)}
+.navbtn:active{transform:translateY(2px);border-bottom-width:2px}
+.navbtn.active{color:var(--bg3);background:var(--amber);border-color:var(--amber-deep)}
+.navbtn .em{font-size:11px;line-height:1}
+.navbtn.tree.active{background:var(--teal);border-color:var(--teal-deep)}
+
+/* ---------- View host ---------- */
+#views{position:relative;flex:1 1 auto;overflow:hidden}
+.view{position:absolute;inset:0;display:none;overflow:auto;animation:fade .25s ease}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- Generic UI bits ---------- */
+.btn{
+  font-family:var(--font-hud);font-size:9px;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--bg3);background:var(--amber);
+  border:0;border-radius:4px;padding:12px 16px;cursor:pointer;
+  box-shadow:0 4px 0 var(--amber-deep);
+  transition:transform .06s, box-shadow .06s, filter .15s;
+}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--amber-deep)}
+.btn.ghost{color:var(--muted);background:var(--panel);box-shadow:0 4px 0 var(--line)}
+.btn.ghost:hover{color:var(--ink)}
+.btn.teal{background:var(--teal);box-shadow:0 4px 0 var(--teal-deep)}
+.btn.prism{background:var(--chroma);box-shadow:0 4px 0 #5b3a8f;color:#0b0820}
+.btn.sm{font-size:8px;padding:9px 12px}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.4)}
+
+.pill{font-family:var(--font-hud);font-size:7px;padding:5px 8px;border-radius:999px;letter-spacing:.5px;text-transform:uppercase}
+.pill.lock{background:var(--bg3);color:var(--dim);border:2px solid var(--line)}
+.pill.open{background:rgba(255,176,97,.16);color:var(--amber);border:2px solid var(--amber-deep)}
+.pill.learn{background:rgba(255,212,95,.16);color:var(--gold);border:2px solid #8a6f1f}
+.pill.done{background:rgba(79,224,207,.16);color:var(--teal);border:2px solid var(--teal-deep)}
+
+.scroll::-webkit-scrollbar{width:12px;height:12px}
+.scroll::-webkit-scrollbar-track{background:var(--bg3)}
+.scroll::-webkit-scrollbar-thumb{background:var(--line2);border:3px solid var(--bg3);border-radius:8px}
+
+/* =====================================================
+   TITLE / START
+   ===================================================== */
+#view-title{display:none;place-items:center;padding:24px}
+#view-title.on{display:grid}
+.title-card{max-width:760px;width:100%;padding:30px;text-align:center}
+.title-art{
+  height:170px;border-radius:6px;position:relative;overflow:hidden;margin-bottom:20px;
+  background:
+    radial-gradient(140px 90px at 78% 30%, rgba(160,107,255,.35), transparent 70%),
+    linear-gradient(180deg,#191338,#0c0a22);
+  box-shadow:inset 0 0 0 3px var(--line);
+}
+.title-art .sun{position:absolute;left:14%;top:30%;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffd9a8,var(--amber2));box-shadow:0 0 40px rgba(255,140,66,.6)}
+.title-art .prism{position:absolute;right:16%;top:24%;width:0;height:0;border-left:34px solid transparent;border-right:34px solid transparent;border-bottom:60px solid;border-bottom-color:rgba(160,107,255,.85);filter:drop-shadow(0 0 18px rgba(160,107,255,.6))}
+.title-art .beam{position:absolute;right:8%;top:50%;width:160px;height:6px;background:var(--chroma);transform:rotate(8deg);opacity:.85;filter:blur(.3px)}
+.title-art .ground{position:absolute;left:0;right:0;bottom:0;height:46px;background:repeating-linear-gradient(90deg,#23204d 0 22px,#1d1a44 22px 44px)}
+h1.title{font-family:var(--font-hud);font-size:26px;line-height:1.5;margin:0 0 6px;letter-spacing:1px}
+h1.title .a{color:var(--amber)} h1.title .c{background:var(--chroma);-webkit-background-clip:text;background-clip:text;color:transparent}
+.title-sub{color:var(--muted);font-size:15px;margin:0 auto 22px;max-width:560px}
+.namegrid{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px}
+.field{text-align:left}
+.field label{display:block;font-family:var(--font-hud);font-size:7px;color:var(--dim);margin-bottom:7px;letter-spacing:.5px}
+.field input{
+  font-family:var(--font-mono);font-size:15px;color:var(--ink);
+  background:var(--bg3);border:2px solid var(--line);border-radius:4px;padding:11px 12px;width:220px;
+}
+.field input:focus{outline:0;border-color:var(--amber)}
+.classes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:6px 0 22px}
+.classpick{cursor:pointer;padding:14px 10px;border-radius:5px;background:var(--panel);border:2px solid var(--line);border-bottom-width:4px;text-align:center;transition:.12s}
+.classpick:hover{background:var(--panel2)}
+.classpick.sel{border-color:var(--amber);background:rgba(255,176,97,.10)}
+.classpick .ico{font-size:24px}
+.classpick .nm{font-family:var(--font-hud);font-size:8px;margin-top:8px;color:var(--ink)}
+.classpick .ds{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+.title-foot{color:var(--dim);font-size:12px;margin-top:18px}
+
+/* =====================================================
+   WORLD
+   ===================================================== */
+#view-world{background:radial-gradient(900px 500px at 50% 0%,#16123a,transparent 70%)}
+#worldwrap{position:absolute;inset:0;display:grid;place-items:center}
+#game{display:block;background:#0a0818;border-radius:6px;box-shadow:0 0 0 3px var(--bg3),0 0 0 6px var(--line),0 18px 40px rgba(0,0,0,.5);max-width:100%;max-height:100%;touch-action:none}
+#worldhud{position:absolute;left:16px;top:14px;display:flex;flex-direction:column;gap:10px;z-index:5;max-width:46%}
+#zonecard{padding:12px 14px}
+#zonecard .zn{font-family:var(--font-hud);font-size:11px;color:var(--amber)}
+#zonecard .zd{font-size:13px;color:var(--muted);margin-top:6px}
+#minimap{padding:8px}
+#minimap canvas{display:block;border-radius:3px;image-rendering:pixelated;background:#0a0818}
+#prompt{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:6;padding:10px 16px;display:none;align-items:center;gap:10px;max-width:90%}
+#prompt.on{display:flex}
+#prompt .key{font-family:var(--font-hud);font-size:9px;background:var(--amber);color:var(--bg3);padding:6px 8px;border-radius:4px;box-shadow:0 3px 0 var(--amber-deep)}
+#prompt .txt{font-size:14px;color:var(--ink)}
+#help{position:absolute;right:16px;bottom:16px;z-index:5;font-size:11px;color:var(--dim);text-align:right;line-height:1.7}
+#help b{color:var(--muted);font-family:var(--font-mono)}
+#touchpad{position:absolute;left:16px;bottom:16px;z-index:7;display:none;gap:6px;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px)}
+#touchpad.on{display:grid}
+.tpad{background:var(--panel);border:2px solid var(--line);border-bottom-width:4px;border-radius:8px;color:var(--ink);font-size:20px;display:grid;place-items:center;user-select:none;-webkit-user-select:none}
+.tpad:active{transform:translateY(2px)}
+.tpad.act{background:var(--amber);color:var(--bg3);font-family:var(--font-hud);font-size:9px}
+
+/* dialogue */
+#dialogue{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:min(720px,92%);z-index:30;display:none}
+#dialogue.on{display:block;animation:rise .2s ease}
+@keyframes rise{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+.dlg-inner{padding:16px 18px}
+.dlg-who{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.dlg-ava{width:38px;height:38px;border-radius:6px;background:var(--panel3);display:grid;place-items:center;font-size:22px;box-shadow:inset 0 0 0 2px var(--line)}
+.dlg-name{font-family:var(--font-hud);font-size:10px;color:var(--amber)}
+.dlg-text{font-size:15px;color:var(--ink);min-height:54px;line-height:1.65}
+.dlg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+
+/* =====================================================
+   CODEX (reading library)
+   ===================================================== */
+#view-codex{display:none}
+#view-codex.on{display:grid;grid-template-columns:300px 1fr}
+#codex-side{border-right:3px solid var(--line);background:var(--bg2);overflow:auto;padding:16px 12px}
+#codex-side h3{font-family:var(--font-hud);font-size:9px;color:var(--dim);margin:18px 8px 8px;letter-spacing:.5px}
+#codex-side h3:first-child{margin-top:4px}
+.act-h{font-family:var(--font-hud);font-size:8px;color:var(--amber);margin:16px 8px 8px;display:flex;align-items:center;gap:7px;letter-spacing:.5px}
+.act-h .n{width:18px;height:18px;border-radius:4px;background:var(--panel3);display:grid;place-items:center;color:var(--ink)}
+.toc{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:5px;cursor:pointer;color:var(--muted);font-size:13px;border:2px solid transparent;line-height:1.3}
+.toc:hover{background:var(--panel)}
+.toc.sel{background:var(--panel2);border-color:var(--line2);color:var(--ink)}
+.toc.locked{opacity:.5}
+.toc .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;background:var(--dim)}
+.toc.s-open .dot{background:var(--amber)} .toc.s-learn .dot{background:var(--gold)} .toc.s-done .dot{background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.toc .ix{font-family:var(--font-hud);font-size:7px;color:var(--dim);width:22px}
+
+#codex-main{overflow:auto;padding:30px 36px 80px}
+.read{max-width:760px;margin:0 auto}
+.read .eyebrow{font-family:var(--font-hud);font-size:8px;color:var(--amber);letter-spacing:1px;text-transform:uppercase}
+.read h1{font-family:var(--font-read);font-weight:800;font-size:34px;line-height:1.15;margin:10px 0 6px;letter-spacing:-.5px}
+.read .lede{font-size:18px;color:var(--muted);margin:0 0 24px}
+.read h2{font-family:var(--font-read);font-weight:700;font-size:21px;margin:30px 0 10px;color:var(--ink);display:flex;align-items:center;gap:10px}
+.read h2::before{content:"";width:10px;height:10px;background:var(--amber);border-radius:2px;transform:rotate(45deg);flex:0 0 auto}
+.read p{font-size:16px;color:#d8d4f2;margin:0 0 14px}
+.read ul{margin:0 0 16px;padding-left:20px} .read li{margin:6px 0;color:#d8d4f2}
+.read b,.read strong{color:#fff}
+.read code{font-family:var(--font-mono);font-size:13px;background:var(--bg3);border:1px solid var(--line);border-radius:4px;padding:2px 6px;color:var(--amber)}
+.read .kbd{font-family:var(--font-mono);font-size:13px;background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:1px 7px;color:var(--ink)}
+.codeblock{position:relative;margin:0 0 18px}
+.codeblock pre{font-family:var(--font-mono);font-size:13.5px;line-height:1.6;background:var(--bg3);border:0;box-shadow:0 0 0 2px var(--line);border-radius:6px;padding:16px 16px;overflow:auto;color:#cfe9ff}
+.codeblock .lang{position:absolute;top:8px;right:10px;font-family:var(--font-hud);font-size:7px;color:var(--dim);text-transform:uppercase}
+.codeblock .cmt{color:#6f6aa3} .codeblock .kw{color:#ff9eda} .codeblock .str{color:#a7e3a0} .codeblock .num{color:#ffd45f} .codeblock .fn{color:#8fd6ff}
+.callout{display:flex;gap:12px;padding:14px 16px;border-radius:6px;margin:0 0 18px;background:var(--panel);border-left:4px solid var(--amber)}
+.callout.tip{border-left-color:var(--teal)} .callout.warn{border-left-color:var(--red)} .callout.prism{border-left:0;background:linear-gradient(100deg,rgba(255,95,174,.12),rgba(95,208,255,.12));box-shadow:inset 0 0 0 1px var(--line2)}
+.callout .ci{font-size:20px;flex:0 0 auto}
+.callout .cb{font-size:14.5px;color:#e3e0fb} .callout .cb b{color:#fff}
+.diagram{margin:6px 0 22px;padding:18px;background:var(--bg2);border-radius:8px;box-shadow:inset 0 0 0 2px var(--line);overflow:auto}
+.diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}
+.diagram .cap{text-align:center;font-size:12px;color:var(--dim);margin-top:12px;font-family:var(--font-mono)}
+.read-foot{display:flex;justify-content:space-between;gap:10px;margin-top:36px;padding-top:22px;border-top:2px solid var(--line);flex-wrap:wrap;align-items:center}
+.read-foot .l{display:flex;gap:8px;flex-wrap:wrap}
+
+/* =====================================================
+   SANDBOX
+   ===================================================== */
+#view-sandbox{display:none}
+#view-sandbox.on{display:grid;grid-template-columns:320px 1fr}
+#sb-side{border-right:3px solid var(--line);background:var(--bg2);overflow:auto;padding:18px 14px}
+#sb-side h2{font-family:var(--font-hud);font-size:11px;color:var(--teal);margin:0 0 6px}
+#sb-side p.intro{font-size:13px;color:var(--muted);margin:0 0 16px}
+.proj{padding:13px 13px;border-radius:6px;background:var(--panel);border:2px solid var(--line);border-bottom-width:4px;cursor:pointer;margin-bottom:10px;transition:.12s}
+.proj:hover{background:var(--panel2)}
+.proj.sel{border-color:var(--teal)}
+.proj .pt{font-family:var(--font-hud);font-size:8.5px;color:var(--ink);line-height:1.5;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.proj .pd{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.45}
+.proj .meta{display:flex;gap:6px;margin-top:9px;align-items:center}
+.tag{font-family:var(--font-hud);font-size:6.5px;padding:4px 6px;border-radius:4px;background:var(--bg3);color:var(--dim);border:1px solid var(--line)}
+.tag.oll{color:var(--amber);border-color:var(--amber-deep)} .tag.chr{color:var(--chroma3);border-color:#3a6a8f}
+
+#sb-main{display:flex;flex-direction:column;overflow:hidden}
+#sb-top{padding:16px 22px;border-bottom:3px solid var(--line);background:var(--bg2)}
+#sb-top h1{font-family:var(--font-read);font-weight:800;font-size:22px;margin:0 0 4px}
+#sb-top p{font-size:14px;color:var(--muted);margin:0}
+#sb-body{flex:1 1 auto;display:grid;grid-template-columns:1fr 280px;overflow:hidden}
+#term{display:flex;flex-direction:column;overflow:hidden;background:#080614}
+#term-out{flex:1 1 auto;overflow:auto;padding:16px 18px;font-family:var(--font-mono);font-size:13.5px;line-height:1.55}
+#term-out .line{white-space:pre-wrap;word-break:break-word}
+#term-out .u{color:var(--ink)} #term-out .u .ps{color:var(--teal)} #term-out .u .pa{color:var(--amber)}
+#term-out .o{color:#bdb8e6} #term-out .ok{color:var(--green)} #term-out .err{color:var(--red)} #term-out .dim2{color:#5b5690}
+#term-out .hl{color:var(--gold)}
+#term-in{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:2px solid var(--line);background:#0a0818}
+#term-in .ps1{font-family:var(--font-mono);color:var(--teal);font-size:13.5px;white-space:nowrap}
+#term-in input{flex:1;background:transparent;border:0;outline:0;color:var(--ink);font-family:var(--font-mono);font-size:13.5px}
+#sb-obj{border-left:3px solid var(--line);background:var(--bg2);overflow:auto;padding:16px 16px}
+#sb-obj h3{font-family:var(--font-hud);font-size:8px;color:var(--dim);margin:0 0 12px;letter-spacing:.5px}
+.obj{display:flex;gap:10px;padding:9px 4px;font-size:13.5px;color:var(--muted);align-items:flex-start;border-bottom:1px dashed var(--line)}
+.obj .ck{width:20px;height:20px;border-radius:4px;border:2px solid var(--line);flex:0 0 auto;display:grid;place-items:center;font-size:12px;margin-top:1px}
+.obj.done{color:var(--ink)} .obj.done .ck{background:var(--teal);border-color:var(--teal-deep);color:var(--bg3)}
+#sb-obj .hintbox{margin-top:14px;font-size:12.5px;color:var(--dim);line-height:1.5;background:var(--panel);padding:11px 12px;border-radius:6px;border-left:3px solid var(--amber)}
+#sb-obj .hintbox code{font-family:var(--font-mono);color:var(--amber);font-size:12px}
+.sb-empty{display:grid;place-items:center;height:100%;text-align:center;color:var(--dim);padding:30px}
+
+/* =====================================================
+   TRIALS (mastery quiz)
+   ===================================================== */
+#view-trials{display:none;padding:28px}
+#view-trials.on{display:block}
+.trials-wrap{max-width:920px;margin:0 auto}
+.trials-head{text-align:center;margin-bottom:24px}
+.trials-head h1{font-family:var(--font-read);font-weight:800;font-size:30px;margin:0 0 8px}
+.trials-head p{color:var(--muted);font-size:15px;margin:0;max-width:620px;margin:0 auto}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.tcard{padding:16px;border-radius:8px;background:var(--panel);box-shadow:0 0 0 2px var(--line);position:relative;overflow:hidden}
+.tcard.locked{opacity:.55}
+.tcard .ti{font-family:var(--font-hud);font-size:8.5px;line-height:1.6;color:var(--ink);min-height:46px}
+.tcard .meta{display:flex;justify-content:space-between;align-items:center;margin:12px 0 10px}
+.tcard .mbar{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+.tcard .mbar > i{display:block;height:100%;background:var(--chroma);width:0;transition:width .5s}
+.tcard .act{margin-top:12px}
+
+/* quiz overlay */
+#quiz{position:fixed;inset:0;background:rgba(6,5,18,.86);z-index:60;display:none;place-items:center;padding:20px}
+#quiz.on{display:grid}
+.quiz-card{width:min(680px,96%);padding:24px 26px;max-height:92vh;overflow:auto}
+.quiz-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.quiz-top .qt{font-family:var(--font-hud);font-size:10px;color:var(--amber)}
+.quiz-top .qx{font-family:var(--font-hud);font-size:8px;color:var(--dim);cursor:pointer}
+.streakrow{display:flex;gap:6px;align-items:center;margin:10px 0 4px}
+.streakrow .lab{font-family:var(--font-hud);font-size:7px;color:var(--dim)}
+.pip{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);background:var(--bg3)}
+.pip.on{background:var(--teal);border-color:var(--teal-deep);box-shadow:0 0 8px var(--teal)}
+.pip.miss{background:var(--red);border-color:var(--red-deep)}
+.q-text{font-size:18px;line-height:1.5;margin:16px 0 18px;color:var(--ink);font-weight:600}
+.q-text code{font-family:var(--font-mono);font-size:15px;background:var(--bg3);border:1px solid var(--line);border-radius:4px;padding:2px 6px;color:var(--amber)}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{text-align:left;padding:14px 16px;border-radius:6px;background:var(--panel);border:2px solid var(--line);border-bottom-width:4px;cursor:pointer;font-size:15px;color:var(--ink);transition:.1s;font-family:var(--font-read)}
+.opt:hover{background:var(--panel2)}
+.opt .ol{font-family:var(--font-hud);font-size:9px;color:var(--amber);margin-right:10px}
+.opt code{font-family:var(--font-mono);font-size:13px;background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--amber)}
+.opt.correct{background:rgba(79,224,207,.16);border-color:var(--teal)}
+.opt.wrong{background:rgba(255,93,108,.16);border-color:var(--red)}
+.opt.dis{pointer-events:none;opacity:.65}
+.explain{margin-top:16px;padding:14px 16px;border-radius:6px;font-size:14.5px;line-height:1.55;display:none}
+.explain.on{display:block;animation:fade .2s}
+.explain.good{background:rgba(79,224,207,.10);border-left:4px solid var(--teal);color:#dffaf5}
+.explain.bad{background:rgba(255,93,108,.10);border-left:4px solid var(--red);color:#ffe0e3}
+.explain b{color:#fff}
+.quiz-foot{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:10px}
+.quiz-foot .prog{font-size:12px;color:var(--dim);font-family:var(--font-mono)}
+
+/* =====================================================
+   SKILL TREE
+   ===================================================== */
+#view-tree{display:none;padding:24px}
+#view-tree.on{display:block}
+.tree-wrap{max-width:1100px;margin:0 auto}
+.tree-head{text-align:center;margin-bottom:20px}
+.tree-head h1{font-family:var(--font-read);font-weight:800;font-size:30px;margin:0 0 8px}
+.tree-head p{color:var(--muted);margin:0}
+.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.actcol{padding:16px;border-radius:10px;background:var(--bg2);box-shadow:0 0 0 2px var(--line)}
+.actcol .ah{font-family:var(--font-hud);font-size:9px;color:var(--amber);margin:0 0 4px;line-height:1.5}
+.actcol .asub{font-size:12px;color:var(--dim);margin:0 0 14px}
+.actcol.a4 .ah{background:var(--chroma);-webkit-background-clip:text;background-clip:text;color:transparent}
+.node{display:flex;gap:11px;align-items:flex-start;padding:11px 12px;border-radius:7px;background:var(--panel);margin-bottom:9px;cursor:pointer;border:2px solid transparent;transition:.12s;position:relative}
+.node:hover{background:var(--panel2)}
+.node.locked{opacity:.5;cursor:not-allowed}
+.node.done{border-color:var(--teal-deep)}
+.node .orb{width:26px;height:26px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;font-size:13px;background:var(--bg3);box-shadow:inset 0 0 0 2px var(--line)}
+.node.s-open .orb{box-shadow:inset 0 0 0 2px var(--amber);color:var(--amber)}
+.node.s-learn .orb{box-shadow:inset 0 0 0 2px var(--gold);color:var(--gold)}
+.node.s-done .orb{background:var(--teal);color:var(--bg3);box-shadow:0 0 10px var(--teal)}
+.node .nb{flex:1;min-width:0}
+.node .nt{font-size:13.5px;color:var(--ink);font-weight:600;line-height:1.3}
+.node .nm{height:6px;background:var(--bg3);border-radius:3px;margin-top:7px;overflow:hidden;border:1px solid var(--line)}
+.node .nm > i{display:block;height:100%;background:var(--chroma);width:0;transition:width .5s}
+
+/* =====================================================
+   TOAST + level up
+   ===================================================== */
+#toast{position:fixed;right:18px;bottom:18px;z-index:80;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.toastmsg{padding:12px 16px;border-radius:6px;background:var(--panel2);box-shadow:0 0 0 2px var(--line),var(--shadow);font-size:13.5px;color:var(--ink);display:flex;gap:10px;align-items:center;animation:tin .3s ease;max-width:360px}
+.toastmsg .ti{font-size:18px}
+.toastmsg.good{box-shadow:0 0 0 2px var(--teal-deep),var(--shadow)}
+.toastmsg.lvl{box-shadow:0 0 0 2px #8a6f1f,var(--shadow);background:linear-gradient(100deg,#2b2350,#3a2f1a)}
+@keyframes tin{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* =====================================================
+   responsive
+   ===================================================== */
+@media (max-width:880px){
+  #view-codex.on,#view-sandbox.on{grid-template-columns:1fr}
+  #codex-side,#sb-side{display:none}
+  #codex-side.mob,#sb-side.mob{display:block;position:absolute;inset:0;z-index:20;border-right:0}
+  #sb-body{grid-template-columns:1fr}
+  #sb-obj{border-left:0;border-top:3px solid var(--line);max-height:230px}
+  #hud{gap:8px;padding:8px 10px}
+  #hud .stats{display:none}
+  .navbtn{font-size:7px;padding:7px 7px}
+  #worldhud{max-width:60%}
+  #help{display:none}
+  .read h1{font-size:26px}
+  #touchpad{display:none}
+  body.touch #touchpad.on{display:grid}
+}
+.mobtoc{display:none}
+@media (max-width:880px){.mobtoc{display:inline-flex}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TOP HUD ============ -->
+  <header id="hud" style="display:none">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <b>LOCALHOST QUEST</b><br><span id="hud-who">the Operator</span>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="k">Level <span id="lvl">1</span></div>
+        <div class="bar xp"><i id="xpbar"></i><small id="xptxt">0 / 100</small></div>
+      </div>
+      <div class="stat">
+        <div class="k">Mastery</div>
+        <div class="bar mas"><i id="masbar"></i><small id="mastxt">0%</small></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <nav id="nav">
+      <button class="navbtn world active" data-go="world"><span class="em">🗺️</span>World</button>
+      <button class="navbtn codex" data-go="codex"><span class="em">📖</span>Codex</button>
+      <button class="navbtn sandbox" data-go="sandbox"><span class="em">⌨️</span>Sandbox</button>
+      <button class="navbtn trials" data-go="trials"><span class="em">⚔️</span>Trials</button>
+      <button class="navbtn tree" data-go="tree"><span class="em">🌳</span>Skills</button>
+      <button class="navbtn ghost" id="savebtn" style="color:var(--dim)"><span class="em">💾</span>Save</button>
+    </nav>
+  </header>
+
+  <main id="views">
+
+    <!-- ============ TITLE ============ -->
+    <section id="view-title" class="view scroll on">
+      <div class="title-card frame">
+        <div class="title-art">
+          <div class="sun"></div><div class="prism"></div><div class="beam"></div><div class="ground"></div>
+        </div>
+        <h1 class="title"><span class="a">LOCALHOST</span> <span class="c">QUEST</span></h1>
+        <p class="title-sub">Run AI on your own machine. Become an expert in <b>Ollama</b> and the <b>ChromaDB</b> vector database — by exploring a world, building real projects in hands-on sandboxes, and proving each concept before it counts as learned.</p>
+        <div class="namegrid">
+          <div class="field">
+            <label for="pname">Operator name</label>
+            <input id="pname" maxlength="14" placeholder="Schneider" autocomplete="off">
+          </div>
+        </div>
+        <label class="field" style="display:block;text-align:center"><span style="font-family:var(--font-hud);font-size:7px;color:var(--dim)">Choose your path</span></label>
+        <div class="classes" id="classes">
+          <div class="classpick" data-cls="Tinkerer"><div class="ico">🔧</div><div class="nm">Tinkerer</div><div class="ds">Learns by doing. +Sandbox focus.</div></div>
+          <div class="classpick" data-cls="Scholar"><div class="ico">📚</div><div class="nm">Scholar</div><div class="ds">Reads deeply. +Codex insight.</div></div>
+          <div class="classpick" data-cls="Architect"><div class="ico">🏛️</div><div class="nm">Architect</div><div class="ds">Designs systems. +RAG mastery.</div></div>
+        </div>
+        <button class="btn" id="startbtn" style="font-size:11px;padding:14px 26px">Begin the Quest ▶</button>
+        <div style="margin-top:12px"><button class="btn ghost sm" id="continuebtn" style="display:none">Continue saved run</button></div>
+        <p class="title-foot">Everything runs locally in your browser. Progress is saved on this device. No data leaves your machine — fittingly.</p>
+      </div>
+    </section>
+
+    <!-- ============ WORLD ============ -->
+    <section id="view-world" class="view">
+      <div id="worldwrap">
+        <canvas id="game" width="800" height="544"></canvas>
+      </div>
+      <div id="worldhud">
+        <div id="zonecard" class="frame">
+          <div class="zn" id="zonename">The Crossroads</div>
+          <div class="zd" id="zonedesc">Walk into a glowing portal to study. Talk to the locals.</div>
+        </div>
+        <div id="minimap" class="frame"><canvas id="mm" width="150" height="102"></canvas></div>
+      </div>
+      <div id="prompt"><span class="key" id="promptkey">E</span><span class="txt" id="prompttxt"></span></div>
+      <div id="help">Move <b>WASD</b> / arrows · Interact <b>E</b> / <b>Space</b><br>Glowing tiles = lessons, sandboxes &amp; trials</div>
+      <div id="touchpad">
+        <div></div><div class="tpad" data-d="up">▲</div><div></div>
+        <div class="tpad" data-d="left">◀</div><div class="tpad act" data-d="act">E</div><div class="tpad" data-d="right">▶</div>
+        <div></div><div class="tpad" data-d="down">▼</div><div></div>
+      </div>
+      <div id="dialogue"><div class="dlg-inner frame">
+        <div class="dlg-who"><div class="dlg-ava" id="dlgava">🦙</div><div class="dlg-name" id="dlgname">Llama Elder</div></div>
+        <div class="dlg-text" id="dlgtext"></div>
+        <div class="dlg-actions" id="dlgactions"></div>
+      </div></div>
+    </section>
+
+    <!-- ============ CODEX ============ -->
+    <section id="view-codex" class="view">
+      <aside id="codex-side" class="scroll"></aside>
+      <div id="codex-main" class="scroll"><div class="read" id="read-pane"></div></div>
+    </section>
+
+    <!-- ============ SANDBOX ============ -->
+    <section id="view-sandbox" class="view">
+      <aside id="sb-side" class="scroll">
+        <h2>⌨ Virtual Lab</h2>
+        <p class="intro">Pick a project. A simulated machine boots up — type real commands to complete each objective. Mistakes give hints, not penalties.</p>
+        <div id="proj-list"></div>
+      </aside>
+      <div id="sb-main">
+        <div id="sb-top"><h1 id="sb-title">Select a project</h1><p id="sb-sub">Your terminal and objectives appear here.</p></div>
+        <div id="sb-body">
+          <div id="term">
+            <div id="term-out" class="scroll"></div>
+            <div id="term-in"><span class="ps1" id="term-ps">~/lab $</span><input id="term-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type a command…" disabled></div>
+          </div>
+          <aside id="sb-obj" class="scroll"><div class="sb-empty">No project loaded yet.</div></aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TRIALS ============ -->
+    <section id="view-trials" class="view scroll">
+      <div class="trials-wrap">
+        <div class="trials-head">
+          <h1>⚔️ Trials of Mastery</h1>
+          <p>A concept is only <b>grasped</b> once you answer its trial questions correctly <b>three times in a row</b>. Miss one and the streak resets — the loop keeps going until it sticks. No question repeats until the pool is exhausted.</p>
+        </div>
+        <div class="tgrid" id="trial-grid"></div>
+      </div>
+    </section>
+
+    <!-- ============ SKILL TREE ============ -->
+    <section id="view-tree" class="view scroll">
+      <div class="tree-wrap">
+        <div class="tree-head"><h1>🌳 Skill Constellation</h1><p>Your path from first install to a working local RAG system. Master concepts to unlock the next act.</p></div>
+        <div class="acts" id="acts"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- quiz overlay -->
+<div id="quiz"><div class="quiz-card frame">
+  <div class="quiz-top"><div class="qt" id="quiz-title">Trial</div><div class="qx" id="quiz-close">✕ leave</div></div>
+  <div class="streakrow"><span class="lab">Streak</span><span class="pip" data-p="0"></span><span class="pip" data-p="1"></span><span class="pip" data-p="2"></span></div>
+  <div class="q-text" id="q-text"></div>
+  <div class="opts" id="q-opts"></div>
+  <div class="explain" id="q-explain"></div>
+  <div class="quiz-foot"><span class="prog" id="q-prog"></span><button class="btn sm" id="q-next" style="display:none">Next ▶</button></div>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+/* ================================================================
+   STORAGE ADAPTER — window.storage (Claude artifact) → localStorage
+   (standalone browser) → in-memory. Async everywhere.
+   ================================================================ */
+const Store=(()=>{
+  const mem={};
+  const hasWS=(typeof window!=='undefined'&&window.storage&&typeof window.storage.get==='function');
+  let hasLS=false; try{const k='__lq';localStorage.setItem(k,'1');localStorage.removeItem(k);hasLS=true;}catch(e){hasLS=false;}
+  return {
+    async get(k){
+      try{
+        if(hasWS){const r=await window.storage.get(k);return r?r.value:null;}
+        if(hasLS){return localStorage.getItem(k);}
+      }catch(e){}
+      return (k in mem)?mem[k]:null;
+    },
+    async set(k,v){
+      try{
+        if(hasWS){await window.storage.set(k,v);return;}
+        if(hasLS){localStorage.setItem(k,v);return;}
+      }catch(e){}
+      mem[k]=v;
+    }
+  };
+})();
+const SAVE_KEY='localhost_quest_save_v1';
+</script>
+<script>
+/* ================================================================
+   CURRICULUM DATA
+   Each lesson: { id, act, idx, title, lede, body:[blocks] }
+   Block keys: h2 | p | ul | code{c,lang} | tip | warn | note | prism | diagram
+   Inline markdown in p/ul/tip/etc: `code`, **bold**, [[kbd]]
+   ================================================================ */
+const LESSONS=[];
+
+/* =================== ACT I — LLAMA VILLAGE =================== */
+LESSONS.push(
+{ id:'oll-intro', act:1, idx:1, title:'What Is Ollama?', lede:'Run powerful large language models entirely on your own machine — no cloud, no API bill, no data leaving your computer.',
+  body:[
+    {p:'**Ollama** is an open-source tool that downloads, manages, and runs large language models (LLMs) locally. Think of it as the **Docker of LLMs**: it bundles a model\u2019s weights, configuration, and prompt template into one package you can pull and run with a single command.'},
+    {p:'When you run a model, Ollama starts a small background server on your machine and talks to it over HTTP. The same server powers the command line, a REST API, and the Python/JavaScript libraries — so everything you learn in the terminal transfers directly to code.'},
+    {diagram:'arch'},
+    {h2:'Why run models locally?'},
+    {ul:[
+      '**Privacy** — your prompts and documents never leave the machine. Ideal for sensitive code, legal text, or medical data.',
+      '**Cost** — no per-token billing. Once a model is downloaded, inference is free.',
+      '**Offline** — it works on a plane at 35,000 feet or in an air-gapped network.',
+      '**Control** — you choose the exact model, version, and quantization, and you can customize behavior with a Modelfile.'
+    ]},
+    {note:'Ollama runs on macOS, Windows, and Linux. A modern GPU (NVIDIA) or Apple Silicon makes it fast, but many small models run fine on CPU.'},
+    {h2:'The mental model'},
+    {p:'Three things make up your local AI stack: the **Ollama server** (always listening on `localhost:11434`), the **models** you\u2019ve pulled (stored on disk), and the **clients** that talk to the server (CLI, your app, or a vector database like ChromaDB). Master this triangle and the rest is detail.'},
+    {prism:'Later in this quest you\u2019ll pair Ollama with **ChromaDB** to build a Retrieval-Augmented Generation (RAG) system that answers questions from your own documents — fully local, end to end.'}
+  ]
+},
+{ id:'oll-install', act:1, idx:2, title:'Install & the Server', lede:'Get Ollama running and understand the daemon on port 11434 that everything else depends on.',
+  body:[
+    {h2:'Installing'},
+    {ul:[
+      '**macOS / Windows** — download the installer from `ollama.com` and run it. The app starts the server automatically and keeps it running in the background.',
+      '**Linux** — one line: `curl -fsSL https://ollama.com/install.sh | sh`',
+      '**Docker** — `docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama`'
+    ]},
+    {h2:'The server (the part people miss)'},
+    {p:'Every Ollama command is really an HTTP call to a local server. On macOS and Windows the desktop app launches it for you. On a headless Linux box or in a container, you start it yourself:'},
+    {code:{lang:'bash', c:'# Start the server manually (headless / Linux / debugging)\nollama serve\n# It now listens on http://localhost:11434'}},
+    {p:'You almost never need `ollama serve` on desktop — but knowing it exists explains everything else. If a command ever says it can\u2019t connect, the server isn\u2019t running.'},
+    {h2:'Verify it\u2019s alive'},
+    {code:{lang:'bash', c:'# The simplest health check — list installed models via the API\ncurl http://localhost:11434/api/tags\n\n# Or just\nollama --version'}},
+    {tip:'On Linux, manage the service with `sudo systemctl start ollama` and `sudo systemctl restart ollama`. After installing GPU drivers, restart the service so Ollama picks them up.'},
+    {warn:'If Ollama is installed but the command isn\u2019t found, it\u2019s a PATH issue. On Linux it lives in `/usr/local/bin`; on macOS check `/usr/local/bin` or `/opt/homebrew/bin`. Run `which ollama` to locate it.'}
+  ]
+},
+{ id:'oll-run', act:1, idx:3, title:'Your First Model', lede:'Pull a model and start chatting in seconds — then learn what actually happened.',
+  body:[
+    {h2:'Run = pull + chat'},
+    {p:'The single most important command. If the model isn\u2019t on your machine yet, `ollama run` downloads it first, then drops you into an interactive chat:'},
+    {code:{lang:'bash', c:'# Download (if needed) and chat with a model\nollama run llama3.2\n\n# Pick a specific size with a tag\nollama run qwen3:8b\n>>> Why is the sky blue?'}},
+    {p:'Find every model and its tags at `ollama.com/library`. A **tag** after the colon selects a size or quantization, e.g. `qwen3:8b`, `qwen3:14b`. With no tag, you get the default tag for that model — usually a sensible mid-size build.'},
+    {h2:'Pull without chatting'},
+    {p:'To download ahead of time (e.g. while you have internet, before going offline), use `pull`. Cancelled downloads resume where they left off:'},
+    {code:{lang:'bash', c:'ollama pull llama3.2:3b      # ~2 GB, great on modest hardware\nollama pull nomic-embed-text  # an embedding model (used later for RAG)'}},
+    {h2:'Inside interactive mode'},
+    {p:'Once chatting, special commands start with `/`:'},
+    {ul:[
+      '`/bye` or [[Ctrl]]+[[D]] — exit the chat',
+      '`/set parameter temperature 0.2` — change a setting mid-session',
+      '`/show info` — see the model\u2019s details',
+      '`/clear` — wipe the conversation context',
+      'Triple-quote `"""` to write multi-line prompts'
+    ]},
+    {tip:'Run a one-shot prompt without entering chat mode by passing it inline: `ollama run llama3.2 "Summarize quantum tunneling in one sentence."`'},
+    {note:'Models with a `:cloud` tag run on Ollama\u2019s servers instead of your machine (handy for models too big for your hardware). Those require `ollama signin`. The default, and the focus of this quest, is fully local.'}
+  ]
+},
+{ id:'oll-manage', act:1, idx:4, title:'Managing Your Models', lede:'Inventory, inspect, copy, and delete models — and reclaim gigabytes of disk space.',
+  body:[
+    {h2:'The daily commands'},
+    {code:{lang:'bash', c:'ollama list          # what\u2019s installed (alias: ollama ls)\nollama ps            # what\u2019s loaded in memory right now\nollama show llama3.2  # architecture, parameters, the Modelfile, license\nollama cp llama3.2 my-llama   # copy a model under a new name\nollama rm qwen3:14b   # delete a model and free disk space\nollama stop llama3.2  # unload a running model from VRAM now'}},
+    {h2:'\u201cWhy is my VRAM full?\u201d'},
+    {p:'`ollama ps` is your debugger. It shows each loaded model, its size, whether it\u2019s on GPU or CPU, the context length, and when it will be evicted:'},
+    {code:{lang:'bash', c:'$ ollama ps\nNAME        ID            SIZE    PROCESSOR    CONTEXT   UNTIL\nllama3.2:3b a80c4f17acd5  3.5 GB  100% GPU     4096      4 minutes from now'}},
+    {p:'By default Ollama keeps a model in memory for **5 minutes** after the last request, then unloads it automatically. `ollama stop` evicts it immediately.'},
+    {h2:'Where models live'},
+    {ul:[
+      'macOS / Linux: `~/.ollama/models`',
+      'Windows: `%USERPROFILE%\\.ollama\\models`',
+      'Change the location with the `OLLAMA_MODELS` environment variable.'
+    ]},
+    {code:{lang:'bash', c:'# See how much disk your models use (macOS/Linux)\ndu -sh ~/.ollama/models'}},
+    {tip:'You can move models between machines by copying the `~/.ollama/models` directory — `ollama list` will recognize them on the other side, no re-download needed.'}
+  ]
+},
+{ id:'oll-models', act:1, idx:5, title:'Choosing Models & Quantization', lede:'Parameters, GGUF, and quantization levels — how to pick a model that actually fits your hardware.',
+  body:[
+    {h2:'Parameters: the size of the brain'},
+    {p:'Model size is measured in **parameters** (the 8B in `qwen3:8b` means 8 billion). More parameters generally means more capability — and more memory and slower inference. A rough rule: a model needs **memory roughly equal to its file size** to run, plus extra for context.'},
+    {h2:'Quantization: shrinking the model'},
+    {p:'Full-precision weights are large. **Quantization** stores them in fewer bits, dramatically cutting size and memory with only a small quality loss. Ollama uses the **GGUF** format and defaults to **Q4_K_M** (4-bit) unless a tag says otherwise.'},
+    {ul:[
+      '`q4_K_M` — the default. Best balance of size, speed, and quality. Start here.',
+      '`q8_0` — 8-bit. Higher quality, roughly double the size of q4.',
+      '`fp16` — full(ish) precision. Largest, highest fidelity, needs serious VRAM.'
+    ]},
+    {code:{lang:'bash', c:'ollama pull llama3.2:3b        # default Q4_K_M (~2 GB)\nollama pull llama3.2:3b-fp16   # full precision (~6.5 GB)\nollama pull qwen3:8b-q8_0      # explicit 8-bit quantization'}},
+    {h2:'Picking the right one'},
+    {ul:[
+      '**8 GB RAM / no GPU** — stick to 1B\u20133B models at q4.',
+      '**16 GB VRAM** — comfortable with 7B\u20138B models; a 14B at q4 may fit.',
+      '**24 GB+** — 14B\u201332B models open up.',
+      'Two 8B models loaded at once need ~16 GB — they share VRAM.'
+    ]},
+    {warn:'Out-of-memory errors? Drop to a smaller quantization (q8 \u2192 q4) or a smaller model. Reserve VRAM for the OS with `OLLAMA_GPU_OVERHEAD` (e.g. `524288000` for 512 MB).'},
+    {note:'There are specialist models too: coding models (e.g. Qwen Coder, DeepSeek-Coder), vision models (gemma3, llava), reasoning models (gpt-oss, deepseek-r1), and embedding models (nomic-embed-text). Match the model to the job.'}
+  ]
+},
+{ id:'oll-params', act:1, idx:6, title:'Tuning Inference', lede:'Temperature, context window, and the knobs that change how a model responds.',
+  body:[
+    {h2:'The parameters that matter most'},
+    {ul:[
+      '**temperature** (0\u20132) — randomness. `0` is deterministic and focused; `0.8`+ is creative. Use low temps for code and extraction, higher for brainstorming.',
+      '**num_ctx** — the context window in tokens (how much it can \u201cremember\u201d). Default is often 4096. Raise it for long documents — but it costs memory.',
+      '**num_predict** — max tokens to generate in the response.',
+      '**top_p / top_k** — alternative sampling controls; usually leave at defaults.',
+      '**seed** — fix it for reproducible output (with temperature 0).'
+    ]},
+    {h2:'Setting them at runtime'},
+    {p:'The `-p` flag changes a parameter for a single run — no Modelfile needed. You can stack several:'},
+    {code:{lang:'bash', c:'# Bigger context, lower temperature\nollama run qwen3:14b -p num_ctx=32768 -p temperature=0.5\n\n# Deterministic coding run\nollama run qwen3-coder -p temperature=0 -p num_ctx=65536'}},
+    {p:'Inside interactive mode you can also use `/set parameter temperature 0.2`. In code or curl, pass an `options` object on the request.'},
+    {tip:'**Reach for temperature first.** It has the biggest, most predictable effect. Set `0` when you need the same answer every time (tests, data extraction, tool calls); raise it when variety helps.'},
+    {warn:'A huge `num_ctx` isn\u2019t free — it can blow past your VRAM and force the model onto CPU, making it crawl. Increase it only as far as your documents actually need.'},
+    {note:'To make settings permanent for a model, bake them into a **Modelfile** with `PARAMETER` directives — the first lesson of the next act.'}
+  ]
+});
+
+/* =================== ACT II — THE FORGE =================== */
+LESSONS.push(
+{ id:'oll-modelfile', act:2, idx:7, title:'Modelfiles: Custom Models', lede:'Forge your own model variants with a personality, baked-in settings, and a system prompt.',
+  body:[
+    {p:'A **Modelfile** is a small recipe — very much like a Dockerfile — that builds a customized model from an existing base. You set a system prompt, lock in parameters, and register it as a new named model.'},
+    {diagram:'modelfile'},
+    {h2:'The directives'},
+    {ul:[
+      '`FROM` — the base model (required), e.g. `FROM llama3.2`.',
+      '`SYSTEM` — the system prompt that defines the model\u2019s role and rules.',
+      '`PARAMETER` — defaults like `temperature`, `num_ctx`, `stop` sequences.',
+      '`TEMPLATE` — the raw prompt template (advanced; controls how messages are formatted).',
+      '`MESSAGE` — seed example turns for few-shot behavior.',
+      '`ADAPTER` — attach a LoRA fine-tuning adapter. `LICENSE` — embed a license string.'
+    ]},
+    {h2:'Build one'},
+    {code:{lang:'docker', c:'# File: Modelfile\nFROM llama3.2\n\nPARAMETER temperature 0.3\nPARAMETER num_ctx 8192\n\nSYSTEM """\nYou are a senior Python backend engineer.\nAnswer with concise code snippets and brief explanations only.\n"""'}},
+    {code:{lang:'bash', c:'# Register it, then run it like any other model\nollama create py-mentor -f Modelfile\nollama run py-mentor'}},
+    {tip:'Use `ollama show <model>` to view the Modelfile of any model you\u2019ve pulled — a great way to learn good system prompts and templates from the pros.'},
+    {note:'A Modelfile doesn\u2019t copy the weights — it layers your config on top of the base model, so custom variants are cheap to create.'}
+  ]
+},
+{ id:'oll-api', act:2, idx:8, title:'The REST API', lede:'Everything the CLI does, your code can do too — over plain HTTP on port 11434.',
+  body:[
+    {p:'The Ollama server exposes a REST API at `http://localhost:11434`. All endpoints take JSON. The two you\u2019ll use constantly are `/api/generate` (single prompt) and `/api/chat` (a conversation).'},
+    {diagram:'reqflow'},
+    {h2:'/api/generate — one prompt, one completion'},
+    {code:{lang:'bash', c:'curl http://localhost:11434/api/generate -d \'{\n  "model": "llama3.2",\n  "prompt": "Why is the sky blue? One sentence.",\n  "stream": false\n}\''}},
+    {h2:'/api/chat — multi-turn with roles'},
+    {p:'Send a `messages` array with `role` (`system`, `user`, `assistant`) and `content`. To continue a conversation, append the model\u2019s reply and the next user turn, then send the whole array again — the server is stateless, so **you** hold the history.'},
+    {code:{lang:'bash', c:'curl http://localhost:11434/api/chat -d \'{\n  "model": "llama3.2",\n  "stream": false,\n  "messages": [\n    {"role": "system", "content": "You are concise."},\n    {"role": "user", "content": "Define a vector embedding."}\n  ]\n}\''}},
+    {h2:'Streaming'},
+    {p:'By default `stream` is **true**: the server sends newline-delimited JSON objects, one token chunk at a time — great for typewriter UIs. Set `"stream": false` to get a single complete JSON object instead.'},
+    {ul:[
+      'Set per-request options under an `options` key: `"options": {"temperature": 0, "num_ctx": 8192}`.',
+      'Other endpoints: `/api/tags` (list), `/api/ps` (loaded), `/api/show`, `/api/pull`, `/api/create`, `/api/copy`, `/api/delete`, `/api/embed`.'
+    ]},
+    {tip:'The response includes timing fields in nanoseconds (`total_duration`, `load_duration`) and token counts (`prompt_eval_count`, `eval_count`) — useful for measuring performance.'}
+  ]
+},
+{ id:'oll-openai', act:2, idx:9, title:'OpenAI Compatibility & SDKs', lede:'Drop Ollama into any app that already speaks OpenAI — or use the first-party libraries.',
+  body:[
+    {h2:'The OpenAI-compatible endpoint'},
+    {p:'Ollama mirrors the OpenAI API at `/v1`. Point any OpenAI client at `http://localhost:11434/v1`, pass any non-empty string as the key, and existing code just works — locally and for free.'},
+    {code:{lang:'python', c:'from openai import OpenAI\n\nclient = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")\n\nresp = client.chat.completions.create(\n    model="llama3.2",\n    messages=[{"role": "user", "content": "Hello!"}],\n)\nprint(resp.choices[0].message.content)'}},
+    {p:'Supported compatible routes include `/v1/chat/completions`, `/v1/embeddings`, and `/v1/models`. Ollama also ships an Anthropic-compatible layer.'},
+    {h2:'The native Python library'},
+    {code:{lang:'bash', c:'pip install ollama'}},
+    {code:{lang:'python', c:'import ollama\n\n# Chat\nresp = ollama.chat(model="llama3.2",\n    messages=[{"role": "user", "content": "Why is the sky blue?"}])\nprint(resp.message.content)\n\n# Single completion\nprint(ollama.generate(model="llama3.2", prompt="Hello").response)\n\n# Point at a remote host\nfrom ollama import Client\nclient = Client(host="http://192.168.1.50:11434")'}},
+    {note:'There\u2019s a matching JavaScript library (`npm i ollama`) with the same shape: `ollama.chat({ model, messages })`. Both support async clients and streaming.'},
+    {tip:'**When to use which?** Use the OpenAI-compatible API to reuse existing tooling and frameworks; use the native `ollama` library for the cleanest access to Ollama-specific features like `format`, `think`, and model management.'}
+  ]
+},
+{ id:'oll-structured', act:2, idx:10, title:'Structured Outputs', lede:'Force the model to return valid JSON that matches a schema you define — reliably parseable, every time.',
+  body:[
+    {p:'Free-form text is hard to parse. **Structured outputs** constrain a model\u2019s response to a JSON schema you provide, so you can extract data, describe images, or feed downstream code without brittle string parsing.'},
+    {h2:'Pass a schema in the `format` field'},
+    {code:{lang:'bash', c:'curl -X POST http://localhost:11434/api/chat -d \'{\n  "model": "llama3.2",\n  "stream": false,\n  "messages": [{"role": "user", "content": "Tell me about Canada."}],\n  "format": {\n    "type": "object",\n    "properties": {\n      "name":      {"type": "string"},\n      "capital":   {"type": "string"},\n      "languages": {"type": "array", "items": {"type": "string"}}\n    },\n    "required": ["name", "capital", "languages"]\n  }\n}\''}},
+    {p:'The reply\u2019s content is now guaranteed to match the schema, e.g. `{"name":"Canada","capital":"Ottawa","languages":["English","French"]}`. Passing `"format": "json"` (the string) enables looser JSON mode without a fixed shape.'},
+    {h2:'In Python with Pydantic (recommended)'},
+    {code:{lang:'python', c:'from ollama import chat\nfrom pydantic import BaseModel\n\nclass Country(BaseModel):\n    name: str\n    capital: str\n    languages: list[str]\n\nresp = chat(model="llama3.2",\n    messages=[{"role": "user", "content": "Tell me about Canada."}],\n    format=Country.model_json_schema())\n\ncountry = Country.model_validate_json(resp.message.content)\nprint(country)'}},
+    {tip:'Also restate \u201creturn the answer as JSON\u201d in the prompt itself. Grounding the model with the schema in words alongside the `format` field improves reliability.'},
+    {prism:'Structured outputs pair beautifully with **vision models** (extract fields from an invoice image) and with the **tool calling** you\u2019ll learn next.'}
+  ]
+},
+{ id:'oll-tools', act:2, idx:11, title:'Tool Calling', lede:'Let the model call your functions — fetch weather, query a database, run code — and use the results.',
+  body:[
+    {p:'**Tool calling** (function calling) lets a model decide to invoke functions you describe. You pass a `tools` array; the model either answers directly or returns a `tool_calls` list naming the function and its arguments. You run the function, send the result back, and the model continues.'},
+    {diagram:'toolloop'},
+    {h2:'Describe the tools'},
+    {code:{lang:'bash', c:'curl http://localhost:11434/api/chat -d \'{\n  "model": "llama3.1",\n  "stream": false,\n  "messages": [{"role": "user", "content": "What is the weather in Nairobi?"}],\n  "tools": [{\n    "type": "function",\n    "function": {\n      "name": "get_weather",\n      "description": "Get current weather for a city",\n      "parameters": {\n        "type": "object",\n        "properties": {"city": {"type": "string"}},\n        "required": ["city"]\n      }\n    }\n  }]\n}\''}},
+    {h2:'The loop'},
+    {ul:[
+      '1. Model returns `tool_calls: [{ function: { name: "get_weather", arguments: { city: "Nairobi" } } }]`.',
+      '2. **You** execute `get_weather("Nairobi")` in your own code.',
+      '3. Append a message with `role: "tool"` containing the result.',
+      '4. Send the conversation back; the model now answers using the real data.'
+    ]},
+    {note:'Tool calling needs a tool-capable model. Examples include Llama 3.1+, Qwen 2.5 / Qwen 3, Mistral, and others. The model only *chooses* tools — your code always does the actual work.'},
+    {warn:'Never blindly execute model-chosen actions with side effects (deleting files, sending money). Validate arguments and gate dangerous tools behind your own checks.'}
+  ]
+},
+{ id:'oll-multimodal', act:2, idx:12, title:'Vision & Reasoning Models', lede:'Send images to multimodal models, and let reasoning models think before they answer.',
+  body:[
+    {h2:'Vision: send an image'},
+    {p:'Multimodal models such as **gemma3** and **llava** accept images. From the CLI, just put the image path in your prompt:'},
+    {code:{lang:'bash', c:'ollama run gemma3 "What is in this image? /home/you/screenshot.png"'}},
+    {p:'Over the API, pass images as an array of **base64-encoded** strings on the message:'},
+    {code:{lang:'python', c:'import ollama\nresp = ollama.chat(model="gemma3", messages=[{\n    "role": "user",\n    "content": "Describe this image.",\n    "images": ["./photo.jpg"],   # path or base64; the lib handles encoding\n}])\nprint(resp.message.content)'}},
+    {h2:'Reasoning models think first'},
+    {p:'Reasoning models (e.g. **gpt-oss**, **deepseek-r1**) produce an internal chain of thought before the final answer. Control it with the `think` parameter:'},
+    {code:{lang:'python', c:'resp = ollama.chat(model="gpt-oss",\n    messages=[{"role": "user", "content": "Solve 17 * 23 step by step."}],\n    think=True)\nprint(resp.message.thinking)  # the reasoning\nprint(resp.message.content)   # the answer'}},
+    {tip:'Combine capabilities: a vision model with **structured outputs** can read a receipt image and return clean JSON line items. A reasoning model with **tools** can plan multi-step actions.'},
+    {note:'Vision and reasoning are detected from the model\u2019s metadata and template — Ollama enables the right behavior automatically when the model supports it.'}
+  ]
+},
+{ id:'oll-embed', act:2, idx:13, title:'Embeddings', lede:'Turn text into vectors of meaning — the bridge from Ollama to vector search and RAG.',
+  body:[
+    {p:'An **embedding** is a list of numbers (a vector) that captures the *meaning* of a piece of text. Texts with similar meaning produce vectors that sit close together in space. This is the foundation of semantic search and Retrieval-Augmented Generation.'},
+    {diagram:'embed'},
+    {h2:'Pull an embedding model'},
+    {p:'Use a model trained specifically for embeddings — they\u2019re small, fast, and produce compact vectors:'},
+    {code:{lang:'bash', c:'ollama pull nomic-embed-text     # 768 dimensions, strong + fast\nollama pull mxbai-embed-large    # 1024 dimensions, broad coverage'}},
+    {h2:'Generate a vector'},
+    {code:{lang:'bash', c:'curl http://localhost:11434/api/embed -d \'{\n  "model": "nomic-embed-text",\n  "input": "The sky is blue because of Rayleigh scattering"\n}\''}},
+    {code:{lang:'python', c:'import ollama\n\nresp = ollama.embed(model="nomic-embed-text",\n                    input="The sky is blue because of Rayleigh scattering")\nprint(resp.embeddings)   # list of vectors (one per input)'}},
+    {note:'`/api/embed` (and `ollama.embed`) is the current endpoint and accepts a single string **or a list** of strings, returning `embeddings`. The older `/api/embeddings` / `ollama.embeddings(prompt=...)` returns one vector under `embedding` — you\u2019ll still see it in tutorials.'},
+    {warn:'**Use a real embedding model, not a chat model.** A chat model like llama3 can technically embed, but the vectors are huge (4096+ dims) and worse for search. `nomic-embed-text` gives better results at a fraction of the size.'},
+    {prism:'A vector alone isn\u2019t useful — you need somewhere to store thousands of them and search by similarity. That\u2019s exactly what **ChromaDB** is for. Onward to the Prism Caverns.'}
+  ]
+},
+{ id:'oll-ops', act:2, idx:14, title:'Operations & Performance', lede:'Keep models warm, serve many requests, run in Docker, and expose Ollama safely on a network.',
+  body:[
+    {h2:'Keep models loaded (or not)'},
+    {p:'Loading a model into memory takes time. The `keep_alive` setting controls how long it stays resident after a request:'},
+    {ul:[
+      '`OLLAMA_KEEP_ALIVE=5m` — default; unload after 5 minutes idle.',
+      '`keep_alive: 0` on a request — unload immediately after responding (free VRAM fast).',
+      '`keep_alive: -1` — keep the model loaded indefinitely (a warm, always-ready server).'
+    ]},
+    {h2:'Serve concurrent requests'},
+    {code:{lang:'bash', c:'OLLAMA_NUM_PARALLEL=4      # handle 4 requests at once\nOLLAMA_FLASH_ATTENTION=1   # faster attention on supported GPUs\nOLLAMA_GPU_OVERHEAD=...    # reserve VRAM for the OS (bytes)'}},
+    {p:'On Linux, set these in a systemd override so they persist:'},
+    {code:{lang:'bash', c:'# /etc/systemd/system/ollama.service.d/override.conf\n[Service]\nEnvironment="OLLAMA_HOST=0.0.0.0:11434"\nEnvironment="OLLAMA_NUM_PARALLEL=4"\nEnvironment="OLLAMA_FLASH_ATTENTION=1"'}},
+    {h2:'Expose on a network'},
+    {p:'By default Ollama binds to `127.0.0.1` (local only). Set `OLLAMA_HOST=0.0.0.0:11434` to accept connections from other machines.'},
+    {warn:'Binding to `0.0.0.0` puts an **unauthenticated** API on your network. Only do it on a trusted LAN, and put it behind a firewall or reverse proxy with auth before anything touches the public internet.'},
+    {tip:'In Docker, mount a volume so models survive restarts: `-v ollama:/root/.ollama`. Without it, every `docker rm` deletes your downloaded models.'},
+    {note:'Cloud models (`model:cloud`) let you run very large models on Ollama\u2019s infrastructure after `ollama signin`, while keeping the same CLI and API. Useful when a model is too big for local hardware.'}
+  ]
+});
+console.log('Acts I\u2013II loaded:', LESSONS.length, 'lessons');
+</script>
+<script>
+/* =================== ACT III — PRISM CAVERNS (ChromaDB) =================== */
+LESSONS.push(
+{ id:'chr-vectors', act:3, idx:15, title:'Vectors & Vector Space', lede:'Meaning as geometry: how embeddings turn words into points you can measure the distance between.',
+  body:[
+    {p:'You met embeddings with Ollama. Now the key intuition: an embedding places a piece of text as a **point in a high-dimensional space**. The clever part is that *meaning becomes position* — \u201ccat\u201d and \u201ckitten\u201d land near each other, while \u201ccat\u201d and \u201cspreadsheet\u201d are far apart.'},
+    {diagram:'vectorspace'},
+    {h2:'Why this is powerful'},
+    {p:'Traditional search matches keywords. If you search \u201cautomobile\u201d it misses a document that only says \u201ccar.\u201d **Semantic search** compares *meaning*: the query and the documents are embedded into the same space, and you return the nearest neighbors — regardless of exact words.'},
+    {h2:'Measuring closeness'},
+    {ul:[
+      '**Cosine similarity** — the angle between two vectors. Direction matters, length doesn\u2019t. The most common choice for text.',
+      '**L2 (Euclidean)** — straight-line distance between points.',
+      '**Inner product (ip)** — a dot-product measure, often used with normalized vectors.'
+    ]},
+    {diagram:'distance'},
+    {note:'Most systems report a **distance**, where *smaller means more similar*. Keep that straight: a result with distance 0.1 is closer (better) than one with distance 0.6.'},
+    {prism:'A vector database stores millions of these points and finds nearest neighbors in milliseconds using an index (Chroma uses **HNSW**). That\u2019s the next lesson.'}
+  ]
+},
+{ id:'chr-intro', act:3, idx:16, title:'Meet ChromaDB', lede:'An open-source vector database that\u2019s a single pip install — perfect for local, privacy-first AI.',
+  body:[
+    {p:'**ChromaDB** stores embeddings together with their original documents and metadata, and lets you query by semantic similarity. It\u2019s lightweight, embeddable, and pairs naturally with Ollama for a fully local stack.'},
+    {h2:'Install'},
+    {code:{lang:'bash', c:'pip install chromadb'}},
+    {h2:'The four client modes'},
+    {p:'How you create the client decides where data lives:'},
+    {code:{lang:'python', c:'import chromadb\n\n# 1) In-memory — fast, disposable. Great for tests/prototyping.\nclient = chromadb.Client()              # (or EphemeralClient())\n\n# 2) Persistent — saved to disk, survives restarts. Your daily driver.\nclient = chromadb.PersistentClient(path="./chroma_db")\n\n# 3) Client/server — talk to a running Chroma server over HTTP.\nclient = chromadb.HttpClient(host="localhost", port=8000)\n\n# 4) Chroma Cloud — managed hosting.\n# client = chromadb.CloudClient(api_key=..., tenant=..., database=...)'}},
+    {ul:[
+      '**In-memory** — data vanishes when the process ends.',
+      '**Persistent** — writes to the given directory automatically; use this for anything you want to keep.',
+      '**Http** — multiple processes share one database; the production shape.'
+    ]},
+    {warn:'There are two Python packages: install **`chromadb`** for local/embedded use. The slimmer `chromadb-client` is only for talking to a remote server and lacks local dependencies — don\u2019t mix them.'},
+    {note:'Chroma also has SDKs for JavaScript/TypeScript, Rust, Go, Java, and more — the concepts (collections, add, query) are identical across them.'}
+  ]
+},
+{ id:'chr-collections', act:3, idx:17, title:'Collections', lede:'The fundamental unit of storage — like a table in a database, holding vectors of one shape.',
+  body:[
+    {p:'A **collection** groups related embeddings. It\u2019s the equivalent of a table (or an index). Each collection holds vectors of the **same dimensionality** along with their documents and metadata.'},
+    {diagram:'collection'},
+    {h2:'Create, get, or both'},
+    {code:{lang:'python', c:'# Create (errors if it already exists)\ncol = client.create_collection("docs")\n\n# Get an existing one\ncol = client.get_collection("docs")\n\n# Get it, or create it if missing — the convenient default\ncol = client.get_or_create_collection("docs")\n\nclient.list_collections()        # all collections\nclient.delete_collection("docs") # remove one'}},
+    {h2:'Choosing the distance metric'},
+    {p:'Set the similarity space at creation time via metadata. Valid values are `l2` (default), `ip`, and `cosine`:'},
+    {code:{lang:'python', c:'col = client.create_collection(\n    name="docs",\n    metadata={"hnsw:space": "cosine"},   # recommended for text\n)'}},
+    {h2:'Naming rules'},
+    {ul:[
+      '3\u2013512 characters long.',
+      'Start and end with a lowercase letter or a digit.',
+      'May contain dots, dashes, and underscores in between.',
+      'No two consecutive dots, and not a valid IP address.'
+    ]},
+    {tip:'Pick the distance metric deliberately and never change it on an existing collection. For most text/RAG work, `cosine` is the right default.'}
+  ]
+},
+{ id:'chr-add', act:3, idx:18, title:'Adding Documents', lede:'Put data in: Chroma can embed text for you automatically, or you can supply your own vectors.',
+  body:[
+    {p:'The `add` method takes parallel lists: `documents`, optional `metadatas`, and required unique `ids`. If you don\u2019t supply embeddings, Chroma embeds the documents for you using the collection\u2019s **embedding function**.'},
+    {code:{lang:'python', c:'col.add(\n    documents=[\n        "Python is a high-level programming language.",\n        "ChromaDB is an open-source vector database.",\n        "Claude is an AI assistant built by Anthropic.",\n    ],\n    metadatas=[{"topic": "lang"}, {"topic": "db"}, {"topic": "ai"}],\n    ids=["doc1", "doc2", "doc3"],   # must be unique within the collection\n)\nprint(col.count())   # 3'}},
+    {h2:'The default embedding function'},
+    {p:'Out of the box, Chroma uses **Sentence Transformers (`all-MiniLM-L6-v2`)**, which produces **384-dimensional** vectors — no API key, runs locally. (Soon you\u2019ll swap this for an Ollama-powered function.)'},
+    {h2:'Supplying your own embeddings'},
+    {p:'If you generate vectors elsewhere (e.g. with Ollama), pass them directly and Chroma won\u2019t embed anything itself:'},
+    {code:{lang:'python', c:'col.add(\n    ids=["a", "b"],\n    documents=["first chunk", "second chunk"],\n    embeddings=[[0.12, -0.04, ...], [0.31, 0.08, ...]],  # your vectors\n    metadatas=[{"src": "notes"}, {"src": "notes"}],\n)'}},
+    {warn:'**Every vector in a collection must have the same dimension.** Mixing a 768-dim Ollama vector into a 384-dim collection raises an `InvalidDimensionException`. One collection = one embedding model.'},
+    {tip:'`add` takes lists, so batch your inserts. Calling `add` in a tight loop for thousands of docs is slow — build the lists and add in batches instead. Re-adding the same `id` keeps the original and ignores the new value (use `upsert` to overwrite).'}
+  ]
+},
+{ id:'chr-query', act:3, idx:19, title:'Querying & Managing Data', lede:'Search by similarity, fetch by id, and update or delete — the full read/write surface.',
+  body:[
+    {h2:'Semantic search with query()'},
+    {p:'Pass `query_texts` (Chroma embeds them with the collection\u2019s function) and `n_results`. You get back the closest matches per query, in order, with their distances:'},
+    {code:{lang:'python', c:'res = col.query(\n    query_texts=["What is a vector database?"],\n    n_results=2,\n)\nfor doc, dist in zip(res["documents"][0], res["distances"][0]):\n    print(f"[{dist:.3f}] {doc}")\n# [0.31] ChromaDB is an open-source vector database.\n# [0.58] Python is a high-level programming language.'}},
+    {p:'Results are nested one level per query (you can pass several at once), so `res["documents"][0]` is the list for your first query. You can also query by `query_embeddings` if you already have vectors.'},
+    {h2:'Get, count, update, delete'},
+    {code:{lang:'python', c:'col.get(ids=["doc1", "doc2"])          # fetch specific records\ncol.get(limit=10, offset=0)            # page through everything\ncol.count()                            # how many records\n\ncol.update(ids=["doc1"], documents=["updated text"])\ncol.upsert(ids=["doc9"], documents=["insert or overwrite"])\ncol.delete(ids=["doc3"])               # remove by id (or by filter)'}},
+    {h2:'Control what comes back'},
+    {p:'Use `include` to choose fields and keep payloads small — e.g. `include=["documents", "metadatas", "distances"]`. (Embeddings are large, so they\u2019re often excluded.)'},
+    {note:'Distances depend on the collection\u2019s metric. With cosine/L2, **lower is closer**. The exact numbers aren\u2019t meaningful on their own — use them to *rank* results.'}
+  ]
+},
+{ id:'chr-filter', act:3, idx:20, title:'Metadata Filtering', lede:'Combine semantic search with precise filters on metadata and document text — the secret to good retrieval.',
+  body:[
+    {p:'Pure similarity search can drift off-topic. Filters narrow the candidate set *before* ranking, so a query about Python auth code won\u2019t return TypeScript tests that merely mention \u201cauth.\u201d Two filters exist: `where` (on metadata) and `where_document` (on the text itself).'},
+    {h2:'Filter on metadata with where'},
+    {code:{lang:'python', c:'res = col.query(\n    query_texts=["tell me about a citrus fruit"],\n    n_results=3,\n    where={"category": "food"},        # only docs tagged category=food\n)'}},
+    {p:'Operators give you range and set logic:'},
+    {ul:[
+      '`$eq`, `$ne` — equals / not equals',
+      '`$gt`, `$gte`, `$lt`, `$lte` — numeric comparisons',
+      '`$in`, `$nin` — value in / not in a list',
+      '`$and`, `$or` — combine conditions'
+    ]},
+    {code:{lang:'python', c:'where={\n  "$and": [\n    {"language": {"$eq": "python"}},\n    {"year":     {"$gte": 2023}},\n  ]\n}'}},
+    {h2:'Filter on document content with where_document'},
+    {code:{lang:'python', c:'res = col.query(\n    query_texts=["AI assistant"],\n    n_results=3,\n    where_document={"$contains": "Anthropic"},   # text must contain this\n)'}},
+    {tip:'**Use metadata aggressively.** Store fields like source, type, language, date, and section on every chunk, then filter by them. It\u2019s the single biggest lever for retrieval quality in real systems.'},
+    {note:'Plan your metadata schema before you ingest. Adding a useful field later means re-processing your documents.'}
+  ]
+},
+{ id:'chr-ef', act:3, idx:21, title:'Embedding Functions', lede:'Swap the default embedder for one you control — including an Ollama-powered function.',
+  body:[
+    {p:'An **embedding function (EF)** is what turns documents and queries into vectors. The collection remembers which EF it was created with, so the *same* function is used for both indexing and searching — automatically.'},
+    {h2:'The Ollama embedding function'},
+    {p:'Chroma ships a built-in wrapper around Ollama\u2019s embeddings API. This is the heart of a fully local stack — Ollama produces the vectors, Chroma stores and searches them:'},
+    {code:{lang:'python', c:'import chromadb\nfrom chromadb.utils.embedding_functions import OllamaEmbeddingFunction\n\nollama_ef = OllamaEmbeddingFunction(\n    url="http://localhost:11434",\n    model_name="nomic-embed-text",\n)\n\nclient = chromadb.PersistentClient(path="./chroma_db")\ncol = client.get_or_create_collection(\n    name="local_docs",\n    embedding_function=ollama_ef,\n    metadata={"hnsw:space": "cosine"},\n)\n\n# Now add()/query() text and Ollama does the embedding for you\ncol.add(ids=["1"], documents=["Llamas are camelids related to vicunas."])\nprint(col.query(query_texts=["What family are llamas in?"], n_results=1))'}},
+    {h2:'Other built-in EFs'},
+    {ul:[
+      '`DefaultEmbeddingFunction` — Sentence Transformers `all-MiniLM-L6-v2` (384-dim, local, no key).',
+      '`OpenAIEmbeddingFunction`, plus functions for HuggingFace, Google, Cohere, and others.',
+      'You can write a **custom EF** by implementing a callable that takes a list of strings and returns a list of vectors.'
+    ]},
+    {warn:'**The embedding model must match between indexing and querying.** If you index with `nomic-embed-text` but query with `mxbai-embed-large`, the vectors live in different spaces and results are garbage. Changing the model means re-indexing everything.'},
+    {note:'In current Chroma, the EF is stored on the collection, so `get_collection` can resolve it for you. On older versions (pre-1.1.13) you had to pass the same EF every time you fetched the collection.'}
+  ]
+},
+{ id:'chr-persist', act:3, idx:22, title:'Persistence & Server Mode', lede:'Keep data between runs, run Chroma as a shared server, and avoid the classic pitfalls.',
+  body:[
+    {h2:'Where your data lives'},
+    {p:'`PersistentClient(path="./chroma_db")` writes everything to that folder automatically — no explicit \u201csave\u201d call. Reopen with the same path and your collections are right where you left them. (With no path set, Chroma defaults to a `./chroma` directory.)'},
+    {code:{lang:'python', c:'client = chromadb.PersistentClient(path="./chroma_db")\ncol = client.get_or_create_collection("docs")\n# ...add data, close the program, run again later — data is still here.'}},
+    {h2:'Run Chroma as a server'},
+    {p:'For multiple processes or a production deployment, run Chroma as an HTTP service and connect with `HttpClient`:'},
+    {code:{lang:'bash', c:'chroma run --path ./chroma_db --port 8000'}},
+    {code:{lang:'python', c:'client = chromadb.HttpClient(host="localhost", port=8000)\ncol = client.get_or_create_collection("docs")'}},
+    {h2:'Common pitfalls'},
+    {ul:[
+      '**Dimension mismatch** — `InvalidDimensionException` means you mixed embedding models. One collection, one model.',
+      '**Lost data** — you used `Client()` (in-memory) instead of `PersistentClient`. Or, in Docker, you didn\u2019t mount a volume for the persist directory.',
+      '**Slow inserts** — you called `add` per document. Batch instead.',
+      '**Irrelevant results** — tune chunk size and use metadata filters; verify the same EF is used for index and query.'
+    ]},
+    {tip:'Use `col.count()` to monitor size — Chroma comfortably handles millions of vectors on local disk. Start small, validate retrieval quality, then scale your corpus.'},
+    {prism:'You now have both halves: Ollama for inference and embeddings, ChromaDB for storage and search. Time to fuse them into a real application at **The Convergence**.'}
+  ]
+});
+
+/* =================== ACT IV — THE CONVERGENCE (RAG) =================== */
+LESSONS.push(
+{ id:'rag-concept', act:4, idx:23, title:'What Is RAG?', lede:'Retrieval-Augmented Generation: ground an LLM in your own documents to get accurate, current answers.',
+  body:[
+    {p:'A raw LLM only knows what it was trained on — it can\u2019t see your PDFs, wiki, or codebase, and it may confidently make things up. **RAG** fixes this: when a question comes in, you first *retrieve* the most relevant chunks from a vector database, then pass those chunks **plus** the question to the model, which answers grounded in real content.'},
+    {diagram:'ragpipe'},
+    {h2:'The two phases'},
+    {ul:[
+      '**Indexing (once, ahead of time)** — split documents into chunks, embed each chunk, and store the vectors + text + metadata in Chroma.',
+      '**Querying (every question)** — embed the question, retrieve the top-k nearest chunks, build a prompt that includes them as context, and generate the answer.'
+    ]},
+    {h2:'Why it beats a bigger prompt'},
+    {p:'You can\u2019t paste a 500-page manual into the context window — it won\u2019t fit, and it\u2019s wasteful. RAG injects only the handful of passages that actually matter for *this* question, which is cheaper, faster, and reduces hallucination by giving the model something true to read.'},
+    {h2:'Chunking matters'},
+    {ul:[
+      'Too small (single lines) loses context; too large (whole files) dilutes the signal.',
+      'For prose, ~500\u20131000 characters per chunk with ~100\u2013200 characters of **overlap** is a solid start.',
+      'Retrieve **k = 5** chunks by default; raise to 7\u201310 for complex questions, but watch the context limit.'
+    ]},
+    {note:'RAG is the standard pattern for chatbots over support docs, internal knowledge bases, and proprietary data — and with Ollama + Chroma, you can build it entirely offline.'}
+  ]
+},
+{ id:'rag-build', act:4, idx:24, title:'Build a Local RAG System', lede:'The full pipeline end to end: documents in, grounded answers out — all on your machine.',
+  body:[
+    {p:'Here is a complete, minimal local RAG app: Ollama for both embeddings and generation, ChromaDB for the vector store. This is the capstone — read it slowly, then build it in the Sandbox.'},
+    {diagram:'stack'},
+    {h2:'1. Setup'},
+    {code:{lang:'bash', c:'pip install ollama chromadb\nollama pull nomic-embed-text   # embeddings\nollama pull llama3.2           # generation'}},
+    {h2:'2. Index your documents'},
+    {code:{lang:'python', c:'import ollama, chromadb\nfrom chromadb.utils.embedding_functions import OllamaEmbeddingFunction\n\nef = OllamaEmbeddingFunction(url="http://localhost:11434",\n                             model_name="nomic-embed-text")\nclient = chromadb.PersistentClient(path="./rag_db")\ncol = client.get_or_create_collection("kb", embedding_function=ef,\n                                      metadata={"hnsw:space": "cosine"})\n\ndocs = [\n  "Llamas are camelids, closely related to vicunas and camels.",\n  "Llamas were domesticated as pack animals ~5,000 years ago in Peru.",\n  "An adult llama can carry 25-30% of its body weight.",\n]\ncol.add(ids=[f"d{i}" for i in range(len(docs))], documents=docs)'}},
+    {h2:'3. Retrieve + augment + generate'},
+    {code:{lang:'python', c:'def ask(question, k=3):\n    # RETRIEVE: nearest chunks from Chroma\n    hits = col.query(query_texts=[question], n_results=k)\n    context = "\\n".join(hits["documents"][0])\n\n    # AUGMENT: build a grounded prompt\n    prompt = (\n        "Answer using ONLY the context. If it is not there, say you don\u2019t know.\\n\\n"\n        f"Context:\\n{context}\\n\\nQuestion: {question}"\n    )\n\n    # GENERATE: local LLM answers from the retrieved text\n    resp = ollama.chat(model="llama3.2",\n        messages=[{"role": "user", "content": prompt}])\n    return resp.message.content\n\nprint(ask("How much can a llama carry?"))'}},
+    {tip:'That\u2019s the whole pattern. Everything else — PDF loaders, smarter chunking, re-ranking, citations — is an upgrade on these three steps: retrieve, augment, generate.'},
+    {warn:'Embed your documents and your questions with the **same** model (`nomic-embed-text` here). Switching the embedding model on either side breaks retrieval.'}
+  ]
+},
+{ id:'rag-prod', act:4, idx:25, title:'Production & Tuning', lede:'From a working demo to a system you can trust — evaluation, scaling, and the upgrades that matter.',
+  body:[
+    {h2:'Make retrieval better (biggest wins first)'},
+    {ul:[
+      '**Tune chunk size & overlap** — try 500\u20131000 chars; if answers miss context, increase overlap.',
+      '**Use metadata filters** — store source, type, date, section; filter before ranking to cut noise.',
+      '**Tune k** — start at 5; too many chunks dilute relevance and may overflow the context window.',
+      '**Add re-ranking** — retrieve 20, then re-score with a cross-encoder and keep the best 5 for a large quality jump.'
+    ]},
+    {h2:'Evaluate, don\u2019t guess'},
+    {p:'Build a small set of question\u2192expected-answer pairs and check retrieval and answer quality whenever you change the model, chunking, or k. \u201cIt felt better\u201d is not a metric.'},
+    {h2:'Operational concerns'},
+    {ul:[
+      '**Re-index on model change** — a new embedding model means rebuilding the collection from scratch.',
+      '**Persist & back up** — use `PersistentClient` (or a Chroma server) and back up the data directory.',
+      '**Scale the database** — run Chroma in server mode for multiple clients; Chroma handles millions of vectors locally, but evaluate managed options for very large or multi-region needs.',
+      '**Scale inference** — `OLLAMA_NUM_PARALLEL` and `keep_alive: -1` keep a warm model serving concurrent requests.'
+    ]},
+    {h2:'Ground the model, reduce hallucination'},
+    {ul:[
+      'Instruct the model to answer **only** from the provided context and to say \u201cI don\u2019t know\u201d otherwise.',
+      'Ask it to **cite** which chunk each claim came from (include chunk ids in the context).',
+      'Lower the temperature for factual Q&A.'
+    ]},
+    {prism:'You\u2019ve gone from \u201cwhat is Ollama?\u201d to a tunable, production-shaped, fully local RAG system. Master every node and the Skill Constellation is yours, Operator.'}
+  ]
+});
+console.log('All lessons loaded:', LESSONS.length);
+window.LESSONS=LESSONS;
+</script>
+<script>
+/* ================================================================
+   DIAGRAMS — hand-built SVG (hardcoded palette for cross-browser).
+   Rendered into .diagram containers by the Codex renderer.
+   Chroma gradient is reserved for vector / ChromaDB elements.
+   ================================================================ */
+const DIAGRAMS={};
+
+DIAGRAMS['arch']={cap:'Fig 1 · The local AI triangle: one server, many clients, models on disk.',
+svg:`<svg viewBox="0 0 640 392" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ollama architecture">
+<defs><marker id="ar_arch" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8f88c4"/></marker>
+<linearGradient id="g_arch" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff5fae"/><stop offset="0.5" stop-color="#a06bff"/><stop offset="1" stop-color="#5fd0ff"/></linearGradient></defs>
+<rect x="10" y="10" width="620" height="372" rx="10" fill="none" stroke="#4a3f8c" stroke-width="2" stroke-dasharray="6 6"/>
+<text x="26" y="34" font-family="'Press Start 2P',monospace" font-size="9" fill="#726cab">YOUR MACHINE</text>
+<!-- server -->
+<rect x="246" y="150" width="170" height="78" rx="9" fill="#2a2150" stroke="#ffb061" stroke-width="2.5"/>
+<text x="331" y="182" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="15" fill="#ffb061">Ollama Server</text>
+<text x="331" y="204" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#a8a2da">localhost:11434</text>
+<!-- clients -->
+<rect x="44" y="78" width="150" height="42" rx="7" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/>
+<text x="119" y="104" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#ece9ff">CLI · ollama run</text>
+<rect x="44" y="168" width="150" height="42" rx="7" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/>
+<text x="119" y="194" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#ece9ff">Your app · py / js</text>
+<rect x="44" y="258" width="150" height="42" rx="7" fill="#161a30" stroke="url(#g_arch)" stroke-width="2.5"/>
+<text x="119" y="284" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#5fd0ff">ChromaDB</text>
+<path d="M196 99 C 226 99, 220 178, 244 178" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_arch)"/>
+<path d="M196 189 L 242 189" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_arch)"/>
+<path d="M196 279 C 226 279, 220 200, 244 200" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_arch)"/>
+<text x="214" y="150" font-family="'Press Start 2P',monospace" font-size="6.5" fill="#726cab">HTTP</text>
+<!-- model store -->
+<rect x="246" y="286" width="320" height="80" rx="9" fill="#13102a" stroke="#4a3f8c" stroke-width="2"/>
+<text x="262" y="308" font-family="'JetBrains Mono',monospace" font-size="11" fill="#726cab">~/.ollama/models</text>
+<g font-family="'JetBrains Mono',monospace" font-size="10" fill="#ece9ff">
+<rect x="262" y="320" width="86" height="30" rx="5" fill="#241f52"/><text x="305" y="339" text-anchor="middle">llama3.2</text>
+<rect x="356" y="320" width="78" height="30" rx="5" fill="#241f52"/><text x="395" y="339" text-anchor="middle">qwen3</text>
+<rect x="442" y="320" width="112" height="30" rx="5" fill="#241f52"/><text x="498" y="339" text-anchor="middle" fill="#5fd0ff">nomic-embed</text>
+</g>
+<path d="M331 228 L 331 284" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_arch)"/>
+<path d="M360 284 L 360 230" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_arch)"/>
+<text x="372" y="262" font-family="'Press Start 2P',monospace" font-size="6.5" fill="#726cab">load / store</text>
+</svg>`};
+
+DIAGRAMS['modelfile']={cap:'Fig · A Modelfile + ollama create bakes behavior into a reusable model.',
+svg:`<svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Modelfile build">
+<defs><marker id="ar_mf" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ffb061"/></marker></defs>
+<rect x="20" y="40" width="250" height="280" rx="9" fill="#0a0818" stroke="#4a3f8c" stroke-width="2"/>
+<text x="36" y="66" font-family="'Press Start 2P',monospace" font-size="8" fill="#726cab">Modelfile</text>
+<g font-family="'JetBrains Mono',monospace" font-size="12.5">
+<text x="36" y="100"><tspan fill="#ff9eda">FROM</tspan> <tspan fill="#cfe9ff">llama3.2</tspan></text>
+<text x="36" y="132"><tspan fill="#ff9eda">SYSTEM</tspan> <tspan fill="#a7e3a0">"You are a</tspan></text>
+<text x="52" y="152" fill="#a7e3a0">terse SQL tutor."</text>
+<text x="36" y="184"><tspan fill="#ff9eda">PARAMETER</tspan> <tspan fill="#cfe9ff">temperature</tspan></text>
+<text x="220" y="184" fill="#ffd45f">0.2</text>
+<text x="36" y="216"><tspan fill="#ff9eda">PARAMETER</tspan> <tspan fill="#cfe9ff">num_ctx</tspan></text>
+<text x="200" y="216" fill="#ffd45f">8192</text>
+<text x="36" y="248"><tspan fill="#ff9eda">TEMPLATE</tspan> <tspan fill="#6f6aa3">"..."</tspan></text>
+<text x="36" y="288" fill="#6f6aa3"># FROM is the only</text>
+<text x="36" y="306" fill="#6f6aa3"># required line</text>
+</g>
+<rect x="330" y="120" width="170" height="56" rx="8" fill="#2a2150" stroke="#ffb061" stroke-width="2.5"/>
+<text x="415" y="146" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="12" fill="#ffb061">ollama create</text>
+<text x="415" y="164" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8a2da">sqlbot -f Modelfile</text>
+<path d="M270 148 L 328 148" fill="none" stroke="#ffb061" stroke-width="2.5" marker-end="url(#ar_mf)"/>
+<rect x="540" y="122" width="84" height="52" rx="9" fill="#161a30" stroke="#4fe0cf" stroke-width="2.5"/>
+<text x="582" y="144" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#4fe0cf">sqlbot</text>
+<text x="582" y="162" text-anchor="middle" font-family="'Inter',sans-serif" font-size="10" fill="#a8a2da">your model</text>
+<path d="M500 148 L 538 148" fill="none" stroke="#ffb061" stroke-width="2.5" marker-end="url(#ar_mf)"/>
+<text x="305" y="232" font-family="'Inter',sans-serif" font-size="13" fill="#a8a2da" font-style="italic">Now run it like any other model:</text>
+<text x="305" y="256" font-family="'JetBrains Mono',monospace" font-size="13" fill="#ffb061">ollama run sqlbot</text>
+</svg>`};
+
+DIAGRAMS['reqflow']={cap:'Fig · Every library call is an HTTP request to the local server.',
+svg:`<svg viewBox="0 0 640 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="API request flow">
+<defs><marker id="ar_rf" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8f88c4"/></marker></defs>
+<rect x="24" y="120" width="150" height="80" rx="9" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/>
+<text x="99" y="150" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="14" fill="#ece9ff">Your client</text>
+<text x="99" y="172" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8a2da">curl · python</text>
+<text x="99" y="188" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8a2da">js · ChromaDB</text>
+<rect x="430" y="120" width="170" height="80" rx="9" fill="#2a2150" stroke="#ffb061" stroke-width="2.5"/>
+<text x="515" y="150" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="14" fill="#ffb061">Ollama Server</text>
+<text x="515" y="172" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8a2da">:11434</text>
+<text x="515" y="188" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11" fill="#a8a2da">runs the model</text>
+<path d="M176 150 L 426 150" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_rf)"/>
+<text x="300" y="140" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#ffb061">POST /api/chat</text>
+<text x="300" y="116" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#6f6aa3">{ model, messages, stream }</text>
+<path d="M426 184 L 178 184" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_rf)"/>
+<text x="300" y="204" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#4fe0cf">response (JSON / stream)</text>
+<rect x="120" y="250" width="400" height="56" rx="8" fill="#13102a" stroke="#4a3f8c" stroke-width="1.5"/>
+<text x="320" y="274" text-anchor="middle" font-family="'Inter',sans-serif" font-size="12.5" fill="#a8a2da">Same endpoint serves CLI, REST, the OpenAI-compatible</text>
+<text x="320" y="294" text-anchor="middle" font-family="'Inter',sans-serif" font-size="12.5" fill="#a8a2da">/v1 layer, and the official Python / JS libraries.</text>
+</svg>`};
+
+DIAGRAMS['toolloop']={cap:'Fig · Tool calling is a loop: the model asks, your code answers, it continues.',
+svg:`<svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tool calling loop">
+<defs><marker id="ar_tl" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8f88c4"/></marker></defs>
+<rect x="240" y="20" width="160" height="50" rx="8" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/>
+<text x="320" y="50" text-anchor="middle" font-family="'Inter',sans-serif" font-size="13" fill="#ece9ff">1 · User question</text>
+<rect x="230" y="120" width="180" height="60" rx="8" fill="#2a2150" stroke="#ffb061" stroke-width="2.5"/>
+<text x="320" y="146" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="13" fill="#ffb061">2 · Model</text>
+<text x="320" y="166" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11.5" fill="#a8a2da">decides: tool or answer?</text>
+<rect x="60" y="250" width="200" height="70" rx="8" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/>
+<text x="160" y="276" text-anchor="middle" font-family="'Inter',sans-serif" font-size="12.5" fill="#ece9ff">3 · Your code runs</text>
+<text x="160" y="296" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#ffb061">tool_calls[]</text>
+<text x="160" y="312" text-anchor="middle" font-family="'Inter',sans-serif" font-size="10.5" fill="#a8a2da">e.g. get_weather()</text>
+<rect x="400" y="250" width="180" height="70" rx="8" fill="#161a30" stroke="#4fe0cf" stroke-width="2.5"/>
+<text x="490" y="282" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="13" fill="#4fe0cf">5 · Final answer</text>
+<text x="490" y="302" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11" fill="#a8a2da">grounded in tool result</text>
+<path d="M320 70 L 320 118" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_tl)"/>
+<path d="M250 175 C 180 205, 175 220, 162 248" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_tl)"/>
+<text x="150" y="212" font-family="'JetBrains Mono',monospace" font-size="10" fill="#6f6aa3">wants a tool</text>
+<path d="M260 290 C 300 290, 290 175, 318 175" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_tl)"/>
+<text x="245" y="250" font-family="'JetBrains Mono',monospace" font-size="10" fill="#6f6aa3">4 · append role:"tool"</text>
+<path d="M398 160 C 470 190, 478 220, 490 248" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_tl)"/>
+<text x="430" y="212" font-family="'JetBrains Mono',monospace" font-size="10" fill="#6f6aa3">has enough</text>
+</svg>`};
+
+DIAGRAMS['embed']={cap:'Fig · An embedding turns text into a point in high-dimensional space.',
+svg:`<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Embedding">
+<defs><marker id="ar_em" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8f88c4"/></marker>
+<linearGradient id="g_em" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff5fae"/><stop offset="0.5" stop-color="#a06bff"/><stop offset="1" stop-color="#5fd0ff"/></linearGradient></defs>
+<rect x="22" y="120" width="150" height="56" rx="8" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/>
+<text x="97" y="145" text-anchor="middle" font-family="'Inter',sans-serif" font-size="12.5" fill="#ece9ff">"A small dog"</text>
+<text x="97" y="164" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11" fill="#a8a2da">raw text</text>
+<rect x="226" y="116" width="170" height="64" rx="8" fill="#161a30" stroke="url(#g_em)" stroke-width="2.5"/>
+<text x="311" y="142" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="12.5" fill="#5fd0ff">embedding model</text>
+<text x="311" y="162" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11" fill="#a8a2da">nomic-embed-text</text>
+<rect x="450" y="116" width="168" height="64" rx="8" fill="#0a0818" stroke="#4a3f8c" stroke-width="2"/>
+<text x="534" y="140" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11.5" fill="#ffd45f">[0.12, -0.04,</text>
+<text x="534" y="158" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="11.5" fill="#ffd45f">0.88, ...]</text>
+<text x="534" y="174" text-anchor="middle" font-family="'Inter',sans-serif" font-size="9.5" fill="#726cab">768 numbers</text>
+<path d="M174 148 L 224 148" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_em)"/>
+<path d="M398 148 L 448 148" fill="none" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_em)"/>
+<text x="320" y="222" text-anchor="middle" font-family="'Inter',sans-serif" font-size="13" fill="#a8a2da" font-style="italic">Texts with similar meaning get similar vectors — that is what makes search "understand".</text>
+</svg>`};
+
+window.DIAGRAMS=DIAGRAMS;
+console.log('Diagrams 1-5 loaded');
+</script>
+<script>
+DIAGRAMS['vectorspace']={cap:'Fig · Meaning becomes geometry: related ideas land near each other.',
+svg:`<svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vector space clusters">
+<defs><radialGradient id="g_vs" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#a06bff"/><stop offset="1" stop-color="#5f4fd0"/></radialGradient></defs>
+<rect x="20" y="20" width="600" height="320" rx="10" fill="#0a0818" stroke="#3a3270" stroke-width="1.5"/>
+<line x1="50" y1="320" x2="600" y2="320" stroke="#2c2660" stroke-width="1.5"/>
+<line x1="50" y1="40" x2="50" y2="320" stroke="#2c2660" stroke-width="1.5"/>
+<g font-family="'JetBrains Mono',monospace" font-size="11.5" fill="#ece9ff" text-anchor="middle">
+<circle cx="150" cy="110" r="9" fill="#ff5fae"/><text x="150" y="92">dog</text>
+<circle cx="190" cy="140" r="9" fill="#ff5fae"/><text x="222" y="140" text-anchor="start">puppy</text>
+<circle cx="135" cy="160" r="9" fill="#ff5fae"/><text x="118" y="182">cat</text>
+<text x="150" y="218" fill="#ff8fc7" font-size="10">animals</text>
+<circle cx="470" cy="120" r="9" fill="#5fd0ff"/><text x="470" y="102">car</text>
+<circle cx="510" cy="150" r="9" fill="#5fd0ff"/><text x="540" y="152" text-anchor="start">truck</text>
+<circle cx="455" cy="165" r="9" fill="#5fd0ff"/><text x="438" y="186">bus</text>
+<text x="485" y="216" fill="#9fe2ff" font-size="10">vehicles</text>
+<circle cx="300" cy="255" r="9" fill="#ffd45f"/><text x="300" y="285">king</text>
+<circle cx="340" cy="240" r="9" fill="#ffd45f"/><text x="372" y="240" text-anchor="start">queen</text>
+<text x="322" y="300" fill="#ffe08a" font-size="10">royalty</text>
+</g>
+<text x="320" y="36" text-anchor="middle" font-family="'Press Start 2P',monospace" font-size="7" fill="#726cab">(2-D SHADOW OF A 768-D SPACE)</text>
+</svg>`};
+
+DIAGRAMS['distance']={cap:'Fig · Cosine looks at the angle; Euclidean at the straight-line gap. For text, cosine wins.',
+svg:`<svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Distance metrics">
+<rect x="20" y="20" width="600" height="280" rx="10" fill="#0a0818" stroke="#3a3270" stroke-width="1.5"/>
+<g transform="translate(70,270)">
+<line x1="0" y1="0" x2="0" y2="-220" stroke="#2c2660" stroke-width="1.5"/>
+<line x1="0" y1="0" x2="480" y2="0" stroke="#2c2660" stroke-width="1.5"/>
+<line x1="0" y1="0" x2="300" y2="-180" stroke="#5fd0ff" stroke-width="3"/>
+<circle cx="300" cy="-180" r="6" fill="#5fd0ff"/><text x="312" y="-184" font-family="'JetBrains Mono',monospace" font-size="12" fill="#5fd0ff">doc A</text>
+<line x1="0" y1="0" x2="360" y2="-90" stroke="#ff5fae" stroke-width="3"/>
+<circle cx="360" cy="-90" r="6" fill="#ff5fae"/><text x="372" y="-90" font-family="'JetBrains Mono',monospace" font-size="12" fill="#ff5fae">doc B</text>
+<path d="M70 0 A 70 70 0 0 0 60 -36" fill="none" stroke="#ffb061" stroke-width="2"/>
+<text x="86" y="-22" font-family="'Inter',sans-serif" font-size="14" fill="#ffb061">θ</text>
+<line x1="300" y1="-180" x2="360" y2="-90" stroke="#726cab" stroke-width="1.6" stroke-dasharray="5 4"/>
+<text x="350" y="-150" font-family="'Inter',sans-serif" font-size="11" fill="#a8a2da">Euclidean</text>
+<text x="150" y="-70" font-family="'Inter',sans-serif" font-size="11" fill="#ffb061">cosine = angle θ</text>
+</g>
+<text x="320" y="296" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#726cab">hnsw:space = "cosine"  ·  smaller distance = more similar</text>
+</svg>`};
+
+DIAGRAMS['collection']={cap:'Fig · A collection stores four things per record — and auto-embeds documents for you.',
+svg:`<svg viewBox="0 0 640 318" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Collection structure">
+<defs><linearGradient id="g_col" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff5fae"/><stop offset="0.5" stop-color="#a06bff"/><stop offset="1" stop-color="#5fd0ff"/></linearGradient></defs>
+<rect x="20" y="20" width="600" height="278" rx="10" fill="#0d0b1f" stroke="url(#g_col)" stroke-width="2.5"/>
+<text x="40" y="48" font-family="'JetBrains Mono',monospace" font-size="13" fill="#5fd0ff">collection · "docs"</text>
+<g font-family="'Press Start 2P',monospace" font-size="7" fill="#726cab">
+<text x="48" y="84">ID</text><text x="150" y="84">DOCUMENT</text><text x="330" y="84">EMBEDDING</text><text x="500" y="84">METADATA</text>
+</g>
+<line x1="40" y1="94" x2="600" y2="94" stroke="#3a3270" stroke-width="1.5"/>
+<g font-family="'JetBrains Mono',monospace" font-size="11.5" fill="#d8d4f2">
+<text x="48" y="124" fill="#ffb061">a1</text><text x="150" y="124">"Returns within</text><text x="150" y="140">30 days..."</text>
+<text x="330" y="132" fill="#a06bff">[0.04, 0.91, ...]</text><text x="500" y="124">{topic:</text><text x="500" y="140"> "policy"}</text>
+<line x1="40" y1="156" x2="600" y2="156" stroke="#241f52" stroke-width="1"/>
+<text x="48" y="184" fill="#ffb061">a2</text><text x="150" y="184">"Ship times vary</text><text x="150" y="200">by region..."</text>
+<text x="330" y="192" fill="#a06bff">[0.77, 0.10, ...]</text><text x="500" y="184">{topic:</text><text x="500" y="200"> "shipping"}</text>
+<line x1="40" y1="216" x2="600" y2="216" stroke="#241f52" stroke-width="1"/>
+<text x="48" y="244" fill="#ffb061">a3</text><text x="150" y="244">"Warranty covers</text><text x="150" y="260">defects..."</text>
+<text x="330" y="252" fill="#a06bff">[0.31, 0.58, ...]</text><text x="500" y="244">{topic:</text><text x="500" y="260"> "policy"}</text>
+</g>
+<text x="40" y="288" font-family="'Inter',sans-serif" font-size="11.5" fill="#a8a2da" font-style="italic">add() the id + document + metadata — the embedding is computed automatically.</text>
+</svg>`};
+
+DIAGRAMS['ragpipe']={cap:'Fig · RAG has two phases that share one vector store.',
+svg:`<svg viewBox="0 0 640 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RAG pipeline">
+<defs><marker id="ar_rp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8f88c4"/></marker>
+<linearGradient id="g_rp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5fae"/><stop offset="0.5" stop-color="#a06bff"/><stop offset="1" stop-color="#5fd0ff"/></linearGradient></defs>
+<!-- indexing lane -->
+<text x="30" y="36" font-family="'Press Start 2P',monospace" font-size="8" fill="#ffb061">PHASE 1 · INDEXING (once)</text>
+<g font-family="'Inter',sans-serif" font-size="11.5" fill="#ece9ff" text-anchor="middle">
+<rect x="24" y="50" width="104" height="46" rx="7" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/><text x="76" y="78">Your docs</text>
+<rect x="166" y="50" width="104" height="46" rx="7" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/><text x="218" y="72">Chunk</text><text x="218" y="88" font-size="9.5" fill="#a8a2da">~800 chars</text>
+<rect x="308" y="50" width="104" height="46" rx="7" fill="#161a30" stroke="#a06bff" stroke-width="2"/><text x="360" y="72" fill="#c9b6ff">Embed</text><text x="360" y="88" font-size="9.5" fill="#a8a2da">→ vectors</text>
+</g>
+<path d="M128 73 L 164 73" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_rp)"/>
+<path d="M270 73 L 306 73" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_rp)"/>
+<!-- chroma store center -->
+<rect x="236" y="170" width="168" height="74" rx="10" fill="#0d0b1f" stroke="url(#g_rp)" stroke-width="3"/>
+<text x="320" y="200" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="15" fill="#5fd0ff">ChromaDB</text>
+<text x="320" y="222" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11.5" fill="#a8a2da">vector store</text>
+<path d="M360 96 C 360 130, 330 140, 322 168" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_rp)"/>
+<text x="372" y="134" font-family="'Inter',sans-serif" font-size="10" fill="#726cab">store</text>
+<!-- querying lane -->
+<text x="30" y="296" font-family="'Press Start 2P',monospace" font-size="8" fill="#5fd0ff">PHASE 2 · QUERYING (every question)</text>
+<g font-family="'Inter',sans-serif" font-size="11.5" fill="#ece9ff" text-anchor="middle">
+<rect x="24" y="312" width="104" height="46" rx="7" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/><text x="76" y="340">Question</text>
+<rect x="166" y="312" width="104" height="46" rx="7" fill="#161a30" stroke="#a06bff" stroke-width="2"/><text x="218" y="340" fill="#c9b6ff">Embed</text>
+<rect x="392" y="312" width="120" height="46" rx="7" fill="#1b1740" stroke="#4a3f8c" stroke-width="2"/><text x="452" y="334">Augment</text><text x="452" y="350" font-size="9.5" fill="#a8a2da">context + Q</text>
+<rect x="540" y="312" width="84" height="46" rx="7" fill="#2a2150" stroke="#ffb061" stroke-width="2.5"/><text x="582" y="334" fill="#ffb061">Ollama</text><text x="582" y="350" font-size="9.5" fill="#a8a2da">answer</text>
+</g>
+<path d="M128 335 L 164 335" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_rp)"/>
+<path d="M270 330 C 300 320, 300 260, 318 246" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_rp)"/>
+<path d="M322 246 C 330 300, 360 322, 390 332" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_rp)"/>
+<text x="300" y="280" font-family="'Inter',sans-serif" font-size="10" fill="#726cab">top-k</text>
+<path d="M512 335 L 538 335" stroke="#8f88c4" stroke-width="2" marker-end="url(#ar_rp)"/>
+</svg>`};
+
+DIAGRAMS['stack']={cap:'Fig · The whole RAG stack runs on one machine — nothing leaves localhost.',
+svg:`<svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Local RAG stack">
+<defs><linearGradient id="g_st" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff5fae"/><stop offset="0.5" stop-color="#a06bff"/><stop offset="1" stop-color="#5fd0ff"/></linearGradient></defs>
+<rect x="20" y="20" width="600" height="280" rx="12" fill="none" stroke="#4a3f8c" stroke-width="2" stroke-dasharray="6 6"/>
+<text x="40" y="46" font-family="'Press Start 2P',monospace" font-size="8" fill="#726cab">localhost — air-gapped capable</text>
+<rect x="170" y="60" width="300" height="56" rx="9" fill="#241f52" stroke="#4a3f8c" stroke-width="2"/>
+<text x="320" y="86" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="15" fill="#ece9ff">Your Python app</text>
+<text x="320" y="106" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11.5" fill="#a8a2da">orchestrates retrieval + generation</text>
+<rect x="70" y="170" width="220" height="92" rx="10" fill="#0d0b1f" stroke="url(#g_st)" stroke-width="2.5"/>
+<text x="180" y="200" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="14" fill="#5fd0ff">ChromaDB</text>
+<text x="180" y="222" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11.5" fill="#a8a2da">stores + retrieves</text>
+<text x="180" y="240" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11.5" fill="#a8a2da">your knowledge</text>
+<rect x="350" y="170" width="220" height="92" rx="10" fill="#2a2150" stroke="#ffb061" stroke-width="2.5"/>
+<text x="460" y="200" text-anchor="middle" font-family="'Inter',sans-serif" font-weight="700" font-size="14" fill="#ffb061">Ollama</text>
+<text x="460" y="222" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11.5" fill="#a8a2da">embeds the text +</text>
+<text x="460" y="240" text-anchor="middle" font-family="'Inter',sans-serif" font-size="11.5" fill="#a8a2da">generates the answer</text>
+<line x1="200" y1="116" x2="180" y2="168" stroke="#8f88c4" stroke-width="2"/>
+<line x1="440" y1="116" x2="460" y2="168" stroke="#8f88c4" stroke-width="2"/>
+</svg>`};
+
+window.DIAGRAMS=DIAGRAMS;
+console.log('All diagrams loaded:', Object.keys(DIAGRAMS).length);
+</script>
+<script>
+/* ================================================================
+   QUESTION BANK — keyed by concept id. Each: {q,a[],c,why}.
+   ~4 per concept so the no-repeat + 3-in-a-row loop has variety.
+   Inline `code` and **bold** are parsed at render time.
+   ================================================================ */
+const QBANK={};
+
+QBANK['oll-intro']=[
+ {q:"Which best describes what Ollama is?",a:["A tool to download, manage, and run LLMs locally","A paid cloud LLM API","A Python web framework","A spreadsheet plugin"],c:0,why:"Ollama packages and runs models **on your own machine** — no cloud required."},
+ {q:"Ollama is often called the “_____ of LLMs.”",a:["Docker","Git","Excel","Photoshop"],c:0,why:"Like Docker bundles apps, Ollama bundles a model's weights, config, and prompt template into one pullable package."},
+ {q:"Which is a real advantage of running models locally?",a:["Your prompts and data never leave the machine","It is always faster than any cloud GPU","It needs no disk space","It removes the need for a model"],c:0,why:"**Privacy** is the headline benefit: nothing is sent to a third party."},
+ {q:"The local AI stack is three parts: the server, the models on disk, and…",a:["the clients that talk to the server","a cloud account","a GPU vendor login","an internet connection"],c:0,why:"Clients (CLI, your app, ChromaDB) all speak to the one local server."}
+];
+QBANK['oll-install']=[
+ {q:"By default, the Ollama server listens on:",a:["localhost:11434","localhost:8080","localhost:443","localhost:5000"],c:0,why:"Port **11434** on localhost is the address everything else depends on."},
+ {q:"On a headless Linux box, which command starts the server?",a:["ollama serve","ollama start","ollama daemon","ollama up"],c:0,why:"`ollama serve` launches the daemon manually; desktop apps do this for you."},
+ {q:"A command fails with “could not connect.” Most likely cause?",a:["The server isn't running","Your model name is misspelled","You have no GPU","Your API key expired"],c:0,why:"Every command is an HTTP call to the local server — if it can't connect, the daemon is down."},
+ {q:"Quick health check that lists installed models via the API:",a:["curl http://localhost:11434/api/tags","curl .../api/health","curl .../ping","curl .../status"],c:0,why:"`/api/tags` returns your installed models — a simple way to confirm the server is alive."}
+];
+QBANK['oll-run']=[
+ {q:"`ollama run llama3.2` when the model isn't present yet will:",a:["Download it first, then open an interactive chat","Throw an error","Only download, never chat","Chat using a blank model"],c:0,why:"`run` = pull-if-needed **then** chat."},
+ {q:"In `qwen3:8b`, what does the `8b` after the colon mean?",a:["A tag selecting the model size/variant","A file path","The temperature","The context length"],c:0,why:"The text after the colon is a **tag** — usually a size or quantization."},
+ {q:"How do you download a model without starting a chat?",a:["ollama pull <model>","ollama get <model>","ollama download <model>","ollama fetch <model>"],c:0,why:"`ollama pull` grabs the model and exits."},
+ {q:"Where do you browse all available models and their tags?",a:["ollama.com/library","hub.docker.com","pypi.org","npmjs.com"],c:0,why:"The model library lists every model and tag you can pull."}
+];
+QBANK['oll-manage']=[
+ {q:"List the models you've already downloaded:",a:["ollama list","ollama models","ollama ps","ollama all"],c:0,why:"`ollama list` (alias `ls`) shows what's on disk. `ps` shows what's *running*."},
+ {q:"See which models are currently loaded in memory:",a:["ollama ps","ollama list","ollama top","ollama mem"],c:0,why:"`ollama ps` is like the Unix `ps` — it shows running models."},
+ {q:"Remove a model from disk:",a:["ollama rm <model>","ollama delete <model>","ollama uninstall <model>","ollama clear <model>"],c:0,why:"`ollama rm` deletes the model's files."},
+ {q:"Inspect a model's parameters, template, and license:",a:["ollama show <model>","ollama info <model>","ollama inspect <model>","ollama cat <model>"],c:0,why:"`ollama show` prints the model's metadata and Modelfile details."}
+];
+QBANK['oll-models']=[
+ {q:"A “7B” model refers to roughly:",a:["7 billion parameters","7 gigabytes, always","7 layers","7 thousand tokens"],c:0,why:"The B = **billions of parameters**, a rough proxy for capability and memory cost."},
+ {q:"By default, which quantization does Ollama download for most models?",a:["Q4_K_M (a 4-bit quant)","fp32","fp16","Q2_K"],c:0,why:"`Q4_K_M` is the common default — a good balance of quality and size."},
+ {q:"On a machine with limited RAM/VRAM, the safer choice is generally:",a:["A smaller or more-quantized model","The largest model available","Two big models at once","Always fp16"],c:0,why:"Smaller/quantized models fit in memory and still perform well for many tasks."},
+ {q:"Quantization mainly trades:",a:["A little quality for much lower memory and size","Privacy for cost","Tokens for context","Speed for accuracy only"],c:0,why:"Lower precision shrinks the model with usually minor quality loss."}
+];
+QBANK['oll-params']=[
+ {q:"Which CLI flag stackably sets runtime parameters?",a:["-p (e.g. -p num_ctx=8192 -p temperature=0.2)","--config","-e","--set"],c:0,why:"Repeat `-p key=value` to layer multiple runtime settings."},
+ {q:"`num_ctx` controls:",a:["The context window size (tokens the model can see)","The number of CPU cores","The temperature","The GPU count"],c:0,why:"A larger `num_ctx` lets the model consider more text at once (at higher memory cost)."},
+ {q:"Lowering `temperature` toward 0 makes output:",a:["More deterministic and focused","More random","Longer","Faster only"],c:0,why:"Low temperature = less randomness — ideal for factual / structured tasks."},
+ {q:"In an API request, runtime parameters like temperature live inside:",a:["the options object","the HTTP headers","the URL path","the model's name"],c:0,why:"Set them under `options` in the JSON body."}
+];
+
+QBANK['oll-modelfile']=[
+ {q:"The only **required** directive in a Modelfile is:",a:["FROM","SYSTEM","PARAMETER","TEMPLATE"],c:0,why:"`FROM` names the base model; everything else is optional."},
+ {q:"To give a model a persistent persona / standing instructions, use:",a:["SYSTEM","PROMPT","ROLE","PERSONA"],c:0,why:"`SYSTEM` sets the system prompt baked into the model."},
+ {q:"Build a custom model from a Modelfile with:",a:["ollama create <name> -f Modelfile","ollama build","ollama make","ollama compile"],c:0,why:"`ollama create name -f Modelfile` produces a new reusable model."},
+ {q:"`PARAMETER temperature 0.2` in a Modelfile does what?",a:["Bakes in a default runtime setting","Imports another model","Sets the license","Defines a tool"],c:0,why:"PARAMETER lines store default options so you don't pass them every run."}
+];
+QBANK['oll-api']=[
+ {q:"The endpoint for multi-turn conversational chat is:",a:["/api/chat","/api/generate","/api/complete","/api/talk"],c:0,why:"`/api/chat` takes a `messages` array; `/api/generate` takes a single prompt."},
+ {q:"To get one complete JSON object instead of a token stream, set:",a:["stream: false","stream: 0","once: true","format: text"],c:0,why:"`\"stream\": false` returns a single response object."},
+ {q:"`/api/generate` differs from `/api/chat` because it:",a:["Takes a single prompt, not a messages array","Streams only","Needs no model","Is only for embeddings"],c:0,why:"`generate` is the simpler single-prompt completion endpoint."},
+ {q:"All of Ollama's REST endpoints are served from:",a:["http://localhost:11434","a cloud URL","port 443 only","the /v1 path only"],c:0,why:"Everything lives under the local server at port 11434."}
+];
+QBANK['oll-openai']=[
+ {q:"The OpenAI-compatible base URL for Ollama is:",a:["http://localhost:11434/v1","http://localhost:11434/openai","http://localhost:11434/compat","https://api.openai.com/v1"],c:0,why:"Point the OpenAI SDK's `base_url` at `/v1` on the local server."},
+ {q:"What do you pass as the API key to the compatible endpoint?",a:["Any non-empty string, e.g. `ollama`","Your real OpenAI key","Nothing — it errors without one","A paid token"],c:0,why:"The key is ignored but must be present; `ollama` is the convention."},
+ {q:"The main point of the OpenAI-compatible layer is:",a:["Reuse existing OpenAI SDK code by changing base_url","Faster inference","Smaller models","Automatic RAG"],c:0,why:"Drop-in compatibility: change the base URL and most OpenAI code just works."},
+ {q:"Chat completions via the compat layer hit which path?",a:["/v1/chat/completions","/api/chat","/v1/generate","/chat"],c:0,why:"It mirrors OpenAI's `/v1/chat/completions` route."}
+];
+QBANK['oll-structured']=[
+ {q:"To force the model to return JSON matching a shape, set the request's:",a:["format to a JSON schema","temperature to 0","stream to false","model to json"],c:0,why:"The `format` field accepts a JSON schema (or the string `json`) to constrain output."},
+ {q:"In Python, a clean way to produce that schema is:",a:["MyModel.model_json_schema()","json.dumps(MyModel)","str(MyModel)","MyModel.schema_str()"],c:0,why:"Pydantic's `.model_json_schema()` gives you a schema to drop into `format`."},
+ {q:"Structured outputs are most useful when you need to:",a:["Reliably parse the answer into fields","Make the model faster","Shrink the model","Enable streaming"],c:0,why:"They guarantee machine-parseable shape, so downstream code won't choke."},
+ {q:"Besides a full schema, `format` also accepts the simple value:",a:["the string `json`","`yaml`","`strict`","`auto`"],c:0,why:"Passing `\"json\"` asks for valid JSON without a specific schema."}
+];
+QBANK['oll-tools']=[
+ {q:"After the model returns `tool_calls`, your code should:",a:["Run the tool, then send the result back as a tool message","Ignore them","Stop and answer yourself","Re-ask the user"],c:0,why:"You execute the function and feed the result back so the model can finish."},
+ {q:"The tool result is appended to the conversation with role:",a:["tool","function","system","assistant"],c:0,why:"Add a message with `role: \"tool\"` carrying the function's output."},
+ {q:"Tool calling lets a model:",a:["Trigger your functions to fetch data or take actions","Browse the web by itself","Train itself","Embed text"],c:0,why:"It bridges the model to real code — APIs, databases, calculators."},
+ {q:"Which model families support tool calling in Ollama?",a:["Llama 3.1+, Qwen 2.5/Qwen3, Mistral","Embedding models only","Vision-only models","None of them"],c:0,why:"Tool use requires a tool-capable model like Llama 3.1+, Qwen, or Mistral."}
+];
+QBANK['oll-multimodal']=[
+ {q:"To send an image to a vision model via the API, you provide:",a:["base64 image data in an `images` array","a file path in the URL","an HTML <img> tag","a vector"],c:0,why:"The API takes base64-encoded images in the `images` field of the message."},
+ {q:"Which model is suited to image understanding?",a:["llava or gemma3","nomic-embed-text","a quant tag","llama-guard"],c:0,why:"`llava` and `gemma3` are multimodal (vision) models."},
+ {q:"For reasoning models, you enable step-by-step thinking with:",a:["think=True (then read .message.thinking)","reason:true","cot:1","deep:yes"],c:0,why:"Reasoning models expose their thought process via the `think` option."},
+ {q:"Which is a reasoning-focused model family?",a:["deepseek-r1 / gpt-oss","llava","all-MiniLM","bge-small"],c:0,why:"`deepseek-r1` and `gpt-oss` are built for explicit reasoning."}
+];
+QBANK['oll-embed']=[
+ {q:"The current API endpoint to create embeddings is:",a:["/api/embed","/api/vector","/v1/embed-text","/api/encode"],c:0,why:"`/api/embed` is current; the older `/api/embeddings` still exists for compatibility."},
+ {q:"You should embed text with:",a:["A dedicated embedding model like nomic-embed-text","A chat model like llama3.2","Any model — they're identical","A vision model"],c:0,why:"Embedding models are trained to output meaningful vectors; chat models are not."},
+ {q:"`nomic-embed-text` produces vectors of how many dimensions?",a:["768","384","1024","1536"],c:0,why:"768 dims for nomic-embed-text; mxbai-embed-large is 1024."},
+ {q:"An embedding is best described as:",a:["A list of numbers capturing the text's meaning","A short summary sentence","A hash of the text","A token count"],c:0,why:"It's a dense numeric vector positioning the text in meaning-space."}
+];
+QBANK['oll-ops']=[
+ {q:"To make Ollama reachable from other machines, you set:",a:["OLLAMA_HOST=0.0.0.0 (and then secure it)","OLLAMA_PUBLIC=1","OLLAMA_OPEN=true","nothing — it's open by default"],c:0,why:"Binding to 0.0.0.0 exposes it on the network — add auth/firewalling since it's unauthenticated."},
+ {q:"By default, an idle model is unloaded from memory after about:",a:["5 minutes","30 seconds","1 hour","never"],c:0,why:"The default keep-alive is ~5 minutes of inactivity."},
+ {q:"To keep a model loaded in memory indefinitely, set keep_alive to:",a:["-1","0","1","“max”"],c:0,why:"`keep_alive: -1` keeps it loaded forever; `0` unloads immediately after the call."},
+ {q:"In Docker, persisting downloaded models across restarts requires:",a:["A volume mounted at /root/.ollama","--net host","OLLAMA_SAVE=1","nothing, it's automatic"],c:0,why:"Mount a volume to `/root/.ollama` so models survive container recreation."}
+];
+
+window.QBANK=QBANK;
+console.log('Question bank (Act I+II) loaded:', Object.keys(QBANK).length, 'concepts');
+</script>
+<script>
+QBANK['chr-vectors']=[
+ {q:"In a vector database, similarity between two texts is computed from:",a:["The distance between their embedding vectors","Their character count","Alphabetical order","Their file size"],c:0,why:"Search compares **vectors**, not words — that's why it captures meaning."},
+ {q:"Two documents with similar meaning have embeddings that are:",a:["Close together in vector space","Far apart","Byte-identical","Always orthogonal"],c:0,why:"Closeness in the space ≈ closeness in meaning."},
+ {q:"For text similarity, the usually-recommended distance metric is:",a:["cosine","manhattan","hamming","jaccard"],c:0,why:"Cosine compares direction (meaning) and is the standard for text embeddings."},
+ {q:"With cosine distance, “more similar” means the distance value is:",a:["Smaller","Larger","Always negative","Exactly 1"],c:0,why:"Lower distance = closer = more similar."}
+];
+QBANK['chr-intro']=[
+ {q:"To install ChromaDB for local use you run:",a:["pip install chromadb","npm install chroma","pip install chroma-client","apt install chroma"],c:0,why:"The local package is `chromadb` (the `chromadb-client` package is for remote-only use)."},
+ {q:"For a database that persists to disk (the everyday choice), use:",a:["PersistentClient(path=...)","Client()","EphemeralClient()","HttpClient()"],c:0,why:"`PersistentClient` writes to a folder so your data survives restarts."},
+ {q:"`EphemeralClient()` (same as `Client()`) stores data:",a:["In memory only — lost on exit","On disk","In the cloud","Inside Ollama"],c:0,why:"Great for tests; nothing is saved when the process ends."},
+ {q:"To connect to a Chroma server running on another host:",a:["HttpClient(host, port)","RemoteClient()","PersistentClient()","Client(remote=True)"],c:0,why:"`HttpClient` talks to a running `chroma run` server."}
+];
+QBANK['chr-collections']=[
+ {q:"The safest way to create-or-reuse a collection is:",a:["get_or_create_collection(name)","create_collection(name) only","get_collection(name) only","Collection(name)"],c:0,why:"It returns the existing one or makes a new one — no crash either way."},
+ {q:"A collection is roughly analogous to:",a:["A table in a database","A single row","A whole database file","An index file"],c:0,why:"Collections group related records (documents + vectors + metadata)."},
+ {q:"To set the distance metric on a collection, you pass:",a:["metadata={'hnsw:space':'cosine'}","distance='cosine'","metric='cosine'","space=cosine"],c:0,why:"The metric is configured via the `hnsw:space` metadata key (l2 / ip / cosine)."},
+ {q:"Calling `create_collection` with a name that already exists will:",a:["Raise an error — use get_or_create to be safe","Silently overwrite it","Return None","Rename it"],c:0,why:"`create_collection` is strict; `get_or_create_collection` is forgiving."}
+];
+QBANK['chr-add']=[
+ {q:"At minimum, `add()` requires:",a:["Documents (or embeddings) plus unique ids","Just documents","Just ids","Only metadatas"],c:0,why:"You always need `ids`, and either `documents` (to auto-embed) or precomputed `embeddings`."},
+ {q:"If you pass `documents` but no `embeddings`, Chroma will:",a:["Embed them automatically with the collection's embedding function","Reject them","Store empty vectors","Ask you to embed first"],c:0,why:"Auto-embedding via the collection's embedding function is the default convenience."},
+ {q:"The `ids` you supply must be:",a:["Unique within the collection","Sequential integers","Equal to the document text","Optional"],c:0,why:"Ids are the primary key — they must be unique."},
+ {q:"Using `add()` with an id that already exists will:",a:["Keep the original — use upsert to overwrite","Duplicate the record","Delete the collection","Auto-rename it"],c:0,why:"`add` won't overwrite; `upsert` replaces an existing id."}
+];
+QBANK['chr-query']=[
+ {q:"To search a collection by meaning you call:",a:["query(query_texts=[...], n_results=k)","search(...)","find(...)","match(...)"],c:0,why:"`query` embeds your text and returns the nearest records."},
+ {q:"`n_results` controls:",a:["How many nearest matches to return (top-k)","The embedding size","The number of collections","The temperature"],c:0,why:"It's your **k** — the count of results."},
+ {q:"Results are nested per query, so the first query's documents are at:",a:["results['documents'][0]","results['documents']","results[0]['docs']","results.documents.first"],c:0,why:"Each result list is keyed, then indexed by query — hence the `[0]`."},
+ {q:"In query results, a smaller distance means the match is:",a:["More similar to the query","Less similar","An error","Ignored"],c:0,why:"Distances sort ascending — smallest = closest."}
+];
+QBANK['chr-filter']=[
+ {q:"To restrict a query to records where topic equals “policy”, use:",a:["where={'topic':'policy'}","filter='policy'","tag='policy'","where_text='policy'"],c:0,why:"`where` filters on **metadata** fields."},
+ {q:"To keep only documents whose text contains a word, use:",a:["where_document={'$contains':'refund'}","where={'$contains':'refund'}","contains='refund'","search_text='refund'"],c:0,why:"`where_document` filters on the **document text**, not metadata."},
+ {q:"Which is a valid metadata filter operator?",a:["$gte","$like","$regex","$near"],c:0,why:"Chroma supports $eq/$ne/$gt/$gte/$lt/$lte/$in/$nin/$and/$or."},
+ {q:"Metadata filtering is powerful because it:",a:["Narrows results alongside semantic search (hybrid filtering)","Replaces embeddings","Speeds up embedding","Encrypts the data"],c:0,why:"You combine “means this” with “tagged like that” in one query."}
+];
+QBANK['chr-ef']=[
+ {q:"By default, a Chroma collection embeds text using:",a:["all-MiniLM-L6-v2 (384-dim)","OpenAI ada","nomic-embed-text","no default — you must set one"],c:0,why:"The built-in default is Sentence-Transformers `all-MiniLM-L6-v2`, 384 dimensions."},
+ {q:"To use Ollama for embeddings inside Chroma, you configure:",a:["OllamaEmbeddingFunction(url=..., model_name=...)","a Modelfile","OpenAIEmbeddingFunction","nothing — it's automatic"],c:0,why:"Chroma ships an `OllamaEmbeddingFunction` you attach to the collection."},
+ {q:"The single most important rule about embedding functions is:",a:["Use the SAME model to index and to query","Use the biggest model","Change models often","Only embed once, ever"],c:0,why:"Mismatched embedders produce incomparable vectors — and dimension errors."},
+ {q:"Querying with a different-dimension embedding than the index gives:",a:["A dimension mismatch error / garbage results","Faster queries","Automatic conversion","No change"],c:0,why:"Different models = different vector spaces; results become meaningless."}
+];
+QBANK['chr-persist']=[
+ {q:"`PersistentClient(path='./chroma_db')` will:",a:["Save data to that folder so it survives restarts","Keep data only in memory","Require a running server","Upload to the cloud"],c:0,why:"It persists everything to the given directory on disk."},
+ {q:"After re-running your script with a PersistentClient, your collections are:",a:["Still there, loaded from disk","Gone","Duplicated","Read-only"],c:0,why:"Persistence means you pick up exactly where you left off."},
+ {q:"To run Chroma as a standalone server process:",a:["chroma run --path ./chroma_db --port 8000","python -m chroma","ollama run chroma","chroma start cloud"],c:0,why:"`chroma run` launches a server you connect to with `HttpClient`."},
+ {q:"Storing the embedding function on the collection (v1.1.13+) means:",a:["get_collection can re-create it automatically","You never need a model","Queries become free","Data is encrypted"],c:0,why:"Chroma remembers how the collection was embedded, so reopening it just works."}
+];
+QBANK['rag-concept']=[
+ {q:"RAG stands for:",a:["Retrieval-Augmented Generation","Random Access Generation","Rapid AI Gateway","Recursive Answer Graph"],c:0,why:"Retrieve relevant text, then let the model generate using it."},
+ {q:"The core idea of RAG is to:",a:["Retrieve relevant context and add it to the prompt before generating","Fine-tune the model on every query","Replace the model entirely","Cache previous answers"],c:0,why:"RAG grounds the model in retrieved facts instead of retraining it."},
+ {q:"RAG's two phases are:",a:["Indexing (store) and querying (retrieve + generate)","Train and test","Encrypt and decrypt","Compile and run"],c:0,why:"Index once; then query as often as you like."},
+ {q:"RAG mainly helps with:",a:["Answering from your own / current documents and reducing hallucination","Making the model smaller","Faster GPUs","Offline installs only"],c:0,why:"It injects knowledge the base model never saw, with citations."}
+];
+QBANK['rag-build']=[
+ {q:"In a local RAG stack, ChromaDB's job is to:",a:["Store embeddings and retrieve the top-k relevant chunks","Generate the final answer","Quantize the model","Serve a web UI"],c:0,why:"Chroma is the retrieval layer — the searchable memory."},
+ {q:"In that same stack, Ollama's job is to:",a:["Embed text and generate the answer","Store vectors","Index documents","Host ChromaDB"],c:0,why:"Ollama does both the embedding model and the generation model, locally."},
+ {q:"A sensible chunk size for prose is roughly:",a:["500–1000 characters, with some overlap","5 characters","An entire book","Exactly one word"],c:0,why:"Chunks must be small enough to be specific but large enough to hold context; overlap avoids cutting ideas in half."},
+ {q:"The retrieved chunks are used by:",a:["Inserting them into the prompt as context","Training the model","Deleting old data","Setting the temperature"],c:0,why:"Augment the prompt with the retrieved text, then ask the model to answer from it."}
+];
+QBANK['rag-prod']=[
+ {q:"To reduce hallucination, instruct the model to:",a:["Answer only from the provided context, else say it doesn't know","Be as creative as possible","Ignore the context","Always answer confidently"],c:0,why:"Grounding instructions keep the model from inventing facts."},
+ {q:"A re-ranking step typically:",a:["Retrieves many candidates, then keeps the best few via a cross-encoder","Skips retrieval","Embeds everything twice","Forces k=1 always"],c:0,why:"Over-retrieve, then re-rank for precision before sending to the model."},
+ {q:"For factual Q&A, a good temperature setting is:",a:["Low, near 0","High, near 1","Exactly 2","It doesn't matter"],c:0,why:"Low temperature keeps answers grounded and consistent."},
+ {q:"Asking the model to cite which chunk each claim came from improves:",a:["Traceability and trust in the answer","Raw speed","Model size","Encryption"],c:0,why:"Citations let users verify the source of every statement."}
+];
+
+window.QBANK=QBANK;
+console.log('Full question bank loaded:', Object.keys(QBANK).length, 'concepts,',
+  Object.values(QBANK).reduce((n,a)=>n+a.length,0), 'questions');
+</script>
+<script>
+/* ================================================================
+   WORLD DATA — four act-regions on one overworld. The tile map and
+   lesson-pad positions are generated at runtime from these rects;
+   NPCs / signs / gates / sandbox portals are placed by tile coord.
+   TILE grid: 44 x 30.
+   ================================================================ */
+const WORLD={
+  W:44, H:30, TILE:32,
+  spawn:{x:21,y:14},
+  regions:[
+    {act:1, key:'village', name:'Llama Village', floor:'g',
+     desc:'Foundations. Meet the locals, pull your first model, learn the lay of the land.',
+     rect:{x:2,y:2,w:17,h:11},
+     gate:{x:16,y:11}, sandboxes:[{x:16,y:4,proj:'firstchat'}],
+     npcs:[
+       {x:4,y:4,name:'Llama Elder',emoji:'🦙',lines:["Welcome, Operator. This village is where every local-AI journey begins.","Ollama runs models on *your* machine — no cloud, no bill, no data leaving home.","Step on a glowing pad to study a concept. Prove it in the Trials when you're ready."],go:{label:'Open the Codex 📖',to:'codex'}},
+       {x:11,y:8,name:'Pulled-Model Pip',emoji:'🐑',lines:["Psst — `ollama run llama3.2` downloads a model *and* starts chatting in one go.","Try the glowing terminal pad up north to do it for real."],go:{label:'Enter a Sandbox ⌨️',to:'sandbox'}}
+     ],
+     signs:[{x:4,y:11,text:"VILLAGE LAW: everything is an HTTP call to localhost:11434. Remember the server and the rest is detail."}]
+    },
+    {act:2, key:'forge', name:'The Forge', floor:'f',
+     desc:'Power user territory. Shape models with Modelfiles, call the API, wield tools and structure.',
+     rect:{x:25,y:2,w:17,h:11},
+     gate:{x:39,y:11}, sandboxes:[{x:39,y:4,proj:'modelfile'},{x:33,y:11,proj:'api'}],
+     npcs:[
+       {x:27,y:4,name:'Smith Forge-Hand',emoji:'🔨',lines:["This is the Forge. Here we don't just *use* models — we shape them.","A Modelfile is a recipe: FROM a base, add a SYSTEM persona, bake in PARAMETERs.","`ollama create mybot -f Modelfile` and your custom model is born."]},
+       {x:35,y:8,name:'API Artificer',emoji:'⚙️',lines:["Every CLI command is really a POST to :11434. Learn the API and you can build anything.","/api/chat for conversation, /api/embed for vectors, /v1 if you speak OpenAI."],go:{label:'Try the API Sandbox ⌨️',to:'sandbox'}}
+     ],
+     signs:[{x:27,y:11,text:"FORGE WISDOM: `format` accepts a JSON schema to force structured output. `tools` lets the model call your code."}]
+    },
+    {act:3, key:'caverns', name:'Prism Caverns', floor:'c',
+     desc:'Where meaning becomes geometry. Embeddings, vector space, and the ChromaDB store.',
+     rect:{x:25,y:17,w:17,h:11},
+     gate:{x:39,y:26}, sandboxes:[{x:39,y:19,proj:'collection'}],
+     npcs:[
+       {x:27,y:19,name:'The Prism Oracle',emoji:'🔮',lines:["Deep in these caverns, text turns into light — vectors of pure meaning.","Similar ideas glow near each other. A vector database finds neighbors in that space.","ChromaDB is our store. One rule above all: embed queries with the *same* model you indexed with."]},
+       {x:34,y:23,name:'Vector Sprite',emoji:'✨',lines:["`PersistentClient(path=...)` keeps your collection on disk between runs.","`get_or_create_collection` never crashes. `add` then `query`. That's the whole dance."],go:{label:'Build a Collection ⌨️',to:'sandbox'}}
+     ],
+     signs:[{x:27,y:26,text:"CAVERN TRUTH: cosine distance for text; smaller distance = closer meaning. Metadata `where` filters narrow the search."}]
+    },
+    {act:4, key:'convergence', name:'The Convergence', floor:'v',
+     desc:'Where everything unites: a fully local Retrieval-Augmented Generation system.',
+     rect:{x:2,y:17,w:17,h:11},
+     gate:{x:16,y:26}, sandboxes:[{x:16,y:19,proj:'rag'}],
+     npcs:[
+       {x:4,y:19,name:'Architect of the Convergence',emoji:'🏛️',lines:["You've reached the Convergence, Operator. Here Ollama and ChromaDB become one system.","RAG: retrieve relevant chunks from Chroma, hand them to Ollama, generate a grounded answer.","Index once. Query forever. All on your own machine."],go:{label:'Assemble RAG ⌨️',to:'sandbox'}},
+       {x:12,y:23,name:'Keeper of Citations',emoji:'📜',lines:["Tell the model: answer ONLY from the context, and cite the chunk. That's how trust is built.","Low temperature. Top-k retrieval. Re-rank when precision matters."]}
+     ],
+     signs:[{x:4,y:26,text:"FINAL DOCTRINE: RAG = indexing (chunk→embed→store) + querying (embed→retrieve→augment→generate)."}]
+    }
+  ],
+  crossroadNPC:{x:21,y:16,name:'Crossroads Guide',emoji:'🧭',lines:["This is the Crossroads. Four realms branch out from here.","North-west: the Village (start here). North-east: the Forge. South-east: the Caverns. South-west: the Convergence.","Master a realm's concepts in the Trials to unlock the next."],go:{label:'View the Skill Map 🌳',to:'tree'}}
+};
+window.WORLD=WORLD;
+
+/* ================================================================
+   SANDBOX PROJECTS — the "virtual environments". Objectives are
+   validated by the terminal emulator in the engine. `mode` hints
+   whether a step happens in bash (sh) or the python REPL (py).
+   ================================================================ */
+const SANDBOXES={
+  firstchat:{
+    title:'First Contact', sub:'Pull a model and chat with it — entirely offline.',
+    tags:[['oll','OLLAMA']], act:1, concept:'oll-run',
+    intro:["A fresh machine with Ollama installed. The server is already running on :11434.","Complete the objectives below. Type real commands — mistakes give hints, never penalties.","Try:  ollama pull llama3.2"],
+    objectives:[
+      {id:'pull', label:'Download a model (ollama pull / run)', hint:"Use `ollama pull llama3.2` to download a model."},
+      {id:'list', label:'List your installed models', hint:"`ollama list` shows what's on disk."},
+      {id:'chat', label:'Start a chat and send a message', hint:"Run `ollama run llama3.2`, then type any message and Enter."},
+      {id:'ps',   label:'See which model is loaded in memory', hint:"`ollama ps` shows running models."}
+    ]
+  },
+  modelfile:{
+    title:'Forge a Custom Model', sub:'Bake a persona and settings into your own model.',
+    tags:[['oll','OLLAMA']], act:2, concept:'oll-modelfile',
+    intro:["Time to shape a model. You'll write a Modelfile, then build and run it.","Step 1:  create a Modelfile (try `nano Modelfile` or the quick `printf` shown in the Codex).","Hint: a minimal Modelfile is just  FROM llama3.2  +  a SYSTEM line."],
+    objectives:[
+      {id:'write', label:'Create a Modelfile (FROM + SYSTEM)', hint:"Create it with: `printf 'FROM llama3.2\\nSYSTEM \"You are a terse SQL tutor.\"' > Modelfile`"},
+      {id:'create', label:'Build the model with ollama create', hint:"`ollama create sqlbot -f Modelfile` builds your model."},
+      {id:'run', label:'Run your new custom model', hint:"`ollama run sqlbot` starts a chat with your creation."}
+    ]
+  },
+  api:{
+    title:'Call the Local API', sub:'Talk to :11434 directly with curl — chat and embeddings.',
+    tags:[['oll','OLLAMA']], act:2, concept:'oll-api',
+    intro:["No chat window here — just you and the REST API on localhost:11434.","Start with a health check, then send a real chat request, then make an embedding.","Try:  curl http://localhost:11434/api/tags"],
+    objectives:[
+      {id:'health', label:'Health check (GET /api/tags)', hint:"`curl http://localhost:11434/api/tags` lists installed models."},
+      {id:'chat', label:'Send a chat request (POST /api/chat)', hint:"`curl http://localhost:11434/api/chat -d '{\"model\":\"llama3.2\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false}'`"},
+      {id:'embed', label:'Create an embedding (POST /api/embed)', hint:"`curl http://localhost:11434/api/embed -d '{\"model\":\"nomic-embed-text\",\"input\":\"hello\"}'`"}
+    ]
+  },
+  collection:{
+    title:'Build a Vector Store', sub:'Create a ChromaDB collection, add docs, and query by meaning.',
+    tags:[['chr','CHROMA']], act:3, concept:'chr-add',
+    intro:["A Python lab. Install ChromaDB, drop into the REPL, and build a searchable store.","Step 1:  pip install chromadb   then   python   to open the shell.","Inside, you'll create a PersistentClient, a collection, add documents, and query."],
+    objectives:[
+      {id:'install', label:'Install chromadb (pip)', hint:"`pip install chromadb` (in the shell, before `python`)."},
+      {id:'repl', label:'Open the Python shell', hint:"Type `python` to enter the >>> REPL. `exit()` leaves it."},
+      {id:'client', label:'Create a PersistentClient', hint:"`import chromadb` then `client = chromadb.PersistentClient(path=\"./chroma_db\")`"},
+      {id:'col', label:'Get or create a collection', hint:"`col = client.get_or_create_collection(\"docs\")`"},
+      {id:'add', label:'Add documents (with ids)', hint:"`col.add(documents=[\"refunds within 30 days\",\"we ship worldwide\"], ids=[\"a1\",\"a2\"])`"},
+      {id:'query', label:'Query the collection', hint:"`col.query(query_texts=[\"can I get my money back?\"], n_results=1)`"}
+    ]
+  },
+  rag:{
+    title:'Assemble Local RAG', sub:'Wire ChromaDB + Ollama into a grounded question-answerer.',
+    tags:[['oll','OLLAMA'],['chr','CHROMA']], act:4, concept:'rag-build',
+    intro:["The grand finale. Ollama embeds + generates; ChromaDB retrieves. All local.","First make sure you have an embedding model, then build an index, then ask a question.","Try:  ollama pull nomic-embed-text"],
+    objectives:[
+      {id:'embedmodel', label:'Pull an embedding model', hint:"`ollama pull nomic-embed-text` — RAG needs a real embedder."},
+      {id:'repl', label:'Open the Python shell', hint:"Type `python` to enter the >>> REPL."},
+      {id:'index', label:'Embed + store your knowledge chunks', hint:"In the REPL: `col.add(documents=chunks, ids=ids)` after creating a collection with the Ollama embedding function."},
+      {id:'retrieve', label:'Retrieve context for a question', hint:"`ctx = col.query(query_texts=[\"what is your refund window?\"], n_results=2)`"},
+      {id:'generate', label:'Generate a grounded answer with Ollama', hint:"`ollama.chat(model=\"llama3.2\", messages=[{\"role\":\"user\",\"content\": prompt_with_context}])`"}
+    ]
+  }
+};
+window.SANDBOXES=SANDBOXES;
+console.log('World + sandboxes loaded');
+</script>
+
+<script>
+/* ================================================================
+   LOCALHOST QUEST — GAME ENGINE
+   Ties together LESSONS / DIAGRAMS / QBANK / WORLD / SANDBOXES.
+   Vanilla JS, single closure. Persists via Store (async).
+   ================================================================ */
+(function(){
+'use strict';
+
+/* ---------- tiny helpers ---------- */
+const $=id=>document.getElementById(id);
+const $all=sel=>Array.from(document.querySelectorAll(sel));
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function md(s){ // inline markdown for prose: **bold**, `code`, [[kbd]]
+  let t=esc(s);
+  t=t.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+  t=t.replace(/`([^`]+)`/g,(m,p)=>'<code>'+p+'</code>');
+  t=t.replace(/\[\[(.+?)\]\]/g,'<span class="kbd">$1</span>');
+  return t;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ---------- data indexes ---------- */
+const ACT={}; WORLD.regions.forEach(r=>{ACT[r.act]={name:r.name,desc:r.desc,key:r.key};});
+const actName=a=>(ACT[a]&&ACT[a].name)||('Act '+a);
+const LById={}; LESSONS.forEach(l=>{LById[l.id]=l;});
+const ORDER=LESSONS.slice().sort((a,b)=> (a.act-b.act)||(a.idx-b.idx));
+function actLessons(a){return LESSONS.filter(l=>l.act===a).sort((x,y)=>x.idx-y.idx);}
+function actOf(id){return LById[id]?LById[id].act:1;}
+
+/* ---------- state ---------- */
+let S=null;
+function freshState(name,cls){
+  return {v:1,name:name,cls:cls,xp:0,started:Date.now(),
+    concept:{},   // id -> {streak,done,opened}
+    read:{},      // id -> true (xp once)
+    sb:{},        // proj -> {objId:true}
+    met:{},       // npc name -> true
+    qseen:{},     // concept id -> [seen idxs in current cycle]
+    unlockToast:{}}; // act -> true
+}
+function C(id){ if(!S.concept[id]) S.concept[id]={streak:0,done:false,opened:false}; return S.concept[id]; }
+function save(){ try{ Store.set(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ---------- progression ---------- */
+function actDone(a){ return actLessons(a).every(l=>C(l.id).done); }
+function actUnlocked(a){ return a===1 || actDone(a-1); }
+function masteryPct(){ const done=LESSONS.filter(l=>C(l.id).done).length; return Math.round(done/LESSONS.length*100); }
+function statusOf(id){ const c=C(id); if(c.done)return 'done'; if(c.opened||c.streak>0)return 'learn'; return 'open'; }
+
+/* ---------- xp / level ---------- */
+const PER=120;
+const levelOf=xp=>Math.floor(xp/PER)+1;
+function awardXP(n,reason,silent){
+  const old=levelOf(S.xp); S.xp+=n; const nw=levelOf(S.xp);
+  if(!silent) toast('+'+n+' XP — '+reason,'good','✨');
+  if(nw>old) toast('Level '+nw+' reached!','lvl','⭐');
+  renderHUD(); save();
+}
+
+/* ---------- toast ---------- */
+function toast(msg,type,icon){
+  const wrap=$('toast'); if(!wrap)return;
+  const d=document.createElement('div'); d.className='toastmsg'+(type?(' '+type):'');
+  d.innerHTML='<span class="ti">'+(icon||'•')+'</span><span>'+esc(msg)+'</span>';
+  wrap.appendChild(d);
+  while(wrap.children.length>4) wrap.removeChild(wrap.firstChild);
+  setTimeout(()=>{ d.style.transition='opacity .4s,transform .4s'; d.style.opacity='0'; d.style.transform='translateX(20px)'; setTimeout(()=>d.remove(),420); },2600);
+}
+
+/* ---------- HUD ---------- */
+function renderHUD(){
+  $('lvl').textContent=levelOf(S.xp);
+  const into=S.xp%PER;
+  $('xpbar').style.width=(into/PER*100)+'%';
+  $('xptxt').textContent=into+' / '+PER;
+  const m=masteryPct();
+  $('masbar').style.width=m+'%';
+  $('mastxt').textContent=m+'%';
+  $('hud-who').textContent=S.name+' · the '+S.cls;
+}
+
+/* ================================================================
+   ROUTER
+   ================================================================ */
+let view='title';
+function go(v){
+  view=v;
+  $all('.view').forEach(el=>el.classList.remove('on'));
+  const sec=$('view-'+v); if(sec)sec.classList.add('on');
+  $all('.navbtn').forEach(b=>b.classList.toggle('active', b.getAttribute('data-go')===v));
+  if(v!=='world'){ stopWorld(); $('prompt').classList.remove('on'); }
+  if(v!=='title'){ $('hud').style.display=''; }
+  if(v==='world') startWorld();
+  else if(v==='codex') renderCodex();
+  else if(v==='sandbox'){ renderProjList(); if(sb){ const ti=$('term-input'); if(ti) setTimeout(()=>ti.focus(),30); } }
+  else if(v==='trials') renderTrials();
+  else if(v==='tree') renderTree();
+}
+
+/* ================================================================
+   CODEX  (reading + diagrams) — always readable
+   ================================================================ */
+let curLesson=null;
+function renderCodexSide(){
+  const side=$('codex-side'); let h='';
+  for(let a=1;a<=4;a++){
+    h+='<h3>Act '+a+' · '+esc(actName(a))+'</h3>';
+    actLessons(a).forEach(l=>{
+      const st=statusOf(l.id);
+      const sel=(l.id===curLesson)?' sel':'';
+      h+='<div class="toc s-'+st+sel+'" data-l="'+l.id+'"><span class="dot"></span><span class="ix">'+l.idx+'.</span><span>'+esc(l.title)+'</span></div>';
+    });
+  }
+  side.innerHTML=h;
+  side.querySelectorAll('.toc').forEach(t=>t.onclick=()=>openLesson(t.getAttribute('data-l')));
+}
+function codeHTML(c,lang){
+  // light syntax tint: comments, strings, numbers, a few keywords
+  let t=esc(c);
+  // strings first (single/double)
+  t=t.replace(/(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;|"[^"]*"|'[^']*')/g,'<span class="str">$1</span>');
+  // comments (# … or // …) — apply after strings; rough but fine for display
+  t=t.split('\n').map(line=>{
+    return line.replace(/(^|[^:])(#.*)$/,'$1<span class="cmt">$2</span>')
+               .replace(/(\/\/.*)$/,'<span class="cmt">$1</span>');
+  }).join('\n');
+  t=t.replace(/\b(\d+(?:\.\d+)?)\b/g,'<span class="num">$1</span>');
+  t=t.replace(/\b(import|from|def|class|return|for|in|if|else|elif|while|with|as|print|curl|pip|ollama|chroma|FROM|SYSTEM|PARAMETER|TEMPLATE|MESSAGE)\b/g,'<span class="kw">$1</span>');
+  return '<div class="codeblock"><span class="lang">'+esc(lang||'bash')+'</span><pre>'+t+'</pre></div>';
+}
+function blockHTML(b){
+  if(b.h2!==undefined) return '<h2>'+md(b.h2)+'</h2>';
+  if(b.p!==undefined) return '<p>'+md(b.p)+'</p>';
+  if(b.ul!==undefined) return '<ul>'+b.ul.map(li=>'<li>'+md(li)+'</li>').join('')+'</ul>';
+  if(b.code!==undefined) return codeHTML(b.code.c,b.code.lang);
+  if(b.tip!==undefined) return '<div class="callout tip"><span class="ci">💡</span><span class="cb">'+md(b.tip)+'</span></div>';
+  if(b.warn!==undefined) return '<div class="callout warn"><span class="ci">⚠️</span><span class="cb">'+md(b.warn)+'</span></div>';
+  if(b.note!==undefined) return '<div class="callout"><span class="ci">📝</span><span class="cb">'+md(b.note)+'</span></div>';
+  if(b.prism!==undefined) return '<div class="callout prism"><span class="ci">🔷</span><span class="cb">'+md(b.prism)+'</span></div>';
+  if(b.diagram!==undefined){ const d=DIAGRAMS[b.diagram]; if(!d)return ''; return '<div class="diagram">'+d.svg+'<div class="cap">'+esc(d.cap)+'</div></div>'; }
+  return '';
+}
+function openLesson(id){
+  if(!LById[id])return;
+  curLesson=id;
+  if(!S.read[id]){ S.read[id]=true; C(id).opened=true; awardXP(20,'Lesson studied'); }
+  else { C(id).opened=true; save(); }
+  go('codex');
+}
+function renderLesson(){
+  const pane=$('read-pane');
+  if(!curLesson) curLesson=ORDER[0].id;
+  const l=LById[curLesson];
+  const sibs=actLessons(l.act);
+  let h='<div class="eyebrow">Act '+l.act+' · '+esc(actName(l.act))+' — Lesson '+l.idx+' / '+sibs.length+'</div>';
+  h+='<h1>'+esc(l.title)+'</h1>';
+  h+='<p class="lede">'+md(l.lede)+'</p>';
+  l.body.forEach(b=>{ h+=blockHTML(b); });
+  // footer: prev / next across full order + take the trial
+  const pos=ORDER.findIndex(x=>x.id===l.id);
+  const prev=pos>0?ORDER[pos-1]:null, next=pos<ORDER.length-1?ORDER[pos+1]:null;
+  h+='<div class="read-foot"><div class="l">';
+  if(prev) h+='<button class="btn ghost sm" data-nav="'+prev.id+'">◀ '+esc(prev.title)+'</button>';
+  if(next) h+='<button class="btn ghost sm" data-nav="'+next.id+'">'+esc(next.title)+' ▶</button>';
+  h+='</div><button class="btn teal sm" id="codex-trial">Take the Trial ⚔</button></div>';
+  pane.innerHTML=h;
+  pane.scrollTop=0; const main=$('codex-main'); if(main)main.scrollTop=0;
+  pane.querySelectorAll('[data-nav]').forEach(btn=>btn.onclick=()=>openLesson(btn.getAttribute('data-nav')));
+  const tb=$('codex-trial'); if(tb) tb.onclick=()=>{
+    if(actUnlocked(l.act)) openQuiz(l.id);
+    else toast('Master '+actName(l.act-1)+' first to attempt this trial.','','🔒');
+  };
+}
+function renderCodex(){ renderCodexSide(); renderLesson(); }
+
+/* ================================================================
+   DIALOGUE
+   ================================================================ */
+let dlg=null;
+function openDialogue(d){
+  dlg={d:d,i:0};
+  if(d.name && !d.isSign && !S.met[d.name]){ S.met[d.name]=true; awardXP(8,'Met '+d.name); }
+  $('dlgava').textContent=d.emoji||'🦙';
+  $('dlgname').textContent=d.name||'';
+  $('dialogue').classList.add('on');
+  renderDlg();
+}
+function renderDlg(){
+  const d=dlg.d, last=dlg.i>=d.lines.length-1;
+  $('dlgtext').innerHTML=md(d.lines[dlg.i]);
+  const act=$('dlgactions'); let h='';
+  if(!last){ h+='<button class="btn ghost sm" data-dlg="next">Next ▸</button>'; }
+  else {
+    if(d.go) h+='<button class="btn sm" data-dlg="go">'+esc(d.go.label)+'</button>';
+    h+='<button class="btn ghost sm" data-dlg="close">Close ✕</button>';
+  }
+  act.innerHTML=h;
+  act.querySelectorAll('[data-dlg]').forEach(b=>{
+    const k=b.getAttribute('data-dlg');
+    b.onclick=(e)=>{ e.stopPropagation();
+      if(k==='next') dlgAdvance();
+      else if(k==='close') closeDialogue();
+      else if(k==='go'){ const to=d.go.to; closeDialogue(); go(to); }
+    };
+  });
+}
+function dlgAdvance(){ if(!dlg)return; if(dlg.i<dlg.d.lines.length-1){ dlg.i++; renderDlg(); } else { /* stay; close via button/space */ closeDialogue(); } }
+function closeDialogue(){ $('dialogue').classList.remove('on'); dlg=null; }
+
+/* ================================================================
+   WORLD  (2.5D top-down canvas overworld)
+   ================================================================ */
+const TILE=WORLD.TILE, GW=WORLD.W, GH=WORLD.H;
+const WPX=GW*TILE, HPX=GH*TILE;
+const COL={g:'#22402f',f:'#3e2b1c',c:'#2a2350',v:'#1f3550',p:'#191636',T:'#0c0a1c'};
+const COLA={g:'#2f5a41',f:'#5c3c22',c:'#3b3170',v:'#2c4d70',p:'#221e4a'};
+const CLASSCOL={Tinkerer:'#ffb061',Scholar:'#4fe0cf',Architect:'#a06bff'};
+const WALK={g:1,f:1,c:1,v:1,p:1};
+
+let grid=[], ents=[], bg=null, built=false;
+let canvas,ctx,mm,mmx;
+const player={x:0,y:0,dir:'d',moving:false};
+const keys={up:false,down:false,left:false,right:false};
+let near=null, worldActive=false, raf=0, lastT=0, T=0, lastZone='', actDown=false;
+
+function buildWorld(){
+  // grid
+  grid=[]; for(let y=0;y<GH;y++){ grid.push(new Array(GW).fill('T')); }
+  WORLD.regions.forEach(r=>{ for(let y=r.rect.y;y<r.rect.y+r.rect.h;y++) for(let x=r.rect.x;x<r.rect.x+r.rect.w;x++) grid[y][x]=r.floor; });
+  for(let y=2;y<=27;y++) for(let x=19;x<=24;x++) grid[y][x]='p';      // vertical crossroads
+  for(let y=13;y<=16;y++) for(let x=2;x<=41;x++) grid[y][x]='p';      // horizontal crossroads
+  // entities
+  ents=[];
+  WORLD.regions.forEach(r=>{
+    const occ=new Set();
+    (r.npcs||[]).forEach(n=>occ.add(n.x+','+n.y));
+    (r.signs||[]).forEach(s=>occ.add(s.x+','+s.y));
+    (r.sandboxes||[]).forEach(s=>occ.add(s.x+','+s.y));
+    if(r.gate)occ.add(r.gate.x+','+r.gate.y);
+    occ.add(WORLD.spawn.x+','+WORLD.spawn.y);
+    // lesson pads on a lattice within the region
+    const ls=actLessons(r.act); let li=0; const slots=[];
+    for(let y=r.rect.y+1;y<=r.rect.y+r.rect.h-2 && li<ls.length;y+=2){
+      for(let x=r.rect.x+1;x<=r.rect.x+r.rect.w-2 && li<ls.length;x+=3){
+        if(grid[y][x]===r.floor && !occ.has(x+','+y)){ slots.push({x,y}); }
+      }
+    }
+    ls.forEach((l,i)=>{ if(slots[i]) ents.push({type:'lesson',x:slots[i].x,y:slots[i].y,id:l.id,idx:l.idx}); });
+    (r.npcs||[]).forEach(n=>ents.push({type:'npc',x:n.x,y:n.y,data:n}));
+    (r.signs||[]).forEach(s=>ents.push({type:'sign',x:s.x,y:s.y,text:s.text}));
+    (r.sandboxes||[]).forEach(s=>ents.push({type:'sandbox',x:s.x,y:s.y,proj:s.proj}));
+    if(r.gate) ents.push({type:'gate',x:r.gate.x,y:r.gate.y,act:r.act});
+  });
+  if(WORLD.crossroadNPC){ const n=WORLD.crossroadNPC; ents.push({type:'npc',x:n.x,y:n.y,data:n,cross:true}); }
+  prerenderBG();
+  player.x=WORLD.spawn.x*TILE+TILE/2;
+  player.y=WORLD.spawn.y*TILE+TILE/2;
+  built=true;
+}
+function tri(g,cx,topY,half,h){ g.beginPath(); g.moveTo(cx,topY); g.lineTo(cx-half,topY+h); g.lineTo(cx+half,topY+h); g.closePath(); g.fill(); }
+function pine(g,px,py){
+  g.fillStyle='#3b2a18'; g.fillRect(px+TILE/2-2,py+TILE-11,4,9);
+  g.fillStyle='#16301f'; tri(g,px+TILE/2,py+3,12,15);
+  g.fillStyle='#1f4329'; tri(g,px+TILE/2,py+9,9,12);
+  g.fillStyle='#2a5538'; tri(g,px+TILE/2,py+15,6,9);
+}
+function prerenderBG(){
+  bg=document.createElement('canvas'); bg.width=WPX; bg.height=HPX;
+  const g=bg.getContext('2d');
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+    const t=grid[y][x], px=x*TILE, py=y*TILE;
+    if(t==='T'){ g.fillStyle=COL.T; g.fillRect(px,py,TILE,TILE); pine(g,px,py); continue; }
+    g.fillStyle=COL[t]; g.fillRect(px,py,TILE,TILE);
+    const h=(x*73+y*131)%7; g.fillStyle=COLA[t]||'#333';
+    if(h===0)g.fillRect(px+6,py+9,3,3);
+    if(h===1)g.fillRect(px+19,py+20,3,3);
+    if(h===3)g.fillRect(px+23,py+6,2,2);
+    if(h===5)g.fillRect(px+11,py+24,2,2);
+    if(t==='p'){ g.globalAlpha=.5; g.fillStyle='#13102a'; g.fillRect(px,py+TILE-2,TILE,2); g.fillRect(px+TILE-2,py,2,TILE); g.globalAlpha=1; }
+  }
+  // soft borders where region meets crossroads (subtle edge shading)
+}
+function walkable(cx,cy){
+  const r=TILE*0.30;
+  const pts=[[cx-r,cy-r],[cx+r,cy-r],[cx-r,cy+r],[cx+r,cy+r],[cx,cy+r+1]];
+  for(const [x,y] of pts){
+    if(x<0||y<0||x>=WPX||y>=HPX) return false;
+    const t=grid[Math.floor(y/TILE)][Math.floor(x/TILE)];
+    if(!WALK[t]) return false;
+  }
+  return true;
+}
+function rr(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+
+function startWorld(){
+  if(!canvas){ canvas=$('game'); ctx=canvas.getContext('2d'); mm=$('mm'); mmx=mm.getContext('2d'); }
+  if(!built) buildWorld();
+  if(document.body.classList.contains('touch')) $('touchpad').classList.add('on');
+  worldActive=true; lastT=performance.now();
+  cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
+}
+function stopWorld(){ worldActive=false; cancelAnimationFrame(raf); keys.up=keys.down=keys.left=keys.right=false; $('prompt').classList.remove('on'); }
+function loop(ts){
+  if(!worldActive) return;
+  let dt=(ts-lastT)/1000; lastT=ts; if(dt>0.05)dt=0.05; T+=dt;
+  if(!dlg) update(dt);
+  draw(); renderMinimap();
+  raf=requestAnimationFrame(loop);
+}
+function update(dt){
+  let dx=0,dy=0;
+  if(keys.up)dy-=1; if(keys.down)dy+=1; if(keys.left)dx-=1; if(keys.right)dx+=1;
+  player.moving=!!(dx||dy);
+  if(player.moving){
+    const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+    const sp=TILE*5*dt;
+    const nx=player.x+dx*sp; if(walkable(nx,player.y)) player.x=nx;
+    const ny=player.y+dy*sp; if(walkable(player.x,ny)) player.y=ny;
+    if(Math.abs(dx)>Math.abs(dy)) player.dir=dx>0?'r':'l'; else player.dir=dy>0?'d':'u';
+  }
+  // nearest interactable
+  const ptx=player.x/TILE, pty=player.y/TILE; let best=null,bd=1.35;
+  for(const e of ents){ const d=Math.hypot((e.x+0.5)-ptx,(e.y+0.5)-pty); if(d<bd){bd=d;best=e;} }
+  near=best;
+  const pr=$('prompt');
+  if(near){ pr.classList.add('on'); $('prompttxt').textContent=promptText(near); }
+  else pr.classList.remove('on');
+  // zone card
+  let zn='The Crossroads', zd='Four realms meet here. Step into a glowing pad to study, or talk to the locals.';
+  for(const r of WORLD.regions){ if(ptx>=r.rect.x&&ptx<r.rect.x+r.rect.w&&pty>=r.rect.y&&pty<r.rect.y+r.rect.h){ zn=r.name; zd=r.desc; break; } }
+  if(zn!==lastZone){ lastZone=zn; $('zonename').textContent=zn; $('zonedesc').textContent=zd; }
+}
+function promptText(e){
+  if(e.type==='lesson') return 'Study · '+LById[e.id].title;
+  if(e.type==='sandbox') return 'Enter Lab · '+SANDBOXES[e.proj].title;
+  if(e.type==='sign') return 'Read the marker';
+  if(e.type==='npc') return 'Talk · '+e.data.name;
+  if(e.type==='gate') return actUnlocked(e.act)?('Trials · '+actName(e.act)):('🔒 Master '+actName(e.act-1)+' first');
+  return 'Interact';
+}
+function interact(){
+  if(!near) return;
+  const e=near;
+  if(e.type==='lesson') openLesson(e.id);
+  else if(e.type==='sandbox'){ loadProject(e.proj); go('sandbox'); }
+  else if(e.type==='sign') openDialogue({name:'Stone Marker',emoji:'🪧',lines:[e.text],isSign:true});
+  else if(e.type==='npc') openDialogue(e.data);
+  else if(e.type==='gate'){ if(actUnlocked(e.act)){ go('trials'); } else toast('This gate is sealed. Master '+actName(e.act-1)+' in the Trials first.','','🔒'); }
+}
+function draw(){
+  const camX=clamp(player.x-canvas.width/2,0,WPX-canvas.width);
+  const camY=clamp(player.y-canvas.height/2,0,HPX-canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(bg,-camX,-camY);
+  // entities
+  for(const e of ents){
+    const sx=e.x*TILE-camX, sy=e.y*TILE-camY;
+    if(sx<-TILE||sy<-TILE||sx>canvas.width||sy>canvas.height) continue;
+    drawEnt(e,sx,sy);
+  }
+  drawPlayer(player.x-camX, player.y-camY);
+}
+function drawEnt(e,sx,sy){
+  const cx=sx+TILE/2, cy=sy+TILE/2, pulse=0.5+0.5*Math.sin(T*3+e.x*0.7+e.y*0.4);
+  if(e.type==='lesson'){
+    const st=statusOf(e.id);
+    const col=st==='done'?'#4fe0cf':(st==='learn'?'#ffd45f':'#ffb061');
+    ctx.save(); rr(ctx,sx+4,sy+4,TILE-8,TILE-8,6); ctx.fillStyle='#141230'; ctx.fill();
+    ctx.lineWidth=2.5; ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=4+8*pulse; ctx.stroke(); ctx.restore();
+    ctx.fillStyle=col; ctx.font="8px 'Press Start 2P',monospace"; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(e.idx),cx,cy+1);
+  } else if(e.type==='sandbox'){
+    const def=SANDBOXES[e.proj]; const chr=def.tags.some(t=>t[0]==='chr')&&!def.tags.some(t=>t[0]==='oll');
+    const col=chr?'#5fd0ff':'#ffb061';
+    ctx.save(); rr(ctx,sx+4,sy+5,TILE-8,TILE-9,5); ctx.fillStyle='#0a0818'; ctx.fill();
+    ctx.lineWidth=2.5; ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=4+9*pulse; ctx.stroke(); ctx.restore();
+    ctx.font='15px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⌨',cx,cy+1);
+  } else if(e.type==='gate'){
+    const open=actUnlocked(e.act); const col=open?'#ffb061':'#5a5380';
+    ctx.fillStyle=col; ctx.fillRect(sx+4,sy+6,5,TILE-8); ctx.fillRect(sx+TILE-9,sy+6,5,TILE-8);
+    ctx.fillStyle=open?'#c96a28':'#3b376a'; ctx.fillRect(sx+2,sy+2,TILE-4,6);
+    if(open){ ctx.save(); ctx.shadowColor=col; ctx.shadowBlur=8*pulse; ctx.font='15px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('⚔',cx,cy+3); ctx.restore(); }
+    else { ctx.font='14px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🔒',cx,cy+3); }
+  } else if(e.type==='sign'){
+    ctx.font='18px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🪧',cx,cy);
+  } else if(e.type==='npc'){
+    const bob=Math.sin(T*2+e.x)*2;
+    ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(cx,sy+TILE-5,11,4,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#2a2456'; ctx.beginPath(); ctx.ellipse(cx,sy+TILE-6,12,5,0,0,Math.PI*2); ctx.fill();
+    ctx.font='22px serif'; ctx.textAlign='center'; ctx.textBaseline='alphabetic'; ctx.fillText(e.data.emoji||'🦙',cx,sy+TILE-9-bob);
+    if(near===e){
+      const nm=e.data.name; ctx.font="7px 'Press Start 2P',monospace";
+      const w=ctx.measureText(nm).width+12;
+      ctx.fillStyle='rgba(10,8,24,.9)'; rr(ctx,cx-w/2,sy-12,w,15,4); ctx.fill();
+      ctx.fillStyle='#ffb061'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(nm,cx,sy-4);
+    }
+  }
+}
+function drawPlayer(cx,cy){
+  const col=CLASSCOL[S.cls]||'#ffb061';
+  const bob=player.moving?Math.sin(T*12)*1.2:0; cy+=bob;
+  ctx.fillStyle='rgba(0,0,0,.32)'; ctx.beginPath(); ctx.ellipse(cx,cy+10,9,4,0,0,Math.PI*2); ctx.fill();
+  // body
+  ctx.fillStyle=col; rr(ctx,cx-7,cy-2,14,13,4); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.18)'; rr(ctx,cx-7,cy+5,14,6,4); ctx.fill();
+  // head
+  ctx.fillStyle='#f0cda3'; ctx.beginPath(); ctx.arc(cx,cy-6,5.2,0,Math.PI*2); ctx.fill();
+  // hair cap
+  ctx.fillStyle='#2a2240'; ctx.beginPath(); ctx.arc(cx,cy-7,5.4,Math.PI,0); ctx.fill();
+  // eyes by facing
+  ctx.fillStyle='#1a1730';
+  let ex=0,ey=-6;
+  if(player.dir==='l'){ex=-1.6;} else if(player.dir==='r'){ex=1.6;} else if(player.dir==='u'){ey=-7.6;}
+  if(player.dir!=='u'){ ctx.fillRect(cx-2.4+ex,cy+ey,1.6,1.6); ctx.fillRect(cx+1+ex,cy+ey,1.6,1.6); }
+}
+function renderMinimap(){
+  const W=mm.width,H=mm.height, sx=W/GW, sy=H/GH;
+  mmx.fillStyle='#0a0818'; mmx.fillRect(0,0,W,H);
+  // crossroads bands
+  mmx.fillStyle='#191636'; mmx.fillRect(19*sx,2*sy,6*sx,26*sy); mmx.fillRect(2*sx,13*sy,40*sx,4*sy);
+  WORLD.regions.forEach(r=>{ mmx.fillStyle=COL[r.floor]; mmx.fillRect(r.rect.x*sx,r.rect.y*sy,r.rect.w*sx,r.rect.h*sy); });
+  // entity dots
+  for(const e of ents){
+    if(e.type==='lesson'){ mmx.fillStyle=statusOf(e.id)==='done'?'#4fe0cf':'#ffb061'; }
+    else if(e.type==='sandbox') mmx.fillStyle='#5fd0ff';
+    else if(e.type==='gate') mmx.fillStyle=actUnlocked(e.act)?'#ffd45f':'#5a5380';
+    else if(e.type==='npc') mmx.fillStyle='#ffffff';
+    else continue;
+    mmx.fillRect(e.x*sx, e.y*sy, Math.max(2,sx), Math.max(2,sy));
+  }
+  // player
+  mmx.fillStyle='#ff5d6c'; mmx.fillRect(player.x/TILE*sx-1.5, player.y/TILE*sy-1.5, 3.5,3.5);
+}
+
+/* ================================================================
+   SANDBOX  (virtual lab terminal)
+   ================================================================ */
+let sb=null;
+function renderProjList(){
+  const list=$('proj-list'); let h='';
+  Object.keys(SANDBOXES).forEach(key=>{
+    const d=SANDBOXES[key]; const unlocked=actUnlocked(d.act);
+    const sel=(sb&&sb.proj===key)?' sel':'';
+    const tags=d.tags.map(t=>'<span class="tag '+t[0]+'">'+t[1]+'</span>').join(' ');
+    const done=S.sb[key]?Object.keys(S.sb[key]).filter(k=>S.sb[key][k]).length:0;
+    const lock=unlocked?'':'🔒';
+    h+='<div class="proj'+sel+'" data-p="'+key+'" '+(unlocked?'':'data-lock="1"')+' style="'+(unlocked?'':'opacity:.55')+'">'
+      +'<div class="pt"><span>'+esc(d.title)+'</span><span>'+lock+'</span></div>'
+      +'<div class="pd">'+esc(d.sub)+'</div>'
+      +'<div class="meta">'+tags+'<span class="tag">'+done+'/'+d.objectives.length+'</span><span class="tag">ACT '+d.act+'</span></div>'
+      +'</div>';
+  });
+  list.innerHTML=h;
+  list.querySelectorAll('.proj').forEach(p=>{
+    p.onclick=()=>{
+      const key=p.getAttribute('data-p');
+      if(p.getAttribute('data-lock')){ toast('Locked — master '+actName(SANDBOXES[key].act-1)+' first.','','🔒'); return; }
+      loadProject(key);
+    };
+  });
+}
+function loadProject(key){
+  const def=SANDBOXES[key];
+  if(!actUnlocked(def.act)){ toast('Locked — master '+actName(def.act-1)+' first.','','🔒'); return; }
+  if(!S.sb[key]) S.sb[key]={};
+  sb={proj:key,def:def,mode:'sh',st:{models:new Set(),hasModelfile:false,chromaInstalled:false,client:false,collection:false,added:false,colName:'col',chatModel:'',customModel:''}};
+  $('sb-title').textContent=def.title;
+  $('sb-sub').textContent=def.sub;
+  const out=$('term-out'); out.innerHTML='';
+  termLine('o','— '+def.title+' —');
+  def.intro.forEach((l,i)=>{ termLine(i===def.intro.length-1?'hl':'dim2', l); });
+  termLine('dim2','Type '+'help'+' for available commands.');
+  setPS();
+  const ti=$('term-input'); ti.disabled=false; ti.value=''; setTimeout(()=>ti.focus(),30);
+  renderObjectives(); renderProjList();
+}
+function setPS(){ const ps=$('term-ps'); ps.textContent= sb.mode==='sh'?'~/lab $':'>>>'; }
+function termLine(cls,txt){
+  const out=$('term-out'); const d=document.createElement('div'); d.className='line '+(cls||'o');
+  d.innerHTML=txt; out.appendChild(d); out.scrollTop=out.scrollHeight;
+}
+function termEcho(cmd){
+  const ps= sb.mode==='sh'?'~/lab $':'>>>';
+  termLine('u','<span class="ps">'+esc(ps)+'</span> <span class="pa">'+esc(cmd)+'</span>');
+}
+function objDone(id){
+  const key=sb.proj; if(!sb.def.objectives.some(o=>o.id===id)) return;
+  if(S.sb[key][id]) return;
+  S.sb[key][id]=true; awardXP(15,'Objective complete'); save();
+  renderObjectives(); renderProjList();
+  const all=sb.def.objectives.every(o=>S.sb[key][o.id]);
+  if(all){ toast(sb.def.title+' — all objectives cleared!','good','🏁'); }
+}
+function renderObjectives(){
+  const box=$('sb-obj'); if(!sb){ box.innerHTML='<div class="sb-empty">No project loaded yet.</div>'; return; }
+  const key=sb.proj; let h='<h2 style="font-family:var(--font-hud);font-size:9px;color:var(--teal);margin:2px 2px 12px">OBJECTIVES</h2>';
+  let nextHint=null;
+  sb.def.objectives.forEach(o=>{
+    const done=!!S.sb[key][o.id];
+    if(!done && !nextHint) nextHint=o;
+    h+='<div class="obj'+(done?' done':'')+'"><span class="ck">'+(done?'✓':'')+'</span><span>'+esc(o.label)+'</span></div>';
+  });
+  if(nextHint) h+='<div class="hintbox"><b>Next:</b> '+md(nextHint.hint)+'</div>';
+  else h+='<div class="hintbox" style="border-left-color:var(--teal)"><b>Complete!</b> Every objective cleared. Revisit anytime, or head to the Trials to prove mastery.</div>';
+  box.innerHTML=h;
+}
+
+/* ---- the command interpreter ---- */
+function runCmd(raw){
+  const cmd=raw.trim(); if(!cmd){ return; }
+  termEcho(cmd);
+  if(sb.mode==='chat'){ chatExec(cmd); return; }
+  if(cmd==='clear'||cmd==='cls'){ $('term-out').innerHTML=''; return; }
+  if(cmd==='help'){ helpText(); return; }
+  if(sb.mode==='py') pyExec(cmd); else shExec(cmd);
+}
+function helpText(){
+  if(sb.mode==='py'){
+    termLine('o','Python REPL — try: <span class="hl">import chromadb</span>, <span class="hl">client = chromadb.PersistentClient(path="./chroma_db")</span>, <span class="hl">col = client.get_or_create_collection("docs")</span>, <span class="hl">col.add(...)</span>, <span class="hl">col.query(...)</span>. <span class="hl">exit()</span> leaves.');
+    return;
+  }
+  termLine('o','Examples: <span class="hl">ollama pull llama3.2</span> · <span class="hl">ollama list</span> · <span class="hl">ollama run llama3.2</span> · <span class="hl">ollama ps</span>');
+  termLine('o','<span class="hl">curl http://localhost:11434/api/tags</span> · <span class="hl">pip install chromadb</span> · <span class="hl">python</span> · <span class="hl">ollama create name -f Modelfile</span>');
+}
+const ind='&nbsp;&nbsp;';
+function shExec(cmd){
+  const st=sb.st;
+  // ----- ollama -----
+  if(/^ollama(\s|$)/.test(cmd)){
+    const m=cmd.replace(/^ollama\s*/,'');
+    if(m===''||m==='help'||m==='-h'||m==='--help'){ termLine('o','Usage: ollama [run|pull|list|ps|create|show|rm|serve|stop] ...'); return; }
+    if(m==='--version'||m==='-v'||m==='version'){ termLine('o','ollama version is 0.15.3'); return; }
+    if(/^serve\b/.test(m)){ termLine('err','Error: listen tcp 127.0.0.1:11434: bind: address already in use'); termLine('dim2','(The server is already running — nothing to do.)'); return; }
+    let mm;
+    if((mm=m.match(/^(pull|run)\s+(\S+)/))){
+      const verb=mm[1], model=mm[2];
+      termLine('o','pulling manifest'); termLine('o','pulling '+model+'  ▕████████████▏ 100%'); termLine('ok','success');
+      st.models.add(model);
+      objDone('pull');
+      if(/embed/i.test(model)) objDone('embedmodel');
+      if(verb==='run'){
+        st.chatModel=model; sb.mode='chat'; setPS();
+        termLine('dim2','>>> Send a message.  (type /bye to leave the chat)');
+      }
+      return;
+    }
+    if(/^(list|ls)\b/.test(m)){
+      termLine('o','NAME'+ind+ind+'ID'+ind+ind+'SIZE'+ind+ind+'MODIFIED');
+      const arr=Array.from(st.models); if(!arr.length){ termLine('dim2','(no models yet — try: ollama pull llama3.2)'); }
+      arr.forEach(n=>termLine('o',esc(n)+ind+'a1b2c3d4'+ind+'2.0 GB'+ind+'just now'));
+      objDone('list'); return;
+    }
+    if(/^ps\b/.test(m)){
+      if(st.chatModel||st.models.size){ const n=st.chatModel||Array.from(st.models)[0]; termLine('o','NAME'+ind+'ID'+ind+'SIZE'+ind+'PROCESSOR'+ind+'UNTIL'); termLine('o',esc(n)+ind+'a1b2c3d4'+ind+'2.6 GB'+ind+'100% GPU'+ind+'4 min from now'); }
+      else termLine('dim2','(no models currently loaded in memory)');
+      objDone('ps'); return;
+    }
+    if((mm=m.match(/^create\s+(\S+)\s+-f\s+(\S+)/))){
+      const name=mm[1];
+      if(!st.hasModelfile){ termLine('err','Error: could not open Modelfile: no such file'); termLine('dim2','Create one first, e.g.  printf \'FROM llama3.2\\nSYSTEM "You are terse."\' > Modelfile'); return; }
+      termLine('o','transferring model data'); termLine('o','using existing layer sha256:…'); termLine('o','creating new model layer'); termLine('ok','success');
+      st.models.add(name); st.customModel=name; objDone('create'); return;
+    }
+    if((mm=m.match(/^show\s+(\S+)/))){ termLine('o','Model: '+esc(mm[1])); termLine('o','  parameters    3.2B'); termLine('o','  quantization  Q4_K_M'); termLine('o','  context       8192'); return; }
+    if((mm=m.match(/^rm\s+(\S+)/))){ st.models.delete(mm[1]); termLine('o','deleted \''+esc(mm[1])+'\''); return; }
+    if((mm=m.match(/^stop\s+(\S+)/))){ termLine('o','stopped \''+esc(mm[1])+'\''); return; }
+    termLine('err','Error: unknown command "ollama '+esc(m)+'"'); return;
+  }
+  // ----- curl -----
+  if(/^curl\b/.test(cmd)){
+    const is11434=/11434/.test(cmd);
+    if(!is11434){ termLine('err','curl: (7) Failed to connect — this lab only exposes localhost:11434'); return; }
+    if(/\/api\/tags/.test(cmd)){
+      const arr=Array.from(st.models); const names=arr.length?arr:['llama3.2'];
+      termLine('o','{"models":['+names.map(n=>'{"name":"'+esc(n)+'","size":2019393792}').join(',')+']}');
+      objDone('health'); return;
+    }
+    if(/\/api\/chat/.test(cmd)){
+      termLine('o','{"model":"llama3.2","message":{"role":"assistant","content":"Hello! Running locally and ready to help."},"done":true}');
+      objDone('chat'); return;
+    }
+    if(/\/api\/embed(dings)?/.test(cmd)){
+      termLine('o','{"embeddings":[[0.0123,-0.0456,0.0789, ... 768 floats ...]]}');
+      objDone('embed'); return;
+    }
+    if(/\/api\/generate/.test(cmd)){ termLine('o','{"model":"llama3.2","response":"The sky is blue because…","done":true}'); return; }
+    if(/\/api\/ps/.test(cmd)){ termLine('o','{"models":[{"name":"llama3.2","size_vram":2600000000}]}'); return; }
+    termLine('o','{"error":"unknown endpoint"}'); return;
+  }
+  // ----- pip -----
+  if(/^pip(3)?\s+install\b/.test(cmd)){
+    const pkg=(cmd.match(/install\s+(\S+)/)||[])[1]||'package';
+    termLine('o','Collecting '+esc(pkg)); termLine('o','Installing collected packages: '+esc(pkg)); termLine('ok','Successfully installed '+esc(pkg)+'-1.5.0');
+    if(/^chromadb/.test(pkg)){ st.chromaInstalled=true; objDone('install'); }
+    return;
+  }
+  // ----- python -----
+  if(/^python(3)?$/.test(cmd)){
+    sb.mode='py'; setPS();
+    termLine('o','Python 3.12.1  ·  type exit() to leave'); objDone('repl'); return;
+  }
+  // ----- file creation: Modelfile -----
+  if(/>\s*Modelfile\b/.test(cmd) || /^(nano|vi|vim)\s+Modelfile/.test(cmd)){
+    if(/^(nano|vi|vim)/.test(cmd)){ termLine('dim2','(editor) Modelfile saved: FROM llama3.2  +  SYSTEM line'); st.hasModelfile=true; objDone('write'); return; }
+    // printf/echo/cat redirect
+    const hasFrom=/FROM\s+\S+/i.test(cmd);
+    if(!hasFrom){ termLine('dim2','(wrote Modelfile, but it has no FROM line — a Modelfile must start with FROM <base-model>)'); }
+    else { st.hasModelfile=true; objDone('write'); termLine('dim2','(Modelfile written)'); }
+    return;
+  }
+  if(/^cat\s+Modelfile/.test(cmd)){ if(st.hasModelfile){ termLine('o','FROM llama3.2'); termLine('o','SYSTEM "You are a terse SQL tutor."'); } else termLine('err','cat: Modelfile: No such file or directory'); return; }
+  if(/^ls\b/.test(cmd)){ let f=[]; if(st.hasModelfile)f.push('Modelfile'); if(st.collection)f.push('chroma_db/'); termLine('o',f.length?f.join(ind):'(empty)'); return; }
+  if(/^(echo)\s+/.test(cmd)){ termLine('o',esc(cmd.replace(/^echo\s+/,'').replace(/^['"]|['"]$/g,''))); return; }
+  termLine('err','command not found: '+esc(cmd.split(/\s+/)[0])); termLine('dim2','Type help to see examples.');
+}
+function chatExec(line){
+  if(line==='/bye'||line==='/exit'||line==='exit'){ sb.mode='sh'; setPS(); termLine('dim2','(left the chat)'); return; }
+  // canned, vaguely relevant reply
+  termLine('o','<span style="color:#cfe9ff">'+esc(replyTo(line))+'</span>');
+  objDone('chat');
+}
+function replyTo(q){
+  const s=q.toLowerCase();
+  if(s.includes('sky')) return 'The sky looks blue because air scatters short-wavelength light more than long — Rayleigh scattering.';
+  if(s.includes('hello')||s.includes('hi')) return 'Hello! I\'m a local model running through Ollama — no cloud involved. Ask me anything.';
+  if(s.includes('?')) return 'Good question. Running locally, I can answer offline and your prompt never leaves the machine.';
+  return 'Got it. I\'m responding entirely on your own hardware via Ollama. (This is a simulated reply.)';
+}
+function pyExec(line){
+  const st=sb.st;
+  if(/^(exit|quit)(\(\s*\))?$/.test(line)){ sb.mode='sh'; setPS(); termLine('dim2','(left the Python shell)'); return; }
+  if(/^import\s+chromadb/.test(line)){ st.importedChroma=true; return; }
+  if(/^import\s+ollama/.test(line)){ st.importedOllama=true; return; }
+  if(/^from\s+chromadb/.test(line)){ return; }
+  // client = chromadb.PersistentClient(...) / Client() / EphemeralClient / HttpClient
+  if(/chromadb\.(PersistentClient|Client|EphemeralClient|HttpClient|CloudClient)\s*\(/.test(line)){
+    st.client=true; const nm=(line.match(/^(\w+)\s*=/)||[])[1]||'client'; st.clientName=nm; objDone('client'); return;
+  }
+  // col = client.get_or_create_collection(...) etc
+  if(/\.(get_or_create_collection|create_collection|get_collection)\s*\(/.test(line)){
+    if(!st.client){ termLine('err','NameError: name \''+esc((line.match(/=\s*(\w+)\./)||[])[1]||'client')+'\' is not defined'); termLine('dim2','Create a client first: client = chromadb.PersistentClient(path="./chroma_db")'); return; }
+    st.collection=true; const nm=(line.match(/^(\w+)\s*=/)||[])[1]||'col'; st.colName=nm; objDone('col'); return;
+  }
+  // <col>.add(...)
+  const addRe=new RegExp('^'+(st.colName||'col')+'\\.add\\s*\\(');
+  if(/\.add\s*\(/.test(line)){
+    if(!st.collection){ termLine('err','NameError: name \'col\' is not defined'); termLine('dim2','Create a collection first: col = client.get_or_create_collection("docs")'); return; }
+    if(!/ids\s*=/.test(line)){ termLine('err','ValueError: You must provide ids when adding documents'); termLine('dim2','e.g. col.add(documents=[...], ids=["a1","a2"])'); return; }
+    st.added=true; objDone('add'); objDone('index'); return; // REPL prints nothing on success
+  }
+  // <col>.query(...)
+  if(/\.query\s*\(/.test(line)){
+    if(!st.collection){ termLine('err','NameError: name \'col\' is not defined'); return; }
+    termLine('o',"{'ids': [['a1']], 'documents': [['refunds within 30 days']], 'distances': [[0.21]], 'metadatas': [[None]]}");
+    objDone('query'); objDone('retrieve'); return;
+  }
+  if(/\.count\s*\(\s*\)/.test(line)){ termLine('o', st.added?'2':'0'); return; }
+  if(/\.(get|peek)\s*\(/.test(line)){ termLine('o',"{'ids': ['a1','a2'], 'documents': ['refunds within 30 days','we ship worldwide']}"); return; }
+  if(/ollama\.(chat|generate)\s*\(/.test(line)){
+    termLine('o',"{'model': 'llama3.2', 'message': {'role': 'assistant', 'content': 'Based on the context, refunds are available within 30 days.'}}");
+    objDone('generate'); return;
+  }
+  if(/ollama\.embed\s*\(/.test(line)){ termLine('o',"{'embeddings': [[0.012, -0.045, 0.078, ...]]}"); return; }
+  if(/OllamaEmbeddingFunction\s*\(/.test(line)){ st.ef=true; return; }
+  if(/^print\s*\(/.test(line)){ const inner=line.replace(/^print\s*\(/,'').replace(/\)\s*$/,'').replace(/^['"]|['"]$/g,''); termLine('o',esc(inner)); return; }
+  if(/^\w+\s*=\s*\[/.test(line)){ return; } // list assignment (chunks/ids)
+  if(/^\w+\s*=/.test(line)){ return; } // generic assignment
+  if(/^[\w.]+\(.*\)\s*$/.test(line)){ termLine('o','...'); return; }
+  if(/^[A-Za-z_]\w*$/.test(line)){ termLine('err','NameError: name \''+esc(line)+'\' is not defined'); return; }
+  termLine('dim2','... (statement accepted)');
+}
+
+/* ================================================================
+   TRIALS  (mastery quiz hub + loop)
+   ================================================================ */
+function renderTrials(){
+  const wrap=$('trial-grid'); let h='';
+  for(let a=1;a<=4;a++){
+    const unlocked=actUnlocked(a);
+    h+='<h2 style="font-family:var(--font-hud);font-size:9px;color:'+(a===4?'#5fd0ff':'var(--amber)')+';margin:'+(a===1?'4px':'26px')+' 2px 12px">ACT '+a+' · '+esc(actName(a))+(unlocked?'':' 🔒')+'</h2><div class="tgrid">';
+    actLessons(a).forEach(l=>{
+      const c=C(l.id); const pct=c.done?100:Math.round(Math.min(c.streak,3)/3*100);
+      const status=c.done?'Mastered ✓':(unlocked?('Streak '+Math.min(c.streak,3)+' / 3'):'Locked');
+      const lbl=c.done?'Practice':(unlocked?'Begin trial':'Locked');
+      h+='<div class="tcard'+(unlocked?'':' locked')+'">'
+        +'<div class="ti">'+esc(l.title)+'</div>'
+        +'<div class="meta"><span class="tag '+(a>=3&&l.id[0]==='c'?'chr':(l.id.startsWith('rag')?'':'oll'))+'">'+(QBANK[l.id]?QBANK[l.id].length:0)+' Qs</span><span style="font-size:11px;color:var(--dim)">'+status+'</span></div>'
+        +'<div class="mbar"><i style="width:'+pct+'%"></i></div>'
+        +'<div class="act"><button class="btn '+(c.done?'teal ':'')+'sm" data-q="'+l.id+'" '+(unlocked?'':'disabled')+'>'+lbl+'</button></div>'
+        +'</div>';
+    });
+    h+='</div>';
+  }
+  wrap.innerHTML=h;
+  wrap.querySelectorAll('[data-q]').forEach(b=>{ if(!b.disabled) b.onclick=()=>openQuiz(b.getAttribute('data-q')); });
+}
+
+/* ---- quiz overlay ---- */
+let quiz=null;
+function openQuiz(id){
+  if(!QBANK[id]){ toast('No trial questions for this concept yet.','',' '); return; }
+  if(!actUnlocked(actOf(id))){ toast('Master '+actName(actOf(id)-1)+' first.','','🔒'); return; }
+  quiz={id:id,answered:false,q:0,correctPos:0,order:[],justMastered:false};
+  $('quiz-title').textContent='Trial · '+LById[id].title;
+  $('quiz').classList.add('on');
+  setPips();
+  nextQuestion();
+}
+function setPips(){
+  const streak=Math.min(C(quiz.id).streak,3);
+  $all('#quiz .pip').forEach((p,i)=>{ p.classList.toggle('on', i<streak); p.classList.remove('miss'); });
+}
+function nextQuestion(){
+  const id=quiz.id, pool=QBANK[id];
+  let seen=S.qseen[id]||[];
+  let avail=[]; for(let i=0;i<pool.length;i++) if(seen.indexOf(i)<0) avail.push(i);
+  if(!avail.length){ seen=[]; for(let i=0;i<pool.length;i++) avail.push(i); }
+  const pick=avail[Math.floor(Math.random()*avail.length)];
+  seen.push(pick); S.qseen[id]=seen; save();
+  quiz.q=pick; quiz.answered=false; quiz.justMastered=false;
+  const qd=pool[pick];
+  $('q-text').innerHTML=md(qd.q);
+  const order=shuffle(qd.a.map((_,i)=>i)); quiz.order=order; quiz.correctPos=order.indexOf(qd.c);
+  const letters=['A','B','C','D','E'];
+  let h='';
+  order.forEach((origIdx,pos)=>{ h+='<button class="opt" data-pos="'+pos+'"><span class="ol">'+letters[pos]+'</span>'+md(qd.a[origIdx])+'</button>'; });
+  const opts=$('q-opts'); opts.innerHTML=h;
+  opts.querySelectorAll('.opt').forEach(o=>o.onclick=()=>answer(parseInt(o.getAttribute('data-pos'),10)));
+  const ex=$('q-explain'); ex.className='explain'; ex.innerHTML='';
+  $('q-next').style.display='none';
+  $('q-prog').textContent='Streak '+Math.min(C(id).streak,3)+'/3 · '+pool.length+' in the pool';
+  setPips();
+}
+function answer(pos){
+  if(quiz.answered) return; quiz.answered=true;
+  const id=quiz.id, qd=QBANK[id][quiz.q], correct=(pos===quiz.correctPos);
+  const opts=$all('#q-opts .opt');
+  opts.forEach((o,i)=>{ o.classList.add('dis'); if(i===quiz.correctPos)o.classList.add('correct'); if(i===pos&&!correct)o.classList.add('wrong'); });
+  const ex=$('q-explain');
+  if(correct){
+    ex.className='explain on good'; ex.innerHTML='<b>Correct.</b> '+md(qd.why);
+    const c=C(id); c.streak++; awardXP(5,'Correct answer',true);
+    if(c.streak>=3 && !c.done){ masterConcept(id); quiz.justMastered=true; }
+    save(); renderHUD();
+  } else {
+    ex.className='explain on bad'; ex.innerHTML='<b>Not quite.</b> '+md(qd.why);
+    C(id).streak=0; save();
+  }
+  setPips();
+  const nx=$('q-next'); nx.style.display=''; nx.textContent=quiz.justMastered?'Finish ✓':'Next ▶';
+  if(view==='trials') renderTrials();
+}
+function masterConcept(id){
+  const c=C(id); c.done=true; c.streak=3;
+  awardXP(40,'Concept mastered'); toast(LById[id].title+' — mastered!','good','✅');
+  const a=actOf(id);
+  if(a<4 && actDone(a) && !S.unlockToast[a+1]){ S.unlockToast[a+1]=true; toast('Gate opened — '+actName(a+1)+' is now unlocked!','lvl','🗝️'); }
+  if(a===4 && actDone(4)){ toast('All 25 concepts mastered — you are a Local-AI Architect! 🏆','lvl','🏆'); }
+  save();
+}
+function closeQuiz(){ $('quiz').classList.remove('on'); quiz=null; if(view==='trials')renderTrials(); }
+
+/* ================================================================
+   SKILL TREE
+   ================================================================ */
+function renderTree(){
+  const root=$('acts'); let h='';
+  for(let a=1;a<=4;a++){
+    const unlocked=actUnlocked(a), done=actDone(a);
+    const sub=done?'Mastered ✓':(unlocked?'In progress':'Locked — master Act '+(a-1));
+    h+='<div class="actcol'+(a===4?' a4':'')+'">'
+      +'<div class="ah">ACT '+a+' · '+esc(actName(a))+'</div>'
+      +'<div class="asub">'+actLessons(a).length+' concepts · '+sub+'</div>';
+    actLessons(a).forEach(l=>{
+      const c=C(l.id); const st=statusOf(l.id);
+      const cls=(!unlocked?'locked ':'')+(c.done?'done ':'')+'s-'+st;
+      const orb=!unlocked?'🔒':(c.done?'✓':(st==='learn'?'◐':String(l.idx)));
+      const pct=c.done?100:Math.round(Math.min(c.streak,3)/3*100);
+      h+='<div class="node '+cls+'" data-l="'+l.id+'">'
+        +'<div class="orb">'+orb+'</div>'
+        +'<div class="nb"><div class="nt">'+esc(l.title)+'</div><div class="nm"><i style="width:'+pct+'%"></i></div></div>'
+        +'</div>';
+    });
+    h+='</div>';
+  }
+  root.innerHTML=h;
+  root.querySelectorAll('.node').forEach(n=>{ if(!n.classList.contains('locked')) n.onclick=()=>openLesson(n.getAttribute('data-l')); });
+}
+
+/* ================================================================
+   INPUT
+   ================================================================ */
+const MOVE={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',W:'up',S:'down',A:'left',D:'right'};
+const ACTK={e:1,E:1,' ':1,Enter:1};
+window.addEventListener('keydown',e=>{
+  if(dlg){ if(e.key in ACTK){ e.preventDefault(); dlgAdvance(); } return; }
+  if(quiz){ if(e.key==='Escape') closeQuiz(); return; }
+  // typing in terminal / name input: let it through
+  const tag=(e.target&&e.target.tagName)||'';
+  if(tag==='INPUT'||tag==='TEXTAREA') return;
+  if(view!=='world'||!worldActive) return;
+  if(e.key in MOVE){ keys[MOVE[e.key]]=true; if(e.key.startsWith('Arrow')||e.key===' ')e.preventDefault(); }
+  if(e.key in ACTK){ e.preventDefault(); if(!actDown){ actDown=true; interact(); } }
+});
+window.addEventListener('keyup',e=>{
+  if(e.key in MOVE) keys[MOVE[e.key]]=false;
+  if(e.key in ACTK) actDown=false;
+});
+
+/* ================================================================
+   INIT
+   ================================================================ */
+let chosenClass='Tinkerer';
+function wireTitle(){
+  $all('#classes .classpick').forEach(p=>{
+    p.onclick=()=>{ $all('#classes .classpick').forEach(q=>q.classList.remove('sel')); p.classList.add('sel'); chosenClass=p.getAttribute('data-cls'); };
+  });
+  $('startbtn').onclick=()=>{
+    const name=($('pname').value||'').trim()||'Operator';
+    S=freshState(name,chosenClass); save(); beginGame();
+  };
+  $('continuebtn').onclick=()=>{ if(S) beginGame(); };
+}
+function beginGame(){
+  $('hud').style.display='';
+  renderHUD();
+  built=false; // rebuild world with chosen class color etc
+  go('world');
+  toast('Welcome, '+S.name+'. Your quest begins at the Crossroads.','good','🧭');
+}
+function wireNav(){
+  $all('.navbtn[data-go]').forEach(b=>{ b.onclick=()=>go(b.getAttribute('data-go')); });
+  $('savebtn').onclick=()=>{ save(); toast('Progress saved on this device.','good','💾'); };
+}
+function wireTerminal(){
+  const ti=$('term-input');
+  ti.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const v=ti.value; ti.value=''; if(sb) runCmd(v); } });
+}
+function wireDialogue(){ $('dialogue').addEventListener('click',e=>{ if(e.target.closest('button'))return; dlgAdvance(); }); }
+function wireQuiz(){ $('quiz-close').onclick=()=>closeQuiz(); $('q-next').onclick=()=>{ if(quiz&&quiz.justMastered)closeQuiz(); else nextQuestion(); }; }
+function wireTouch(){
+  if(!('ontouchstart' in window) && !(navigator.maxTouchPoints>0)) return;
+  document.body.classList.add('touch');
+  $all('#touchpad .tpad').forEach(p=>{
+    const d=p.getAttribute('data-d');
+    if(d==='act'){ p.addEventListener('pointerdown',e=>{e.preventDefault(); if(dlg)dlgAdvance(); else interact();}); }
+    else { p.addEventListener('pointerdown',e=>{e.preventDefault(); keys[d]=true;}); 
+           const up=()=>{keys[d]=false;}; p.addEventListener('pointerup',up); p.addEventListener('pointerleave',up); p.addEventListener('pointercancel',up); }
+  });
+}
+async function init(){
+  wireTitle(); wireNav(); wireTerminal(); wireDialogue(); wireQuiz(); wireTouch();
+  // load existing save?
+  try{
+    const raw=await Store.get(SAVE_KEY);
+    if(raw){ const data=JSON.parse(raw); if(data&&data.concept){ S=data; $('continuebtn').style.display='inline-block'; if(data.name)$('pname').value=data.name; if(data.cls){chosenClass=data.cls; const cp=document.querySelector('#classes .classpick[data-cls="'+data.cls+'"]'); if(cp){$all('#classes .classpick').forEach(q=>q.classList.remove('sel')); cp.classList.add('sel');}} } }
+  }catch(e){}
+  // keep canvas crisp
+  if($('game')){ $('game').getContext('2d').imageSmoothingEnabled=false; }
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+
+})();
+
+</script>
+</body>
+</html>
