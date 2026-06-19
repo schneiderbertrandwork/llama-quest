@@ -44,12 +44,22 @@ const SHELL_PATTERNS: CommandPattern[] = [
   // rag
   { pattern: /ollama\s+pull\s+nomic-embed-text/, objectiveId: 'embed-model', sandboxId: 'rag',
     response: 'pulling manifest\npulling all layers... done\nsuccess' },
+  { pattern: /python.*rag|chroma.*add|col\.add|OllamaEmbeddingFunction|ollama.*embed.*chroma/,
+    objectiveId: 'index', sandboxId: 'rag',
+    response: 'Indexed 3 documents.\nCollection: kb — 3 entries.' },
+  { pattern: /col\.query|chroma.*query|python.*query/,
+    objectiveId: 'retrieve', sandboxId: 'rag',
+    response: "{'ids': [['d0']], 'documents': [['Llamas are camelids...']]}" },
+  { pattern: /ollama\.chat|ollama\.generate|python.*ask|python.*rag.*ask/,
+    objectiveId: 'generate', sandboxId: 'rag',
+    response: 'A llama can carry 25–30% of its body weight.' },
+  // collection (pip install runs in sh mode before entering Python)
+  { pattern: /pip\s+install\s+chromadb/, objectiveId: 'install', sandboxId: 'collection',
+    response: 'Collecting chromadb\nInstalling collected packages: chromadb\nSuccessfully installed chromadb-0.5.0' },
 ]
 
 const PYTHON_PATTERNS: CommandPattern[] = [
   // collection
-  { pattern: /pip\s+install\s+chromadb/, objectiveId: 'install', sandboxId: 'collection',
-    response: 'Collecting chromadb\nInstalling collected packages: chromadb\nSuccessfully installed chromadb-0.5.0' },
   { pattern: /import\s+chromadb.*PersistentClient|PersistentClient.*chromadb/, objectiveId: 'client', sandboxId: 'collection',
     response: '' },
   { pattern: /get_or_create_collection/, objectiveId: 'collection', sandboxId: 'collection',
@@ -92,6 +102,10 @@ export function Terminal({ sandbox, completedObjectives, onObjectiveDone, onAllD
     if (mode === 'sh' && (cmd === 'python' || cmd === 'python3')) {
       setMode('py')
       appendOutput(['Python 3.11.0 (simulated)', '>>> '])
+      const hasPythonObj = sandbox.objectives.some(o => o.id === 'python')
+      if (hasPythonObj) {
+        onObjectiveDone('python')
+      }
       return
     }
     if (mode === 'py' && cmd.trim() === 'exit()') {
