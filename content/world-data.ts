@@ -57,6 +57,7 @@ export const OVERWORLD: CityDef = {
   playerSpawn: { x: 6, y: 14 },
   entities: [
     makeBuildingEntrance('enter-llamatown', 7, 13, 'llamatown'),
+    makeBuildingEntrance('enter-forge', 33, 14, 'forge'),
   ],
   gateExit: { x: 0, y: 0, destination: 'llamatown' },
 }
@@ -93,9 +94,69 @@ export const LLAMATOWN: CityDef = {
   gateExit: { x: 9, y: 13, destination: 'overworld' },
 }
 
+function buildForgeGrid(): TileGrid {
+  const g = makeGrid(20, 18, 'floor')
+  // Perimeter walls
+  for (let x = 0; x < 20; x++) {
+    setTile(g, x, 0, 'building_wall')
+    setTile(g, x, 17, 'building_wall')
+  }
+  for (let y = 0; y < 18; y++) {
+    setTile(g, 0, y, 'building_wall')
+    setTile(g, 19, y, 'building_wall')
+  }
+  // South exit (back to overworld)
+  setTile(g, 9, 17, 'door')
+  setTile(g, 10, 17, 'door')
+  // East gate tile to Prism Caverns
+  setTile(g, 19, 9, 'door')
+  // Main east-west street
+  for (let x = 1; x < 19; x++) setTile(g, x, 9, 'path')
+  // Forge Library: x=1..3, y=1..6; door at (2,6)
+  for (let x = 1; x <= 3; x++) for (let y = 1; y <= 6; y++) setTile(g, x, y, 'building_wall')
+  setTile(g, 2, 6, 'door')
+  // API Workshop (sandbox portal): x=7..11, y=1..6; portal at (9,6)
+  for (let x = 7; x <= 11; x++) for (let y = 1; y <= 6; y++) setTile(g, x, y, 'building_wall')
+  setTile(g, 9, 6, 'door')
+  // Modelfile Foundry (sandbox portal): x=14..18, y=1..6; portal at (16,6)
+  for (let x = 14; x <= 18; x++) for (let y = 1; y <= 6; y++) setTile(g, x, y, 'building_wall')
+  setTile(g, 16, 6, 'door')
+  return g
+}
+
+export const FORGE: CityDef = {
+  id: 'forge',
+  grid: buildForgeGrid(),
+  playerSpawn: { x: 9, y: 15 },
+  entities: [
+    makeBuildingEntrance('enter-forge-library', 2, 6, 'forge-library'),
+    makeSandboxPortal('sandbox-api-workshop', 9, 6, 'api'),
+    makeSandboxPortal('sandbox-modelfile-foundry', 16, 6, 'modelfile'),
+    makeNPC('npc-smith', 4, 4, {
+      name: 'Smith Forge-Hand',
+      lines: [
+        "This is the Forge. Here we don't just use models — we shape them.",
+        "A Modelfile is a recipe: FROM a base, add a SYSTEM persona, bake in PARAMETERs.",
+        '`ollama create mybot -f Modelfile` and your custom model is born.',
+      ],
+    }),
+    makeNPC('npc-api-artificer', 15, 8, {
+      name: 'API Artificer',
+      lines: [
+        "Every CLI command is really a POST to :11434. Learn the API and you can build anything.",
+        "/api/chat for conversation, /api/embed for vectors, /v1 if you speak OpenAI.",
+      ],
+    }),
+    makeGate('gate-forge-south', 9, 16, 'overworld', false),
+    makeGate('gate-forge-east', 18, 9, 'vale', true),
+  ],
+  gateExit: { x: 9, y: 16, destination: 'overworld' },
+}
+
 const CITY_MAP: Record<string, CityDef> = {
   overworld: OVERWORLD,
   llamatown: LLAMATOWN,
+  forge: FORGE,
 }
 
 export function getCityDef(id: CityId | 'overworld'): CityDef {
