@@ -48,10 +48,12 @@ This document contains:
 | 2 — Battle System | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase2-battle.md` |
 | 3 — Content Migration | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md` |
 | 4 — Audio | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase4-audio.md` |
-| 5 — Remaining Cities | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 5 section |
+| 5 — Remaining Cities | 🏗️ In Progress | `docs/superpowers/plans/2026-06-19-llama-quest-phase5-cities.md` |
 | 6 — Mobile Polish | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 6 section |
 
 **When a phase completes:** Update the Status column above to `✅ Complete` and add the plan file path. Also mark it done in `.superpowers/sdd/progress.md`. Also update `Architecture.md` to reflect any new files, exports, constants, or infrastructure added in the phase.
+
+**Phase execution:** Always use `superpowers:subagent-driven-development` to execute plans — do not ask which execution method to use.
 
 ## Commands
 
