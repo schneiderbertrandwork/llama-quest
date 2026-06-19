@@ -53,3 +53,30 @@ it('OVERWORLD has enter-vale entity', () => {
   const ow = getCityDef('overworld')
   expect(ow.entities.find(e => e.id === 'enter-vale')).toBeDefined()
 })
+
+// ── The Convergence ───────────────────────────────────────────────────────────
+it('getCityDef("ridge") returns The Convergence city', () => {
+  const city = getCityDef('ridge')
+  expect(city.id).toBe('ridge')
+})
+it('Convergence grid is 20 wide × 16 tall', () => {
+  const city = getCityDef('ridge')
+  expect(city.grid.width).toBe(20)
+  expect(city.grid.height).toBe(16)
+})
+it('Convergence has enter-ridge-library building entrance', () => {
+  const city = getCityDef('ridge')
+  const e = city.entities.find(e => e.id === 'enter-ridge-library')
+  expect(e).toBeDefined()
+  expect(e?.type).toBe('building_entrance')
+})
+it('Convergence has npc-architect', () => {
+  expect(getCityDef('ridge').entities.find(e => e.id === 'npc-architect')).toBeDefined()
+})
+it('Convergence has npc-keeper', () => {
+  expect(getCityDef('ridge').entities.find(e => e.id === 'npc-keeper')).toBeDefined()
+})
+it('OVERWORLD has enter-ridge entity', () => {
+  const ow = getCityDef('overworld')
+  expect(ow.entities.find(e => e.id === 'enter-ridge')).toBeDefined()
+})

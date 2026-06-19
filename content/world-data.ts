@@ -59,6 +59,7 @@ export const OVERWORLD: CityDef = {
     makeBuildingEntrance('enter-llamatown', 7, 13, 'llamatown'),
     makeBuildingEntrance('enter-forge', 33, 14, 'forge'),
     makeBuildingEntrance('enter-vale', 25, 22, 'vale'),
+    makeBuildingEntrance('enter-ridge', 10, 22, 'ridge'),
   ],
   gateExit: { x: 0, y: 0, destination: 'llamatown' },
 }
@@ -209,11 +210,63 @@ export const CAVERNS: CityDef = {
   gateExit: { x: 10, y: 1, destination: 'overworld' },
 }
 
+function buildConvergenceGrid(): TileGrid {
+  const g = makeGrid(20, 16, 'floor')
+  // Perimeter walls
+  for (let x = 0; x < 20; x++) {
+    setTile(g, x, 0, 'building_wall')
+    setTile(g, x, 15, 'building_wall')
+  }
+  for (let y = 0; y < 16; y++) {
+    setTile(g, 0, y, 'building_wall')
+    setTile(g, 19, y, 'building_wall')
+  }
+  // West exit tile (back to overworld — entered from west)
+  setTile(g, 0, 8, 'door')
+  // Main east-west path
+  for (let x = 1; x < 19; x++) setTile(g, x, 8, 'path')
+  // Ridge Library: x=1..3, y=1..6; door at (2,6)
+  for (let x = 1; x <= 3; x++) for (let y = 1; y <= 6; y++) setTile(g, x, y, 'building_wall')
+  setTile(g, 2, 6, 'door')
+  // RAG Production Vault (sandbox portal: rag): x=12..18, y=1..6; portal at (15,6)
+  for (let x = 12; x <= 18; x++) for (let y = 1; y <= 6; y++) setTile(g, x, y, 'building_wall')
+  setTile(g, 15, 6, 'door')
+  return g
+}
+
+export const CONVERGENCE: CityDef = {
+  id: 'ridge',
+  grid: buildConvergenceGrid(),
+  playerSpawn: { x: 2, y: 8 },
+  entities: [
+    makeBuildingEntrance('enter-ridge-library', 2, 6, 'ridge-library'),
+    makeSandboxPortal('sandbox-rag', 15, 6, 'rag'),
+    makeNPC('npc-architect', 4, 4, {
+      name: 'Architect of the Convergence',
+      lines: [
+        "You've reached the Convergence, Operator. Here Ollama and ChromaDB become one system.",
+        "RAG: retrieve relevant chunks from Chroma, hand them to Ollama, generate a grounded answer.",
+        "Index once. Query forever. All on your own machine.",
+      ],
+    }),
+    makeNPC('npc-keeper', 15, 11, {
+      name: 'Keeper of Citations',
+      lines: [
+        "Tell the model: answer ONLY from the context, and cite the chunk. That's how trust is built.",
+        "Low temperature. Top-k retrieval. Re-rank when precision matters.",
+      ],
+    }),
+    makeGate('gate-ridge-west', 1, 8, 'overworld', false),
+  ],
+  gateExit: { x: 1, y: 8, destination: 'overworld' },
+}
+
 const CITY_MAP: Record<string, CityDef> = {
   overworld: OVERWORLD,
   llamatown: LLAMATOWN,
   forge: FORGE,
   vale: CAVERNS,
+  ridge: CONVERGENCE,
 }
 
 export function getCityDef(id: CityId | 'overworld'): CityDef {
