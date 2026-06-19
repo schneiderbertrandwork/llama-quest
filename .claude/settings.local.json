@@ -7,7 +7,17 @@
       "Bash(bash *)",
       "PowerShell(New-Item *)",
       "PowerShell(cd \"C:\\\\Users\\\\schneider.bertrand\\\\Documents\\\\Learning\\\\My learning Apps\\\\Llama Quest\"; npx create-expo-app@latest llama-quest-temp --template blank-typescript 2>&1; Write-Host \"EXIT: $LASTEXITCODE\")",
-      "PowerShell(git add *)"
+      "PowerShell(git add *)",
+      "PowerShell(git commit *)",
+      "PowerShell(cd \"C:\\\\Users\\\\schneider.bertrand\\\\Documents\\\\Learning\\\\My learning Apps\\\\Llama Quest\"; npx expo install expo-router @shopify/react-native-skia react-native-reanimated react-native-gesture-handler @react-native-async-storage/async-storage zustand 2>&1; Write-Host \"EXIT: $LASTEXITCODE\")",
+      "PowerShell(npm install *)",
+      "PowerShell(cd \"C:\\\\Users\\\\schneider.bertrand\\\\Documents\\\\Learning\\\\My learning Apps\\\\Llama Quest\"; npx expo install expo-router @shopify/react-native-skia react-native-reanimated react-native-gesture-handler @react-native-async-storage/async-storage zustand 2>&1 | Select-Object -Last 25; Write-Host \"EXIT: $LASTEXITCODE\")",
+      "PowerShell(cd \"C:\\\\Users\\\\schneider.bertrand\\\\Documents\\\\Learning\\\\My learning Apps\\\\Llama Quest\"; npx expo install --fix 2>&1 | Select-Object -Last 30; Write-Host \"EXIT: $LASTEXITCODE\")",
+      "PowerShell(npm show *)",
+      "PowerShell(npm test *)",
+      "PowerShell(gh repo *)",
+      "PowerShell(git *)",
+      "PowerShell(git push *)"
     ]
   }
 }
