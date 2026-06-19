@@ -10,6 +10,7 @@ import { movePlayer } from '../engine/movement'
 import { nearestInteractable, makePlayer } from '../engine/entity'
 import { OVERWORLD } from '../content/world-data'
 import { useGameStore } from '../store/game-store'
+import { getEnemiesForAct } from '../content/enemies'
 import type { Entity } from '../engine/entity'
 
 const TILE_SIZE = 32
@@ -27,15 +28,34 @@ export default function OverworldScreen() {
   const [nearbyLabel, setNearbyLabel] = useState<string | null>(null)
 
   const { input } = usePlayerInput()
+  const encounterCooldown = useRef(90)
 
   useGameLoop(useCallback((dt) => {
     if (dialogue) return
-    const moved = movePlayer(playerRef.current, input.current!, OVERWORLD.grid, dt)
+    const prev = playerRef.current
+    const moved = movePlayer(prev, input.current!, OVERWORLD.grid, dt)
     playerRef.current = moved
     setPlayerState({ ...moved })
 
     const nearby = nearestInteractable(OVERWORLD.entities, moved.x, moved.y)
     setNearbyLabel(nearby ? `[E] ${nearby.type === 'building_entrance' ? 'Enter' : 'Talk'}` : null)
+
+    // Encounter check
+    const stepped =
+      Math.floor(moved.x) !== Math.floor(prev.x) ||
+      Math.floor(moved.y) !== Math.floor(prev.y)
+    if (stepped) {
+      if (encounterCooldown.current > 0) {
+        encounterCooldown.current -= 1
+      } else if (Math.random() < 0.06) {
+        const enemies = getEnemiesForAct(1)
+        const enemy = enemies[Math.floor(Math.random() * enemies.length)]
+        if (enemy) {
+          encounterCooldown.current = 90
+          router.push(`/battle?enemyId=${enemy.id}`)
+        }
+      }
+    }
   }, [dialogue]))
 
   function handleInteract() {

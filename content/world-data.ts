@@ -83,6 +83,11 @@ export const LLAMATOWN: CityDef = {
       lines: ["I heard Ollama can run models locally!", "Try the Library if you want to learn more."],
     }),
     makeGate('gate-south', 9, 13, 'overworld', false),
+    (() => {
+      const bossGate = makeGate('gate-boss-llamatown', 9, 1, 'forge', true)
+      bossGate.data = { ...bossGate.data, bossId: 'frozen-boot' }
+      return bossGate
+    })(),
   ],
   gateExit: { x: 9, y: 13, destination: 'overworld' },
 }
