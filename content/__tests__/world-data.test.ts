@@ -26,3 +26,30 @@ it('OVERWORLD has enter-forge entity', () => {
   const ow = getCityDef('overworld')
   expect(ow.entities.find(e => e.id === 'enter-forge')).toBeDefined()
 })
+
+// ── Prism Caverns ─────────────────────────────────────────────────────────────
+it('getCityDef("vale") returns Prism Caverns city', () => {
+  const city = getCityDef('vale')
+  expect(city.id).toBe('vale')
+})
+it('Caverns grid is 22 wide × 18 tall', () => {
+  const city = getCityDef('vale')
+  expect(city.grid.width).toBe(22)
+  expect(city.grid.height).toBe(18)
+})
+it('Caverns has enter-vale-library building entrance', () => {
+  const city = getCityDef('vale')
+  const e = city.entities.find(e => e.id === 'enter-vale-library')
+  expect(e).toBeDefined()
+  expect(e?.type).toBe('building_entrance')
+})
+it('Caverns has npc-prism-oracle', () => {
+  expect(getCityDef('vale').entities.find(e => e.id === 'npc-prism-oracle')).toBeDefined()
+})
+it('Caverns has npc-vector-sprite', () => {
+  expect(getCityDef('vale').entities.find(e => e.id === 'npc-vector-sprite')).toBeDefined()
+})
+it('OVERWORLD has enter-vale entity', () => {
+  const ow = getCityDef('overworld')
+  expect(ow.entities.find(e => e.id === 'enter-vale')).toBeDefined()
+})

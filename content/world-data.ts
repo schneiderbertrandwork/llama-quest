@@ -58,6 +58,7 @@ export const OVERWORLD: CityDef = {
   entities: [
     makeBuildingEntrance('enter-llamatown', 7, 13, 'llamatown'),
     makeBuildingEntrance('enter-forge', 33, 14, 'forge'),
+    makeBuildingEntrance('enter-vale', 25, 22, 'vale'),
   ],
   gateExit: { x: 0, y: 0, destination: 'llamatown' },
 }
@@ -153,10 +154,66 @@ export const FORGE: CityDef = {
   gateExit: { x: 9, y: 16, destination: 'overworld' },
 }
 
+function buildCavernsGrid(): TileGrid {
+  const g = makeGrid(22, 18, 'floor')
+  // Perimeter walls
+  for (let x = 0; x < 22; x++) {
+    setTile(g, x, 0, 'building_wall')
+    setTile(g, x, 17, 'building_wall')
+  }
+  for (let y = 0; y < 18; y++) {
+    setTile(g, 0, y, 'building_wall')
+    setTile(g, 21, y, 'building_wall')
+  }
+  // North exit tiles (back to overworld — entered from north)
+  setTile(g, 10, 0, 'door')
+  setTile(g, 11, 0, 'door')
+  // West gate tile to The Convergence
+  setTile(g, 0, 9, 'door')
+  // Main east-west path
+  for (let x = 1; x < 21; x++) setTile(g, x, 9, 'path')
+  // Vale Library: x=2..6, y=2..7; door at (4,7)
+  for (let x = 2; x <= 6; x++) for (let y = 2; y <= 7; y++) setTile(g, x, y, 'building_wall')
+  setTile(g, 4, 7, 'door')
+  // ChromaDB Cave (sandbox portal: collection): x=13..19, y=2..7; portal at (16,7)
+  for (let x = 13; x <= 19; x++) for (let y = 2; y <= 7; y++) setTile(g, x, y, 'building_wall')
+  setTile(g, 16, 7, 'door')
+  return g
+}
+
+export const CAVERNS: CityDef = {
+  id: 'vale',
+  grid: buildCavernsGrid(),
+  playerSpawn: { x: 10, y: 2 },
+  entities: [
+    makeBuildingEntrance('enter-vale-library', 4, 7, 'vale-library'),
+    makeSandboxPortal('sandbox-collection', 16, 7, 'collection'),
+    makeNPC('npc-prism-oracle', 11, 4, {
+      name: 'The Prism Oracle',
+      lines: [
+        "Deep in these caverns, text turns into light — vectors of pure meaning.",
+        "Similar ideas glow near each other. A vector database finds neighbors in that space.",
+        "ChromaDB is our store. One rule above all: embed queries with the *same* model you indexed with.",
+      ],
+    }),
+    makeNPC('npc-vector-sprite', 18, 13, {
+      name: 'Vector Sprite',
+      lines: [
+        '`PersistentClient(path=...)` keeps your collection on disk between runs.',
+        '`get_or_create_collection` never crashes. `add` then `query`. That\'s the whole dance.',
+      ],
+    }),
+    makeGate('gate-vale-north', 10, 1, 'overworld', false),
+    makeGate('gate-vale-west', 1, 9, 'ridge', true),
+  ],
+  gateExit: { x: 10, y: 1, destination: 'overworld' },
+}
+
 const CITY_MAP: Record<string, CityDef> = {
   overworld: OVERWORLD,
   llamatown: LLAMATOWN,
   forge: FORGE,
+  vale: CAVERNS,
 }
 
 export function getCityDef(id: CityId | 'overworld'): CityDef {
