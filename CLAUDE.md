@@ -46,7 +46,7 @@ This document contains:
 |-------|--------|-----------|
 | 1 — Foundation | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase1-foundation.md` |
 | 2 — Battle System | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase2-battle.md` |
-| 3 — Content Migration | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 3 section |
+| 3 — Content Migration | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md` |
 | 4 — Audio | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 4 section |
 | 5 — Remaining Cities | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 5 section |
 | 6 — Mobile Polish | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 6 section |

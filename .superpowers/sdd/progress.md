@@ -36,3 +36,16 @@ Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase2-battle.md
 | 7: useBattle Hook | complete | cf49fd9..a32b5b0 | review clean; Minor: useEffect dep array intentionally sparse with eslint-disable per brief |
 | 8: Battle Screen | complete | a32b5b0..d2b95ad | review clean; 3 smoke tests added; brief default-import style corrected to named imports |
 | 9: Encounter Integration + Boss Gate | complete | b8a92ad..74aab2e | review clean; Minor: cooldown counts tile-steps not frames |
+
+## Phase 3 — Content Migration ✅ Complete
+
+Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md
+
+| Task | Status | Commits | Notes |
+|------|--------|---------|-------|
+| 1: Acts II–IV Lessons (19 lessons) | complete | 0c4ff07..7b7070c | review clean; Minor: report file had stale content (copy-paste artifact, code unaffected) |
+| 2: Diagrams (vectorspace, distance, collection, ragpipe, stack) | complete | 7b7070c..4f82e5f | review clean |
+| 3: markSandboxCompleted + sandbox_portal entity | complete | 4f82e5f..cf46dd9 | review clean |
+| 4: Sandbox definitions (5 projects) | complete | cf46dd9..1ebba5c | review clean |
+| 5: Terminal component | complete | 1ebba5c..9e12f8f | review clean; Minors: unused TouchableOpacity import; #0a0818 and #a8a2da colors not in established palette (intentional for terminal feel) |
+| 6: Sandbox screen + Llamatown portal | complete | 9e12f8f..908c7f0 | final review found Critical (collection/rag sandbox unreachable objectives); fixed in 908c7f0 — re-review clean |
