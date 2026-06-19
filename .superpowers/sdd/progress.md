@@ -1,4 +1,6 @@
-﻿# Llama Quest Phase 1 — SDD Progress Ledger
+﻿# Llama Quest — SDD Progress Ledger
+
+## Phase 1 — Foundation ✅ Complete
 
 Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase1-foundation.md
 
@@ -18,3 +20,19 @@ Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase1-foundation.md
 | 12: Overworld Screen | complete | 87a3c23 | Minors: input.current! assertion (necessary for TS), markNPCMet unused but from brief, destination cast |
 | 13: City Screen | complete | 3aa3313 | Minors: progression unused, as string casts, cityDef in useCallback deps |
 | 14: Content Lessons + Codex + Building | complete | 231215d | 6 Act I lessons migrated; added {prism} to BlockType (in source); 'arch' key matches source; Minors: BUILDING_ACT type loose, palette color hardcoded |
+
+## Phase 2 — Battle System ✅ Complete
+
+Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase2-battle.md
+
+| Task | Status | Commits | Notes |
+|------|--------|---------|-------|
+| 1: QBANK Migration | complete | a781e4a..73d0a35 | review clean |
+| 2: Enemy Definitions | complete | 73d0a35..e316e2e | review clean |
+| 3: Store Actions | complete | 253fdb4..652af39 | review clean |
+| 4: Battle Engine | complete | 652af39..e73fe40 | review clean; Minor: chooseRun escaped phase stale — acceptable per caller contract |
+| 5: RollingHP Component | complete | b648504..d8dfcc6 | review clean |
+| 6: BattleMenu + PSIAttack | complete | d8dfcc6..3fd2109 | review clean; Minor: brief said no tests but plan requires TDD — implementer correctly followed plan |
+| 7: useBattle Hook | complete | cf49fd9..a32b5b0 | review clean; Minor: useEffect dep array intentionally sparse with eslint-disable per brief |
+| 8: Battle Screen | complete | a32b5b0..d2b95ad | review clean; 3 smoke tests added; brief default-import style corrected to named imports |
+| 9: Encounter Integration + Boss Gate | complete | b8a92ad..74aab2e | review clean; Minor: cooldown counts tile-steps not frames |

@@ -45,7 +45,7 @@ This document contains:
 | Phase | Status | Plan File |
 |-------|--------|-----------|
 | 1 — Foundation | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase1-foundation.md` |
-| 2 — Battle System | 🚧 In progress | `docs/superpowers/plans/2026-06-19-llama-quest-phase2-battle.md` |
+| 2 — Battle System | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase2-battle.md` |
 | 3 — Content Migration | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 3 section |
 | 4 — Audio | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 4 section |
 | 5 — Remaining Cities | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 5 section |
@@ -213,12 +213,14 @@ These issues have been debugged and fixed; do not re-investigate or revert.
 ### Skia WASM — "Aborted(both async and sync fetching of the wasm failed)"
 Metro doesn't serve `.wasm` files. Fix: `metro.config.js` intercepts `GET /canvaskit.wasm` and pipes `node_modules/canvaskit-wasm/bin/full/canvaskit.wasm` directly. **Do not use a CDN** (`locateFile` CDN approach) — the Accenture corporate network blocks external CDNs.
 
-### Skia — "Cannot read properties of undefined (reading 'Matrix')"
-Root cause: `@shopify/react-native-skia/lib/module/skia/Skia.web.js` runs `export const Skia = JsiSkApi(global.CanvasKit)` at Metro bundle load time, before `LoadSkiaWeb()` has set `global.CanvasKit`. The Skia API object permanently closes over `undefined`.
+### Skia — "Cannot read properties of undefined (reading 'Matrix')" / "CanvasKit not initialized"
+Root cause (two layers):
+1. `Skia.web.js` runs `export const Skia = JsiSkApi(global.CanvasKit)` at bundle load time, before `LoadSkiaWeb()` sets `global.CanvasKit`.
+2. `skia/core` exports (`AnimatedImage`, `Image`, `SVG`, `Typeface`) each do `const factory = Skia.Foo.Bar.bind(Skia.Foo)` at module load time — a simple first-access proxy throws immediately on these chains.
 
 Fix (two parts, both in `metro.config.js`):
 1. Serve `canvaskit.wasm` locally (see above) so `LoadSkiaWeb()` resolves.
-2. `resolver.resolveRequest` redirects any resolution to `Skia.web.js` → `patches/SkiaWeb.js`, which uses a Proxy that defers `JsiSkApi(global.CanvasKit)` until the first property access (by which time the WASM has loaded).
+2. `resolver.resolveRequest` redirects `Skia.web.js` → `patches/SkiaWeb.js`, which uses a **deeply lazy proxy**: property accesses and `.bind()` chains build resolver closures at import time without touching CanvasKit; CanvasKit is only accessed when the resulting function is actually called.
 
 `app/_layout.tsx` blocks the navigation Stack behind a `skiaReady` gate — `LoadSkiaWeb()` must resolve before any Canvas renders.
 
@@ -231,4 +233,4 @@ Fix (two parts, both in `metro.config.js`):
 
 ---
 
-**Last updated**: 2026-06-19 · Phase 2 in progress (Tasks 1–8 of 9 complete, 65 tests) · See roadmap for Phases 2–6
+**Last updated**: 2026-06-19 · Phase 2 complete (65 tests) · Phase 3 next · See roadmap for Phases 3–6

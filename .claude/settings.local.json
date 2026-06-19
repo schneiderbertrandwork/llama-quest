@@ -17,7 +17,15 @@
       "PowerShell(npm test *)",
       "PowerShell(gh repo *)",
       "PowerShell(git *)",
-      "PowerShell(git push *)"
+      "PowerShell(git push *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(ls index.ts)",
+      "Bash(cat index.ts)",
+      "Bash(git rm *)",
+      "Bash(npx expo *)"
     ]
   }
 }
