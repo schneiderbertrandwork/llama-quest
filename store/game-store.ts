@@ -42,6 +42,8 @@ interface GameState {
   markNPCMet: (npcId: string) => void
   setPosition: (city: CityId, x: number, y: number) => void
   updateSettings: (partial: Partial<SettingsData>) => void
+  awardBossKill: (bossId: string) => void
+  setPlayerHp: (hp: number) => void
 }
 
 const DEFAULT_PLAYER: PlayerData = {
@@ -132,6 +134,23 @@ export const useGameStore = create<GameState>()(
 
       updateSettings: (partial) =>
         set((state) => ({ settings: { ...state.settings, ...partial } })),
+
+      awardBossKill: (bossId) => {
+        const { progression } = get()
+        if (progression.defeatedBosses[bossId]) return
+        set((state) => ({
+          progression: {
+            ...state.progression,
+            defeatedBosses: { ...state.progression.defeatedBosses, [bossId]: true },
+          },
+        }))
+        get().awardXP(100)
+      },
+
+      setPlayerHp: (hp) =>
+        set((state) => ({
+          player: { ...state.player, hp: Math.min(Math.max(1, hp), state.player.maxHp) },
+        })),
     }),
     {
       name: 'llama_quest_v1',

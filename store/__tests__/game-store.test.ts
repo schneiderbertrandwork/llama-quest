@@ -54,3 +54,37 @@ describe('markLessonRead', () => {
     expect(result.current.player.xp).toBe(20)
   })
 })
+
+describe('awardBossKill', () => {
+  it('marks boss defeated and awards 100 XP', () => {
+    const { result } = renderHook(() => useGameStore())
+    act(() => result.current.initPlayer('Ada', 'Tinkerer'))
+    act(() => result.current.awardBossKill('frozen-boot'))
+    expect(result.current.progression.defeatedBosses['frozen-boot']).toBe(true)
+    expect(result.current.player.xp).toBe(100)
+  })
+
+  it('is idempotent — second call awards no extra XP', () => {
+    const { result } = renderHook(() => useGameStore())
+    act(() => result.current.initPlayer('Ada', 'Tinkerer'))
+    act(() => result.current.awardBossKill('frozen-boot'))
+    act(() => result.current.awardBossKill('frozen-boot'))
+    expect(result.current.player.xp).toBe(100)
+  })
+})
+
+describe('setPlayerHp', () => {
+  it('sets player HP directly', () => {
+    const { result } = renderHook(() => useGameStore())
+    act(() => result.current.initPlayer('Ada', 'Tinkerer'))
+    act(() => result.current.setPlayerHp(1))
+    expect(result.current.player.hp).toBe(1)
+  })
+
+  it('clamps to maxHp if value exceeds it', () => {
+    const { result } = renderHook(() => useGameStore())
+    act(() => result.current.initPlayer('Ada', 'Tinkerer'))
+    act(() => result.current.setPlayerHp(999))
+    expect(result.current.player.hp).toBe(result.current.player.maxHp)
+  })
+})
