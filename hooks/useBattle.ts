@@ -6,6 +6,7 @@ import {
   answerPSI as engineAnswerPSI,
   chooseGuard as engineChooseGuard,
   chooseRun as engineChooseRun,
+  enemyTurn as engineEnemyTurn,
   tickDisplayHp,
 } from '../engine/battle'
 import type { BattleState } from '../engine/battle'
@@ -13,6 +14,7 @@ import type { EnemyDef } from '../content/enemies'
 import { getQuestionsForAct } from '../content/qbank'
 import { useGameStore } from '../store/game-store'
 import { useGameLoop } from './useGameLoop'
+import { AudioManager } from '../audio/AudioManager'
 
 export interface UseBattleReturn {
   state: BattleState
@@ -33,11 +35,18 @@ export function useBattle(
   const { awardXP, awardBossKill, setPlayerHp } = useGameStore()
   const questions = getQuestionsForAct(enemy.act)
 
-  // Drain displayHp toward playerHp each frame
+  // Drain displayHp toward playerHp each frame; execute enemy turn when phase is 'enemy-turn'
   useGameLoop(
     useCallback(
       (dt: number) => {
-        setState((prev) => tickDisplayHp(prev, dt))
+        setState((prev) => {
+          if (prev.phase === 'enemy-turn') {
+            const afterEnemyTurn = engineEnemyTurn(prev)
+            AudioManager.sfx('hit')
+            return tickDisplayHp(afterEnemyTurn, dt)
+          }
+          return tickDisplayHp(prev, dt)
+        })
       },
       [],
     ),

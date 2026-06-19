@@ -3,6 +3,13 @@ import { useGameStore } from '../game-store'
 
 import { initialGameState } from '../game-store'
 
+jest.mock('../../audio/AudioManager', () => ({
+  AudioManager: {
+    play: jest.fn(), stop: jest.fn(), sfx: jest.fn(),
+    setMusicEnabled: jest.fn(), setSfxEnabled: jest.fn(), setVolume: jest.fn(),
+  },
+}))
+
 // Reset store before each test
 beforeEach(() => {
   useGameStore.setState(initialGameState)

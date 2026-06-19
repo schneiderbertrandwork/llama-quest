@@ -1,6 +1,7 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native'
 import { useRouter } from 'expo-router'
+import { AudioManager } from '../audio/AudioManager'
 import { WorldRenderer } from '../renderer/WorldRenderer'
 import { HUD } from '../components/HUD'
 import { DialogueBox } from '../components/DialogueBox'
@@ -29,6 +30,11 @@ export default function OverworldScreen() {
 
   const { input } = usePlayerInput()
   const encounterCooldown = useRef(90)
+
+  useEffect(() => {
+    AudioManager.play('overworld')
+    return () => AudioManager.stop()
+  }, [])
 
   useGameLoop(useCallback((dt) => {
     if (dialogue) return

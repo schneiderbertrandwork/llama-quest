@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native'
 import { Canvas, Rect } from '@shopify/react-native-skia'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { AudioManager } from '../audio/AudioManager'
 import { useBattle } from '../hooks/useBattle'
 import { RollingHP } from '../components/RollingHP'
 import { BattleMenu } from '../components/BattleMenu'
@@ -40,6 +41,17 @@ export default function BattleScreen() {
   const resolvedEnemy = enemy ?? ENEMIES[0]!
   const battle = useBattle(resolvedEnemy, player.hp, player.maxHp)
   const { state } = battle
+
+  useEffect(() => {
+    AudioManager.play('battle')
+    return () => AudioManager.stop()
+  }, [])
+
+  useEffect(() => {
+    if (state.phase === 'victory') {
+      AudioManager.sfx('victory')
+    }
+  }, [state.phase])
 
   // Victory / defeat resolution
   useEffect(() => {

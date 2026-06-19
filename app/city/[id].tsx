@@ -1,6 +1,7 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { AudioManager, TrackId } from '../../audio/AudioManager'
 import { WorldRenderer } from '../../renderer/WorldRenderer'
 import { HUD } from '../../components/HUD'
 import { DialogueBox } from '../../components/DialogueBox'
@@ -36,6 +37,19 @@ export default function CityScreen() {
   const { input } = usePlayerInput()
   const encounterCooldown = useRef(90)
 
+  const CITY_TRACK: Record<string, TrackId> = {
+    llamatown: 'llamatown',
+    forge: 'forge',
+    vale: 'caverns',
+    ridge: 'convergence',
+  }
+
+  useEffect(() => {
+    const track = CITY_TRACK[id ?? ''] ?? 'llamatown'
+    AudioManager.play(track)
+    return () => AudioManager.stop()
+  }, [id])
+
   useGameLoop(useCallback((dt) => {
     if (dialogue) return
     const prev = playerRef.current
@@ -70,6 +84,7 @@ export default function CityScreen() {
       const name = nearbyEntity.data['name'] as string
       markNPCMet(nearbyEntity.id)
       setDialogue({ lines, speaker: name })
+      AudioManager.sfx('npcBlip')
     } else if (nearbyEntity.type === 'building_entrance') {
       const dest = nearbyEntity.data['destination'] as string
       setPosition(id as any, playerRef.current.x, playerRef.current.y)

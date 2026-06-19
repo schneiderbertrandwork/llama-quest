@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { AudioManager } from '../audio/AudioManager'
 
 export type PlayerClass = 'Tinkerer' | 'Scholar' | 'Architect'
 export type CityId = 'overworld' | 'llamatown' | 'forge' | 'vale' | 'ridge'
@@ -100,6 +101,7 @@ export const useGameStore = create<GameState>()(
             level++
             maxHp += 5
             hp = maxHp
+            AudioManager.sfx('levelUp')
           }
           return { player: { ...state.player, xp, level, hp, maxHp } }
         }),
@@ -134,7 +136,13 @@ export const useGameStore = create<GameState>()(
         })),
 
       updateSettings: (partial) =>
-        set((state) => ({ settings: { ...state.settings, ...partial } })),
+        set((s) => {
+          const next = { ...s.settings, ...partial }
+          if (partial.musicEnabled !== undefined) AudioManager.setMusicEnabled(partial.musicEnabled)
+          if (partial.sfxEnabled !== undefined) AudioManager.setSfxEnabled(partial.sfxEnabled)
+          if (partial.masterVolume !== undefined) AudioManager.setVolume(partial.masterVolume)
+          return { settings: next }
+        }),
 
       awardBossKill: (bossId) => {
         const { progression } = get()
