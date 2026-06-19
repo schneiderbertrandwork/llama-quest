@@ -191,6 +191,32 @@ CI runs on every push/PR to `main` via `.github/workflows/ci.yml` (`npm ci --leg
 | State | zustand + AsyncStorage | ^5.0 |
 | Testing | jest-expo + @testing-library/react-native | ~52.0 / ^12.4 |
 
+## Web / Expo Dev Server — Known Issues & Fixes
+
+These issues have been debugged and fixed; do not re-investigate or revert.
+
+### Node 24 + react-native-reanimated plugin
+`react-native-reanimated` config plugin fails under Node 24 (ESM/CJS conflict). Fix: remove `"react-native-reanimated"` from `app.json` plugins. The Babel plugin in `babel.config.js` handles worklet transforms — the config plugin isn't needed.
+
+### Skia WASM — "Aborted(both async and sync fetching of the wasm failed)"
+Metro doesn't serve `.wasm` files. Fix: `metro.config.js` intercepts `GET /canvaskit.wasm` and pipes `node_modules/canvaskit-wasm/bin/full/canvaskit.wasm` directly. **Do not use a CDN** (`locateFile` CDN approach) — the Accenture corporate network blocks external CDNs.
+
+### Skia — "Cannot read properties of undefined (reading 'Matrix')"
+Root cause: `@shopify/react-native-skia/lib/module/skia/Skia.web.js` runs `export const Skia = JsiSkApi(global.CanvasKit)` at Metro bundle load time, before `LoadSkiaWeb()` has set `global.CanvasKit`. The Skia API object permanently closes over `undefined`.
+
+Fix (two parts, both in `metro.config.js`):
+1. Serve `canvaskit.wasm` locally (see above) so `LoadSkiaWeb()` resolves.
+2. `resolver.resolveRequest` redirects any resolution to `Skia.web.js` → `patches/SkiaWeb.js`, which uses a Proxy that defers `JsiSkApi(global.CanvasKit)` until the first property access (by which time the WASM has loaded).
+
+`app/_layout.tsx` blocks the navigation Stack behind a `skiaReady` gate — `LoadSkiaWeb()` must resolve before any Canvas renders.
+
+**After any change to `metro.config.js`**: restart the dev server fully (`Ctrl+C` → `npx expo start --web`). Metro caches the config.
+
+### Missing web dependencies (one-time installs, already done)
+- `react-dom`, `react-native-web` — required by Expo web bundler
+- `react-native-safe-area-context` — required by expo-router
+- `react-native-screens` — reinstalled to restore missing `utils.js` on web
+
 ---
 
-**Last updated**: 2026-06-19 · Phase 1 complete (14 tasks, 36 tests) · See roadmap for Phases 2–6
+**Last updated**: 2026-06-19 · Phase 2 in progress (Tasks 1–8 of 9 complete, 65 tests) · See roadmap for Phases 2–6
