@@ -47,7 +47,7 @@ This document contains:
 | 1 — Foundation | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase1-foundation.md` |
 | 2 — Battle System | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase2-battle.md` |
 | 3 — Content Migration | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md` |
-| 4 — Audio | 🔄 In Progress | `docs/superpowers/plans/2026-06-19-llama-quest-phase4-audio.md` |
+| 4 — Audio | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase4-audio.md` |
 | 5 — Remaining Cities | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 5 section |
 | 6 — Mobile Polish | 🔜 Not started | Generate with `writing-plans` from roadmap Phase 6 section |
 
@@ -267,4 +267,4 @@ Fix (two parts, both in `metro.config.js`):
 
 ---
 
-**Last updated**: 2026-06-19 · Phase 3 complete (81 tests) · Phase 4 in progress · Playwright MCP required at end of each phase
+**Last updated**: 2026-06-19 · Phase 4 complete (116 tests) · Phase 5 next · Playwright MCP required at end of each phase

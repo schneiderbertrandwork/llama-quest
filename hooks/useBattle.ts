@@ -1,5 +1,5 @@
 // hooks/useBattle.ts
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   initBattle,
   choosePSI as engineChoosePSI,
@@ -9,7 +9,7 @@ import {
   enemyTurn as engineEnemyTurn,
   tickDisplayHp,
 } from '../engine/battle'
-import type { BattleState } from '../engine/battle'
+import type { BattleState, BattlePhase } from '../engine/battle'
 import type { EnemyDef } from '../content/enemies'
 import { getQuestionsForAct } from '../content/qbank'
 import { useGameStore } from '../store/game-store'
@@ -34,6 +34,7 @@ export function useBattle(
   )
   const { awardXP, awardBossKill, setPlayerHp } = useGameStore()
   const questions = getQuestionsForAct(enemy.act)
+  const prevPhaseRef = useRef<BattlePhase>(state.phase)
 
   // Drain displayHp toward playerHp each frame; execute enemy turn when phase is 'enemy-turn'
   useGameLoop(
@@ -42,7 +43,6 @@ export function useBattle(
         setState((prev) => {
           if (prev.phase === 'enemy-turn') {
             const afterEnemyTurn = engineEnemyTurn(prev)
-            AudioManager.sfx('hit')
             return tickDisplayHp(afterEnemyTurn, dt)
           }
           return tickDisplayHp(prev, dt)
@@ -51,6 +51,14 @@ export function useBattle(
       [],
     ),
   )
+
+  // Fire hit sfx when enemy-turn phase ends — kept outside setState updater (no side effects in updaters)
+  useEffect(() => {
+    if (prevPhaseRef.current === 'enemy-turn' && state.phase !== 'enemy-turn') {
+      AudioManager.sfx('hit')
+    }
+    prevPhaseRef.current = state.phase
+  }, [state.phase])
 
   // Award XP and boss kill on victory — runs once when phase becomes 'victory'
   useEffect(() => {
