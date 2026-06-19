@@ -183,14 +183,48 @@ XP rewards: lesson read +20, NPC met +8, correct quiz answer +5, concept mastere
 
 ## Testing
 
-36 tests across 6 suites (all passing as of Phase 1):
+81 tests across 18 suites (all passing as of Phase 3):
 - `engine/__tests__/` — tilemap, entity, camera, movement
 - `store/__tests__/game-store.test.ts` — store actions
 - `renderer/__tests__/TilemapRenderer.test.tsx` — Skia rendering (mocked)
+- `content/__tests__/lessons.test.ts` — lesson counts and IDs
+- `content/__tests__/sandboxes.test.ts` — sandbox definitions
+- `components/__tests__/Terminal.test.tsx` — command recognition and objectives
 
 Skia is mocked in `__mocks__/@shopify/react-native-skia.js`. AsyncStorage mocked in `__mocks__/@react-native-async-storage/async-storage.js`.
 
 CI runs on every push/PR to `main` via `.github/workflows/ci.yml` (`npm ci --legacy-peer-deps && npm test -- --ci --coverage --watchAll=false`).
+
+### End-of-Phase Playwright Testing (required)
+
+**At the end of every phase**, after all unit tests pass, run a Playwright browser session against `http://localhost:8081` to verify that the features delivered in that phase work correctly in the actual web app.
+
+**Setup:** Start the dev server first, then use the Playwright MCP tools (configured in `.mcp.json`).
+
+```bash
+npx expo start --web
+# then open a new terminal or use Playwright MCP from Claude
+```
+
+**What to verify per phase:**
+
+| Phase | Playwright checks |
+|-------|-------------------|
+| 1 — Foundation | Title screen renders; name + class selection works; player spawns and moves on overworld; HUD shows HP/XP; city entrance navigates to Llamatown |
+| 2 — Battle System | Random encounter triggers after walking; battle screen renders with HP bars and menu; attacks reduce enemy HP; run/flee works; boss gate blocks until boss defeated |
+| 3 — Content Migration | Library building opens lesson list; lesson Codex renders body content; sandbox portal shows `[E] Open Terminal`; terminal accepts commands and checks off objectives; sandbox completion awards XP |
+| 4 — Audio | Music toggles on/off from settings; SFX play on battle actions |
+| 5 — Remaining Cities | Forge, Vale, Ridge cities reachable via overworld; NPCs have dialogue; buildings open correctly |
+| 6 — Mobile Polish | Responsive layout on narrow viewport; touch targets work; no visual overflow |
+
+**Golden path for every phase check:**
+1. Load `http://localhost:8081` — title screen must render within 5 seconds
+2. Enter a name and pick a class → confirm navigation to overworld
+3. Walk the player with WASD → confirm movement and HUD updates
+4. Test the phase-specific features listed above
+5. Check browser console for uncaught errors — zero is the target
+
+**If Playwright finds a regression**, fix it before marking the phase done in `progress.md` and `CLAUDE.md`.
 
 ## Tech Stack
 
@@ -233,4 +267,4 @@ Fix (two parts, both in `metro.config.js`):
 
 ---
 
-**Last updated**: 2026-06-19 · Phase 2 complete (65 tests) · Phase 3 next · See roadmap for Phases 3–6
+**Last updated**: 2026-06-19 · Phase 3 complete (81 tests) · Phase 4 next · Playwright MCP required at end of each phase
