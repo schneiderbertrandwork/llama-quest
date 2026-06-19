@@ -58,3 +58,4 @@ Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md
 | 3: Llamatown + Overworld themes | complete | f9f50c4..1d8f3af | review clean |
 | 4: Forge + Caverns + Convergence + Battle themes | complete | baa7d44..2cee513 | review clean |
 | 5: SFX catalog implementations | complete | 9c95712..bb8f789 | review clean |
+| 6: Wire AudioManager into screens + settings | complete | 4de2e3f..6aac7c9 | review clean; Minors: CITY_TRACK in render fn (move to module scope in Phase 6); useBattle game-loop integration test missing (Phase 6 TODO); victory sfx/stop race benign, verify Playwright |
