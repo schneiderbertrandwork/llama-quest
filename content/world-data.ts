@@ -151,6 +151,11 @@ export const FORGE: CityDef = {
     }),
     makeGate('gate-forge-south', 9, 16, 'overworld', false),
     makeGate('gate-forge-east', 18, 9, 'vale', true),
+    (() => {
+      const bg = makeGate('gate-boss-forge', 16, 9, 'vale', true)
+      bg.data = { ...bg.data, bossId: 'rate-limiter' }
+      return bg
+    })(),
   ],
   gateExit: { x: 9, y: 16, destination: 'overworld' },
 }
@@ -206,6 +211,11 @@ export const CAVERNS: CityDef = {
     }),
     makeGate('gate-vale-north', 10, 1, 'overworld', false),
     makeGate('gate-vale-west', 1, 9, 'ridge', true),
+    (() => {
+      const bg = makeGate('gate-boss-vale', 2, 9, 'ridge', true)
+      bg.data = { ...bg.data, bossId: 'dimensionless-beast' }
+      return bg
+    })(),
   ],
   gateExit: { x: 10, y: 1, destination: 'overworld' },
 }

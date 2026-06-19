@@ -120,3 +120,17 @@ it('isGateUnlocked returns true when act mastered and boss defeated', () => {
   for (const id of ACT_CONCEPTS[1]!) mastered[id] = true
   expect(isGateUnlocked(1, mastered, { 'frozen-boot': true })).toBe(true)
 })
+
+// ── Boss Gates ────────────────────────────────────────────────────────────────
+it('Forge has gate-boss-forge boss gate entity', () => {
+  const city = getCityDef('forge')
+  const bg = city.entities.find(e => e.id === 'gate-boss-forge')
+  expect(bg).toBeDefined()
+  expect(bg?.data['bossId']).toBe('rate-limiter')
+})
+it('Caverns has gate-boss-vale boss gate entity', () => {
+  const city = getCityDef('vale')
+  const bg = city.entities.find(e => e.id === 'gate-boss-vale')
+  expect(bg).toBeDefined()
+  expect(bg?.data['bossId']).toBe('dimensionless-beast')
+})
