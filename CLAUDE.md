@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Finding Functionality
+
+**Always check `Architecture.md` first** before searching the codebase. It maps every layer, file, export, constant, test suite, and web infrastructure fix. Use it to answer:
+- Which file owns feature X?
+- What does module Y export?
+- Where is constant Z defined?
+- Which tests cover component W?
+
+Only search the code directly when `Architecture.md` doesn't cover the detail you need.
+
+---
+
 ## Project Overview
 
 **Llama Quest** is a cross-platform Earthbound-style SNES RPG that teaches local AI fundamentals (Ollama, ChromaDB, RAG) through city exploration, turn-based battles, and sandbox labs. Built with Expo SDK 52 (iOS + Android + Web from one codebase).
