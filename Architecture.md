@@ -8,6 +8,7 @@ Quick-navigation map for the entire codebase. Read this before searching for a f
 
 ```
 app/             ← Expo Router screens (routes)
+audio/           ← AudioManager singleton + Tone.js themes + SFX (Phase 4)
 components/      ← Reusable UI widgets
 renderer/        ← Skia canvas drawing
 hooks/           ← React integration hooks
@@ -66,11 +67,12 @@ All progression tracking uses `Record<string, boolean>` (never `Set<string>`).
 
 | File | What's in it |
 |------|-------------|
-| `lessons.ts` | 6 Act I lessons; `LESSONS[]`, `getLessonsForAct(act)`, `getLessonById(id)` |
-| `diagrams.ts` | 5 Act I–II diagrams; `DIAGRAMS: Record<string, DiagramDef>` |
+| `lessons.ts` | 25 lessons (Acts I–IV); `LESSONS[]`, `getLessonsForAct(act)`, `getLessonById(id)` |
+| `diagrams.ts` | 10 diagrams (Acts I–IV); `DIAGRAMS: Record<string, DiagramDef>` |
 | `world-data.ts` | `OVERWORLD` (40×30) + `LLAMATOWN` (20×15); `getCityDef(id)`, `CityDef` type |
 | `qbank.ts` | 100 quiz questions (25 lessons × 4); `QBANK`, `getQuestionsForAct(act)`, `getQuestionsForLesson(id)` |
 | `enemies.ts` | 20 enemy defs; `ENEMIES[]`, `BOSSES[]`, `getEnemiesForAct(act)`, `getBossForAct(act)` |
+| `sandboxes.ts` | 5 sandbox project defs; `SANDBOXES`, `getSandboxDef(id)` — ids: `firstchat`, `modelfile`, `api`, `collection`, `rag` |
 
 **Bosses:** `frozen-boot` (Act 1, 120 HP), `rate-limiter` (Act 2, 150 HP), `dimensionless-beast` (Act 3, 180 HP), `hallucinator` (Act 4, 220 HP).
 
@@ -86,6 +88,7 @@ All progression tracking uses `Record<string, boolean>` (never `Set<string>`).
 | `RollingHP.tsx` | `displayHp`, `playerHp`, `maxHp` | Animated draining HP counter (color-coded) |
 | `BattleMenu.tsx` | `onPSI`, `onGuard`, `onRun`, `disabled` | Three battle action buttons |
 | `PSIAttack.tsx` | `question`, `onAnswer(idx)`, `result` | Quiz question with A–D choices + feedback |
+| `Terminal.tsx` | `sandbox`, `completedObjectives`, `onObjectiveDone`, `onAllDone` | Simulated bash/Python REPL with objectives panel |
 
 **Color palette** (reuse these, no arbitrary colors):
 - `#4caf50` green HP / `#ff9800` amber HP / `#f44336` red HP / `#aaa` secondary
@@ -111,7 +114,7 @@ All use `@shopify/react-native-skia`. Render colored rect placeholders (sprites 
 |------|-----------|-------------|
 | `useGameLoop.ts` | `useGameLoop(callback: (dt: number) => void)` | `useFrameCallback` at 60 fps; dt capped at 50 ms |
 | `usePlayerInput.ts` | `() → { input: Ref<InputState>, resetInput }` | Keyboard WASD on web |
-| `useBattle.ts` | `useBattle(enemy, playerHp, playerMaxHp) → UseBattleReturn` | Wires battle engine to React; handles XP/HP persistence |
+| `useBattle.ts` | `useBattle(enemy, playerHp, playerMaxHp) → UseBattleReturn` | Wires battle engine to React; handles XP/HP persistence; fires hit/victory SFX via useEffect |
 
 **`useBattle` return:** `{ state, choosePSI, answer(idx), chooseGuard, chooseRun }`.  
 XP: boss kill +100 (via `awardBossKill`), enemy defeated +`enemy.xpReward`, correct PSI +5.  
@@ -129,6 +132,7 @@ HP: persisted on victory + escape; NOT written on defeat.
 | `city/[id].tsx` | `/city/:id` | City: movement, NPC dialogue, building routing |
 | `building/[id].tsx` | `/building/:id` | Lesson list + Codex reader |
 | `battle.tsx` | `/battle?enemyId=` | Battle screen: `useBattle` + all battle UI components |
+| `sandbox/[id].tsx` | `/sandbox/:id` | Sandbox lab: `Terminal` component + objective tracking |
 
 ---
 
@@ -151,7 +155,30 @@ sandbox completed +15
 
 ---
 
-## Tests (65 total, all passing as of Phase 2 Task 8)
+## audio/ — Music and SFX (Phase 4)
+
+| File | Exports | What it does |
+|------|---------|-------------|
+| `AudioManager.ts` | `AudioManager` (singleton), `AudioManagerImpl` (class), `TrackId` | Platform-aware play/stop/sfx/settings; Tone.js on web, expo-av on native |
+| `sfx.ts` | `SFX_MAP` | 7 one-shot Tone.js SFX: `levelUp`, `hit`, `miss`, `npcBlip`, `menuMove`, `victory`, `escape` |
+| `themes/llamatown.ts` | `start(volume)`, `stop()` | C major pentatonic, 72 BPM, triangle; second layer at 30s |
+| `themes/overworld.ts` | `start(volume)`, `stop()` | G major pentatonic, 80 BPM, square; second layer at 30s |
+| `themes/forge.ts` | `start(volume)`, `stop()` | D minor, 90 BPM, sawtooth; second layer at 30s |
+| `themes/caverns.ts` | `start(volume)`, `stop()` | A minor arpeggios, 60 BPM, sine; second layer at 30s |
+| `themes/convergence.ts` | `start(volume)`, `stop()` | C major, 80 BPM, triangle dual-layer (immediate) |
+| `themes/battle.ts` | `start(volume)`, `stop()` | B diminished, 120 BPM, square+sawtooth dual-layer (immediate) |
+
+**TrackId:** `'overworld' | 'llamatown' | 'forge' | 'caverns' | 'convergence' | 'battle'`
+
+**SFX wiring:** `npcBlip` fires on NPC dialogue open (city screens); `hit` fires when enemy turn completes (useBattle useEffect); `victory` fires on battle win (battle.tsx useEffect); `levelUp` fires in `awardXP` level-up branch.
+
+**Settings:** `AudioManager.setMusicEnabled(v)`, `AudioManager.setSfxEnabled(v)`, `AudioManager.setVolume(v)` are called from `store/game-store.ts` `updateSettings` action.
+
+**Mocks:** `__mocks__/tone.js`, `__mocks__/expo-av.js` for Jest.
+
+---
+
+## Tests (116 total, all passing as of Phase 4)
 
 | Suite | File | Count |
 |-------|------|-------|
@@ -167,7 +194,7 @@ sandbox completed +15
 | BattleMenu | `components/__tests__/BattleMenu.test.tsx` | 7 |
 | Battle screen | `app/__tests__/battle.test.tsx` | 3 |
 
-Mocks: `__mocks__/@shopify/react-native-skia.js`, `__mocks__/@react-native-async-storage/async-storage.js`
+Mocks: `__mocks__/@shopify/react-native-skia.js`, `__mocks__/@react-native-async-storage/async-storage.js`, `__mocks__/tone.js`, `__mocks__/expo-av.js`
 
 ---
 
@@ -183,4 +210,4 @@ Two Metro overrides, both required for Skia to work on web:
 
 ---
 
-*Updated: 2026-06-19 · Phase 2 Task 8 complete*
+*Updated: 2026-06-19 · Phase 4 complete (116 tests)*

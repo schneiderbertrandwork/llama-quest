@@ -62,3 +62,4 @@ Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md
 | 6: Wire AudioManager into screens + settings | complete | 4de2e3f..6aac7c9 | review clean; Minors: CITY_TRACK in render fn (move to module scope in Phase 6); useBattle game-loop integration test missing (Phase 6 TODO); victory sfx/stop race benign, verify Playwright |
 
 Notes: overworld.tsx npcBlip omitted intentionally — overworld has no NPC dialogue (building entrances only); npcBlip correctly wired in city/[id].tsx.
+| 6-fix: sfx hit outside setState + CLAUDE.md Phase 4 complete | complete | 30b0c11..6fb055a | final review fixes |
