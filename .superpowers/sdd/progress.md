@@ -49,3 +49,9 @@ Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md
 | 4: Sandbox definitions (5 projects) | complete | cf46dd9..1ebba5c | review clean |
 | 5: Terminal component | complete | 1ebba5c..9e12f8f | review clean; Minors: unused TouchableOpacity import; #0a0818 and #a8a2da colors not in established palette (intentional for terminal feel) |
 | 6: Sandbox screen + Llamatown portal | complete | 9e12f8f..908c7f0 | final review found Critical (collection/rag sandbox unreachable objectives); fixed in 908c7f0 — re-review clean |
+
+## Phase 4 — Audio
+
+| Task | Status | Commits | Notes |
+|------|--------|---------|-------|
+| 1: Install packages + Jest mocks | complete | 6086d6a..744ab9c | review clean |
