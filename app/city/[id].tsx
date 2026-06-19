@@ -9,7 +9,7 @@ import { useGameLoop } from '../../hooks/useGameLoop'
 import { usePlayerInput } from '../../hooks/usePlayerInput'
 import { movePlayer } from '../../engine/movement'
 import { nearestInteractable, makePlayer } from '../../engine/entity'
-import { getCityDef } from '../../content/world-data'
+import { getCityDef, isGateUnlocked } from '../../content/world-data'
 import { useGameStore } from '../../store/game-store'
 import { getEnemiesForAct } from '../../content/enemies'
 import type { Entity } from '../../engine/entity'
@@ -98,7 +98,7 @@ export default function CityScreen() {
       const locked = nearbyEntity.data['locked'] as boolean | undefined
 
       if (locked && bossId) {
-        // Boss gate: defeated → pass through; not defeated → trigger boss battle
+        // Boss battle gate (e.g., Llamatown → Forge via Frozen Boot)
         if (progression.defeatedBosses[bossId]) {
           if (dest === 'overworld') router.push('/overworld')
           else router.push(`/city/${dest}`)
@@ -106,7 +106,17 @@ export default function CityScreen() {
           encounterCooldown.current = 90
           router.push(`/battle?enemyId=${bossId}`)
         }
+      } else if (locked) {
+        // Act mastery + boss defeat gate (e.g., Forge → Vale, Vale → Ridge)
+        const cityAct = CITY_ACT[id ?? ''] ?? 1
+        if (isGateUnlocked(cityAct as 1 | 2 | 3 | 4, progression.masteredConcepts, progression.defeatedBosses)) {
+          if (dest === 'overworld') router.push('/overworld')
+          else router.push(`/city/${dest}`)
+        } else {
+          setDialogue({ lines: [`Gate locked — read all Act ${cityAct} lessons and defeat the boss to proceed.`] })
+        }
       } else {
+        // Unlocked gate — route directly
         if (dest === 'overworld') router.push('/overworld')
         else router.push(`/city/${dest}`)
       }
@@ -118,6 +128,8 @@ export default function CityScreen() {
       ? `[E] Talk to ${nearbyEntity.data['name']}`
       : nearbyEntity.type === 'sandbox_portal'
       ? '[E] Open Terminal'
+      : nearbyEntity.type === 'gate' && nearbyEntity.data['locked'] && !nearbyEntity.data['bossId']
+      ? '[E] Gate (locked?)'
       : '[E] Enter'
     : null
 

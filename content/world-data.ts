@@ -274,3 +274,28 @@ export function getCityDef(id: CityId | 'overworld'): CityDef {
   if (!def) throw new Error(`Unknown city: ${id}`)
   return def
 }
+
+export const ACT_CONCEPTS: Record<1 | 2 | 3 | 4, string[]> = {
+  1: ['oll-intro', 'oll-install', 'oll-run', 'oll-manage', 'oll-models', 'oll-params'],
+  2: ['oll-modelfile', 'oll-api', 'oll-openai', 'oll-structured', 'oll-tools', 'oll-multimodal', 'oll-embed', 'oll-ops'],
+  3: ['chr-vectors', 'chr-intro', 'chr-collections', 'chr-add', 'chr-query', 'chr-filter', 'chr-ef', 'chr-persist'],
+  4: ['rag-concept', 'rag-build', 'rag-prod'],
+}
+
+export function isActMastered(act: 1 | 2 | 3 | 4, masteredConcepts: Record<string, boolean>): boolean {
+  return (ACT_CONCEPTS[act] ?? []).every(id => masteredConcepts[id] === true)
+}
+
+export function isGateUnlocked(
+  fromAct: 1 | 2 | 3 | 4,
+  masteredConcepts: Record<string, boolean>,
+  defeatedBosses: Record<string, boolean>,
+): boolean {
+  const bossIds: Record<1 | 2 | 3 | 4, string> = {
+    1: 'frozen-boot',
+    2: 'rate-limiter',
+    3: 'dimensionless-beast',
+    4: 'hallucinator',
+  }
+  return isActMastered(fromAct, masteredConcepts) && (defeatedBosses[bossIds[fromAct] ?? ''] === true)
+}

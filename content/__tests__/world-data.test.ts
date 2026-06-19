@@ -80,3 +80,43 @@ it('OVERWORLD has enter-ridge entity', () => {
   const ow = getCityDef('overworld')
   expect(ow.entities.find(e => e.id === 'enter-ridge')).toBeDefined()
 })
+
+// ── Gate unlock ───────────────────────────────────────────────────────────────
+import { ACT_CONCEPTS, isActMastered, isGateUnlocked } from '../world-data'
+
+it('ACT_CONCEPTS[1] has 6 lesson ids', () => {
+  expect(ACT_CONCEPTS[1]).toHaveLength(6)
+})
+it('ACT_CONCEPTS[2] has 8 lesson ids', () => {
+  expect(ACT_CONCEPTS[2]).toHaveLength(8)
+})
+it('ACT_CONCEPTS[3] has 8 lesson ids', () => {
+  expect(ACT_CONCEPTS[3]).toHaveLength(8)
+})
+it('ACT_CONCEPTS[4] has 3 lesson ids', () => {
+  expect(ACT_CONCEPTS[4]).toHaveLength(3)
+})
+it('isActMastered returns false when nothing mastered', () => {
+  expect(isActMastered(1, {})).toBe(false)
+})
+it('isActMastered returns true when all Act I concepts mastered', () => {
+  const mastered: Record<string, boolean> = {}
+  for (const id of ACT_CONCEPTS[1]!) mastered[id] = true
+  expect(isActMastered(1, mastered)).toBe(true)
+})
+it('isActMastered returns false when only partial Act I concepts mastered', () => {
+  expect(isActMastered(1, { 'oll-intro': true })).toBe(false)
+})
+it('isGateUnlocked returns false when act not mastered', () => {
+  expect(isGateUnlocked(1, {}, { 'frozen-boot': true })).toBe(false)
+})
+it('isGateUnlocked returns false when boss not defeated', () => {
+  const mastered: Record<string, boolean> = {}
+  for (const id of ACT_CONCEPTS[1]!) mastered[id] = true
+  expect(isGateUnlocked(1, mastered, {})).toBe(false)
+})
+it('isGateUnlocked returns true when act mastered and boss defeated', () => {
+  const mastered: Record<string, boolean> = {}
+  for (const id of ACT_CONCEPTS[1]!) mastered[id] = true
+  expect(isGateUnlocked(1, mastered, { 'frozen-boot': true })).toBe(true)
+})

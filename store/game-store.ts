@@ -113,6 +113,7 @@ export const useGameStore = create<GameState>()(
           progression: {
             ...state.progression,
             readLessons: { ...state.progression.readLessons, [lessonId]: true },
+            masteredConcepts: { ...state.progression.masteredConcepts, [lessonId]: true },
           },
         }))
         get().awardXP(20)
