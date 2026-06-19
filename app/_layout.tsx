@@ -11,7 +11,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== 'web') return
     import('@shopify/react-native-skia/lib/module/web/LoadSkiaWeb').then(
-      ({ LoadSkiaWeb }) => LoadSkiaWeb().then(() => setSkiaReady(true)),
+      ({ LoadSkiaWeb }) =>
+        LoadSkiaWeb({
+          locateFile: (file: string) =>
+            `https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.39.1/bin/full/${file}`,
+        }).then(() => setSkiaReady(true)),
     )
   }, [])
 
