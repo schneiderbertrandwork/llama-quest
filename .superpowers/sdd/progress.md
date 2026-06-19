@@ -54,4 +54,4 @@ Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md
 
 | Task | Status | Commits | Notes |
 |------|--------|---------|-------|
-| 1: Install packages + Jest mocks | complete | 6086d6a..744ab9c | review clean |
+| 1: Install packages + Jest mocks | complete | 6086d6a..744ab9c | review clean || 2: AudioManager singleton + sfx stub | complete | 906ec5a..aaecb78 | review clean |
