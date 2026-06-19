@@ -27,6 +27,8 @@ describe('movePlayer', () => {
     setTile(grid, 7, 5, 'water')
     const player = makePlayer(5, 5)
     const moved = movePlayer(player, { dx: 1, dy: 0 }, grid, DT)
+    // Player should have moved right but stopped before tile x=7
+    expect(moved.x).toBeGreaterThan(5)
     expect(moved.x).toBeLessThan(7)
   })
 

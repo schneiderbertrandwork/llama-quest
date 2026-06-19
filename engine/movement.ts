@@ -29,27 +29,27 @@ export function movePlayer(player: Entity, input: InputState, grid: TileGrid, dt
   let newY = player.y + ndy * distance
 
   // Separate axis collision: check each axis independently
-  // For X: move incrementally and stop at first non-walkable
+  // For X: move incrementally and stop just before non-walkable
   if (ndx !== 0) {
     const step = ndx > 0 ? 1 : -1
     let checkX = Math.round(player.x)
     while (checkX !== Math.round(newX)) {
       checkX += step
       if (!isWalkable(grid, checkX, Math.round(player.y))) {
-        newX = player.x
+        newX = checkX - step
         break
       }
     }
   }
 
-  // For Y: move incrementally and stop at first non-walkable
+  // For Y: move incrementally and stop just before non-walkable
   if (ndy !== 0) {
     const step = ndy > 0 ? 1 : -1
     let checkY = Math.round(player.y)
     while (checkY !== Math.round(newY)) {
       checkY += step
       if (!isWalkable(grid, Math.round(player.x), checkY)) {
-        newY = player.y
+        newY = checkY - step
         break
       }
     }
