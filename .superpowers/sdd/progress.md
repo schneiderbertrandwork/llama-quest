@@ -63,3 +63,4 @@ Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md
 
 Notes: overworld.tsx npcBlip omitted intentionally — overworld has no NPC dialogue (building entrances only); npcBlip correctly wired in city/[id].tsx.
 | 6-fix: sfx hit outside setState + CLAUDE.md Phase 4 complete | complete | 30b0c11..6fb055a | final review fixes |
+| Playwright end-of-phase | complete | — | Title/overworld/city/battle all verified. Audio: Tone.js v15.1.22 loads; AudioContext invoked for all 3 themes (overworld, llamatown, battle) — no audio-code errors. Skia Aborted() errors on battle screen are session contamination from earlier direct-nav attempt, not Phase 4 regressions. Key lesson: never navigate directly to game routes in Playwright; always go through title screen flow. |
