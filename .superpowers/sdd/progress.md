@@ -56,3 +56,4 @@ Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md
 |------|--------|---------|-------|
 | 1: Install packages + Jest mocks | complete | 6086d6a..744ab9c | review clean || 2: AudioManager singleton + sfx stub | complete | 906ec5a..aaecb78 | review clean |
 | 3: Llamatown + Overworld themes | complete | f9f50c4..1d8f3af | review clean |
+| 4: Forge + Caverns + Convergence + Battle themes | complete | baa7d44..2cee513 | review clean |
