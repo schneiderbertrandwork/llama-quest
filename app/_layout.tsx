@@ -10,12 +10,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (Platform.OS !== 'web') return
+    // canvaskit.wasm is served at /canvaskit.wasm by metro.config.js middleware.
+    // CanvasKit finds it there by default — no locateFile override needed.
     import('@shopify/react-native-skia/lib/module/web/LoadSkiaWeb').then(
-      ({ LoadSkiaWeb }) =>
-        LoadSkiaWeb({
-          locateFile: (file: string) =>
-            `https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.39.1/bin/full/${file}`,
-        }).then(() => setSkiaReady(true)),
+      ({ LoadSkiaWeb }) => LoadSkiaWeb().then(() => setSkiaReady(true)),
     )
   }, [])
 
