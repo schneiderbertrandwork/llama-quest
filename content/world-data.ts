@@ -1,7 +1,7 @@
 import type { CityId } from '../store/game-store'
 import { makeGrid, setTile } from '../engine/tilemap'
 import type { TileGrid } from '../engine/tilemap'
-import { makeNPC, makeBuildingEntrance, makeGate, makeSandboxPortal } from '../engine/entity'
+import { makeNPC, makeBuildingEntrance, makeGate, makeSandboxPortal, makeDecoration } from '../engine/entity'
 import type { Entity } from '../engine/entity'
 
 export interface CityDef {
@@ -13,15 +13,63 @@ export interface CityDef {
 }
 
 function buildOverworldGrid(): TileGrid {
-  const g = makeGrid(40, 30, 'grass')
-  // Paths between cities
-  for (let x = 5; x < 35; x++) setTile(g, x, 14, 'path')  // horizontal road
-  for (let x = 5; x < 35; x++) setTile(g, x, 15, 'path')
-  // Forest borders
-  for (let x = 0; x < 40; x++) {
-    setTile(g, x, 0, 'forest'); setTile(g, x, 1, 'forest')
-    setTile(g, x, 28, 'forest'); setTile(g, x, 29, 'forest')
+  const g = makeGrid(400, 300, 'grass')
+
+  // ── Forest borders ────────────────────────────────────────────
+  for (let x = 0; x < 400; x++) {
+    for (let y = 0; y < 8; y++) setTile(g, x, y, 'forest')     // north edge
+    for (let y = 292; y < 300; y++) setTile(g, x, y, 'forest') // south edge
   }
+
+  // ── West / east forest columns ────────────────────────────────
+  for (let y = 8; y < 140; y++) { setTile(g, 0, y, 'forest'); setTile(g, 1, y, 'forest') }
+  for (let y = 160; y < 292; y++) { setTile(g, 0, y, 'forest'); setTile(g, 1, y, 'forest') }
+  for (let y = 8; y < 292; y++) { setTile(g, 398, y, 'forest'); setTile(g, 399, y, 'forest') }
+
+  // ── Interior forest biomes ────────────────────────────────────
+  for (let x = 130; x <= 160; x++) for (let y = 40; y <= 100; y++) setTile(g, x, y, 'forest')
+  for (let x = 250; x <= 310; x++) for (let y = 8; y <= 80; y++) setTile(g, x, y, 'forest')
+
+  // ── Main east-west road ───────────────────────────────────────
+  for (let x = 10; x < 390; x++) {
+    setTile(g, x, 148, 'path')
+    setTile(g, x, 149, 'path')
+  }
+
+  // ── North road (to Llamatown, x=52) ───────────────────────────
+  for (let y = 100; y < 148; y++) {
+    setTile(g, 50, y, 'path'); setTile(g, 51, y, 'path')
+  }
+
+  // ── Northeast road (to Forge, x=280) ─────────────────────────
+  for (let y = 100; y < 148; y++) {
+    setTile(g, 280, y, 'path'); setTile(g, 281, y, 'path')
+  }
+
+  // ── South-central road (to Prism Caverns, x=180) ─────────────
+  for (let y = 149; y <= 240; y++) {
+    setTile(g, 180, y, 'path'); setTile(g, 181, y, 'path')
+  }
+
+  // ── Southwest road (to The Convergence, x=90) ────────────────
+  for (let y = 149; y <= 260; y++) {
+    setTile(g, 90, y, 'path'); setTile(g, 91, y, 'path')
+  }
+
+  // ── River (north vertical) ────────────────────────────────────
+  for (let y = 8; y <= 100; y++) {
+    setTile(g, 200, y, 'water'); setTile(g, 201, y, 'water'); setTile(g, 202, y, 'water')
+  }
+  // River lake
+  for (let x = 195; x <= 210; x++) for (let y = 80; y <= 100; y++) setTile(g, x, y, 'water')
+  // River south section
+  for (let y = 100; y < 148; y++) {
+    setTile(g, 200, y, 'water'); setTile(g, 201, y, 'water'); setTile(g, 202, y, 'water')
+  }
+
+  // ── Small pond ────────────────────────────────────────────────
+  for (let x = 340; x <= 350; x++) for (let y = 200; y <= 210; y++) setTile(g, x, y, 'water')
+
   return g
 }
 
@@ -54,12 +102,25 @@ function buildLlamatownGrid(): TileGrid {
 export const OVERWORLD: CityDef = {
   id: 'overworld',
   grid: buildOverworldGrid(),
-  playerSpawn: { x: 6, y: 14 },
+  playerSpawn: { x: 52, y: 148 },
   entities: [
-    makeBuildingEntrance('enter-llamatown', 7, 13, 'llamatown'),
-    makeBuildingEntrance('enter-forge', 33, 14, 'forge'),
-    makeBuildingEntrance('enter-vale', 25, 22, 'vale'),
-    makeBuildingEntrance('enter-ridge', 10, 22, 'ridge'),
+    makeBuildingEntrance('enter-llamatown', 52, 146, 'llamatown'),
+    makeBuildingEntrance('enter-forge', 280, 150, 'forge'),
+    makeBuildingEntrance('enter-vale', 180, 240, 'vale'),
+    makeBuildingEntrance('enter-ridge', 90, 259, 'ridge'),
+    // Decorative llamas — 12 scattered across the world
+    makeDecoration('deco-llama-1', 25, 20),
+    makeDecoration('deco-llama-2', 80, 35),
+    makeDecoration('deco-llama-3', 170, 15),
+    makeDecoration('deco-llama-4', 230, 50),
+    makeDecoration('deco-llama-5', 350, 30),
+    makeDecoration('deco-llama-6', 30, 180),
+    makeDecoration('deco-llama-7', 120, 200),
+    makeDecoration('deco-llama-8', 250, 170),
+    makeDecoration('deco-llama-9', 320, 200),
+    makeDecoration('deco-llama-10', 370, 260),
+    makeDecoration('deco-llama-11', 60, 270),
+    makeDecoration('deco-llama-12', 200, 280),
   ],
   gateExit: { x: 0, y: 0, destination: 'llamatown' },
 }
