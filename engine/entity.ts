@@ -1,5 +1,5 @@
 export type Facing = 'up' | 'down' | 'left' | 'right'
-export type EntityType = 'player' | 'npc' | 'sign' | 'building_entrance' | 'gate' | 'sandbox_portal'
+export type EntityType = 'player' | 'npc' | 'sign' | 'building_entrance' | 'gate' | 'sandbox_portal' | 'decoration' | 'critter'
 
 export interface Entity {
   id: string
@@ -34,6 +34,34 @@ export function makeGate(id: string, x: number, y: number, destination: string, 
 
 export function makeSandboxPortal(id: string, x: number, y: number, destination: string): Entity {
   return { id, type: 'sandbox_portal', x, y, facing: 'down', interactable: true, data: { destination } }
+}
+
+export function makeDecoration(id: string, x: number, y: number): Entity {
+  return { id, type: 'decoration', x, y, facing: 'down', interactable: false, data: {} }
+}
+
+export interface CritterData {
+  homeX: number
+  homeY: number
+  targetX: number
+  targetY: number
+  wanderRadius: number
+  speed: number
+  pauseTimer: number
+  critterType: 'rabbit' | 'bird' | 'squirrel' | 'butterfly'
+  phaseOffset?: number  // butterfly sine offset
+}
+
+export function makeCritter(id: string, x: number, y: number, critterData: CritterData): Entity {
+  return {
+    id,
+    type: 'critter',
+    x,
+    y,
+    facing: 'down',
+    interactable: false,
+    data: critterData as unknown as Record<string, unknown>,
+  }
 }
 
 export function nearestInteractable(entities: Entity[], playerX: number, playerY: number, maxDist = 1.5): Entity | null {
