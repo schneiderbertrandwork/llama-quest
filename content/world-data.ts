@@ -1,8 +1,21 @@
 import type { CityId } from '../store/game-store'
 import { makeGrid, setTile } from '../engine/tilemap'
 import type { TileGrid } from '../engine/tilemap'
-import { makeNPC, makeBuildingEntrance, makeGate, makeSandboxPortal, makeDecoration } from '../engine/entity'
-import type { Entity } from '../engine/entity'
+import { makeNPC, makeBuildingEntrance, makeGate, makeSandboxPortal, makeDecoration, makeCritter } from '../engine/entity'
+import type { Entity, CritterData } from '../engine/entity'
+
+function c(id: string, x: number, y: number, type: CritterData['critterType'], wanderRadius = 4, phaseOffset = 0): Entity {
+  return makeCritter(id, x, y, {
+    homeX: x, homeY: y,
+    targetX: x + (Math.random() > 0.5 ? 1 : -1),
+    targetY: y,
+    wanderRadius,
+    speed: type === 'butterfly' ? 2.5 : type === 'bird' ? 2 : 1.5,
+    pauseTimer: 0,
+    critterType: type,
+    phaseOffset,
+  })
+}
 
 export interface CityDef {
   id: CityId | 'overworld'
@@ -121,6 +134,21 @@ export const OVERWORLD: CityDef = {
     makeDecoration('deco-llama-10', 370, 260),
     makeDecoration('deco-llama-11', 60, 270),
     makeDecoration('deco-llama-12', 200, 280),
+    // Woodland creatures
+    c('critter-rabbit-1', 35, 30, 'rabbit'),
+    c('critter-rabbit-2', 220, 140, 'rabbit'),
+    c('critter-rabbit-3', 300, 180, 'rabbit'),
+    c('critter-rabbit-4', 160, 270, 'rabbit'),
+    c('critter-bird-1', 100, 60, 'bird', 6),
+    c('critter-bird-2', 260, 200, 'bird', 6),
+    c('critter-bird-3', 380, 120, 'bird', 6),
+    c('critter-squirrel-1', 165, 80, 'squirrel', 3),
+    c('critter-squirrel-2', 330, 90, 'squirrel', 3),
+    c('critter-squirrel-3', 70, 230, 'squirrel', 3),
+    c('critter-butterfly-1', 60, 120, 'butterfly', 8, 0.0),
+    c('critter-butterfly-2', 200, 60, 'butterfly', 8, 1.5),
+    c('critter-butterfly-3', 290, 250, 'butterfly', 8, 3.0),
+    c('critter-butterfly-4', 140, 260, 'butterfly', 8, 4.5),
   ],
   gateExit: { x: 0, y: 0, destination: 'llamatown' },
 }
