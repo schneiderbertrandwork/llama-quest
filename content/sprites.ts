@@ -488,3 +488,236 @@ export const TITLE_LLAMA: SpriteGrid = {
     ....................
   `, { B, S, H, W }),
 }
+
+// ── Enemy battle sprites (8×8) ─────────────────────────────────────
+// Each pixel = 10px at 80px render size. Use 2-3 colors per sprite.
+
+export const SPRITE_ENEMIES: Record<string, SpriteGrid> = {
+  // Act I regulars
+  'spinning-cursor': { size: 8, pixels: px(8, `
+    W.......
+    WW......
+    WWWW....
+    WWWWW...
+    WWWWWWW.
+    WWWWB...
+    WWWB....
+    WB......
+  `, { W: '#ffffff', B: '#4fc3f7' }) },
+
+  'cloud-invoice': { size: 8, pixels: px(8, `
+    ..LLL...
+    .LLLLL..
+    LLLLLLL.
+    LLY.LLL.
+    LLLLLLL.
+    .LLLLL..
+    ..LLL...
+    ........
+  `, { L: '#b0bec5', Y: '#f5c518' }) },
+
+  'driver-missing': { size: 8, pixels: px(8, `
+    BBBBBBB.
+    B.....B.
+    B..Q..B.
+    B.....B.
+    B..Q..B.
+    B.....B.
+    BBBBBBB.
+    ........
+  `, { B: '#1565c0', Q: '#ff5252' }) },
+
+  'stack-overflow': { size: 8, pixels: px(8, `
+    RRRRRR..
+    GGGGGG..
+    BBBBBB..
+    ........
+    RRRRRRRR
+    GGGGGGGG
+    BBBBBBBB
+    YYYYYYYY
+  `, { R: '#ef5350', G: '#66bb6a', B: '#42a5f5', Y: '#ffca28' }) },
+
+  // Act I boss
+  'frozen-boot': { size: 8, pixels: px(8, `
+    .CCCCC..
+    .CCCCCC.
+    .CCCCCCC
+    .CCCCCCC
+    CCCCCCCC
+    DDDDDDDD
+    DD.DDDDD
+    ........
+  `, { C: '#80deea', D: '#006064' }) },
+
+  // Act II regulars
+  'config-error': { size: 8, pixels: px(8, `
+    .GG.GG..
+    GGGGGGG.
+    GG.X.GG.
+    GXXXXXG.
+    GG.X.GG.
+    GGGGGGG.
+    .GG.GG..
+    ........
+  `, { G: '#90a4ae', X: '#f44336' }) },
+
+  'api-timeout': { size: 8, pixels: px(8, `
+    ..OOOO..
+    .O....O.
+    O.T...O.
+    O.TT..O.
+    O......O
+    .O....O.
+    ..OOOO..
+    ........
+  `, { O: '#ff7043', T: '#37474f' }) },
+
+  'dependency-hell': { size: 8, pixels: px(8, `
+    R.R.R.R.
+    .R.R.R.R
+    R.R.R.R.
+    .RRRRRR.
+    .RRRRRR.
+    R.R.R.R.
+    .R.R.R.R
+    R.R.R.R.
+  `, { R: '#e53935' }) },
+
+  'json-syntax': { size: 8, pixels: px(8, `
+    .GG..GG.
+    G......G
+    G......G
+    G..RR..G
+    G.RRRR.G
+    G......G
+    .GG..GG.
+    ........
+  `, { G: '#f5c518', R: '#f44336' }) },
+
+  // Act II boss
+  'rate-limiter': { size: 8, pixels: px(8, `
+    .DDDDDDD
+    DDDDDDDD
+    D.D.D.D.
+    D.D.D.D.
+    D.D.D.D.
+    DDDDDDDD
+    .DDDDDDD
+    ........
+  `, { D: '#b71c1c' }) },
+
+  // Act III regulars
+  'dim-mismatch': { size: 8, pixels: px(8, `
+    PPP.....
+    ...PPP..
+    PPP.....
+    ...PPP..
+    PPP.....
+    ...PPP..
+    ........
+    ........
+  `, { P: '#ab47bc' }) },
+
+  'oom-vector': { size: 8, pixels: px(8, `
+    MMMMMMMM
+    M......M
+    M.RRRR.M
+    MRRRRRRMM
+    RRRRRRRR
+    .RRRRRR.
+    ..RRRR..
+    ...RR...
+  `, { M: '#1a237e', R: '#ef5350' }) },
+
+  'null-embedding': { size: 8, pixels: px(8, `
+    ..GGGG..
+    .G....G.
+    G......G
+    G.GGGG.G
+    G..GG..G
+    G......G
+    .G....G.
+    ..GGGG..
+  `, { G: '#78909c' }) },
+
+  'metric-clash': { size: 8, pixels: px(8, `
+    BBB.OOO.
+    BB...OO.
+    B.....O.
+    ..XXXX..
+    B.....O.
+    BB...OO.
+    BBB.OOO.
+    ........
+  `, { B: '#1e88e5', O: '#fb8c00', X: '#ffffff' }) },
+
+  // Act III boss
+  'dimensionless-beast': { size: 8, pixels: px(8, `
+    .PPPPPP.
+    PPCCCCPP
+    PCCCCCP.
+    PC....CP
+    PC....CP
+    PCCCCCP.
+    PPCCCCPP
+    .PPPPPP.
+  `, { P: '#7b1fa2', C: '#00e5ff' }) },
+
+  // Act IV regulars
+  'hallucinated-fact': { size: 8, pixels: px(8, `
+    ..WWWW..
+    .WWWWWW.
+    WWWWWWWW
+    WW.WW.WW
+    WWWWWWWW
+    .WQWWQW.
+    WWWWWWWW
+    W.WWWW.W
+  `, { W: '#eceff1', Q: '#37474f' }) },
+
+  'context-overflow': { size: 8, pixels: px(8, `
+    .YYYYY..
+    YYYYYYY.
+    Y.LLL.Y.
+    Y.LLL.Y.
+    YYYYYYY.
+    YYYYYYYY
+    YYYYYYYY
+    ........
+  `, { Y: '#fdd835', L: '#fb8c00' }) },
+
+  'citation-gap': { size: 8, pixels: px(8, `
+    GG....GG
+    GG....GG
+    GG......
+    GG......
+    GG......
+    GG....GG
+    GG....GG
+    ........
+  `, { G: '#f5c518' }) },
+
+  'rerank-roulette': { size: 8, pixels: px(8, `
+    ..RRRR..
+    .RDBDDR.
+    RDB...BR
+    RDBDDBR.
+    RDBDDBR.
+    RDB...BR
+    .RDBDDR.
+    ..RRRR..
+  `, { R: '#c62828', D: '#1a1a2e', B: '#ef9a9a' }) },
+
+  // Act IV boss
+  'hallucinator': { size: 8, pixels: px(8, `
+    .PPPPPP.
+    PPWWWWPP
+    PWVVVVWP
+    PW.VV.WP
+    PW.VV.WP
+    PWVVVVWP
+    PPWWWWPP
+    .PPPPPP.
+  `, { P: '#6a1b9a', W: '#e040fb', V: '#ce93d8' }) },
+}

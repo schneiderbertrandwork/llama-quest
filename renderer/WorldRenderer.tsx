@@ -11,12 +11,13 @@ interface WorldRendererProps {
   player: Entity
   entities: Entity[]
   tileSize: number
+  spriteSize?: number   // entity visual size; defaults to tileSize
   screenWidth: number
   screenHeight: number
   time: number
 }
 
-export function WorldRenderer({ grid, player, entities, tileSize, screenWidth, screenHeight, time }: WorldRendererProps) {
+export function WorldRenderer({ grid, player, entities, tileSize, spriteSize, screenWidth, screenHeight, time }: WorldRendererProps) {
   const camera = useMemo(() => {
     const raw = followEntity(player, tileSize, screenWidth, screenHeight)
     return clampCamera(raw, tileSize, grid.width, grid.height, screenWidth, screenHeight)
@@ -29,7 +30,7 @@ export function WorldRenderer({ grid, player, entities, tileSize, screenWidth, s
   return (
     <View style={{ width: screenWidth, height: screenHeight, overflow: 'hidden' }}>
       <TilemapRenderer grid={grid} camera={camera} tileSize={tileSize} width={screenWidth} height={screenHeight} grassPhase={grassPhase} />
-      <EntityRenderer entities={allEntities} camera={camera} tileSize={tileSize} width={screenWidth} height={screenHeight} time={time} />
+      <EntityRenderer entities={allEntities} camera={camera} tileSize={tileSize} spriteSize={spriteSize} width={screenWidth} height={screenHeight} time={time} />
     </View>
   )
 }

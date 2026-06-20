@@ -14,7 +14,16 @@
       "bundleIdentifier": "com.llamaquest.app"
     },
     "android": {
-      "package": "com.llamaquest.app"
+      "package": "com.llamaquest.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -22,6 +31,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "1dc32493-fd5d-4a07-b906-b87979b18542"
+      }
+    },
+    "owner": "schneiderbertrand"
   }
 }

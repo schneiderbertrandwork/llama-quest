@@ -59,8 +59,10 @@ export default function CityScreen() {
     if (dialogue) return
     const prev = playerRef.current
     const moved = movePlayer(prev, input.current!, cityDef.grid, dt)
-    playerRef.current = moved
-    setPlayerState({ ...moved })
+    if (moved !== prev) {
+      playerRef.current = moved
+      setPlayerState(moved)
+    }
     setNearbyEntity(nearestInteractable(cityDef.entities, moved.x, moved.y))
 
     // Encounter check
@@ -81,6 +83,17 @@ export default function CityScreen() {
       }
     }
   }, [dialogue, cityDef, id]))
+
+  const handleInteractRef = useRef<() => void>(() => {})
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') handleInteractRef.current()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   function handleInteract() {
     if (!nearbyEntity) return
@@ -130,6 +143,7 @@ export default function CityScreen() {
       }
     }
   }
+  handleInteractRef.current = handleInteract
 
   const interactLabel = nearbyEntity
     ? nearbyEntity.type === 'npc'

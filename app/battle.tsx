@@ -9,6 +9,7 @@ import { RollingHP } from '../components/RollingHP'
 import { BattleMenu } from '../components/BattleMenu'
 import { PSIAttack } from '../components/PSIAttack'
 import { ENEMIES, BOSSES } from '../content/enemies'
+import { SPRITE_ENEMIES } from '../content/sprites'
 import { useGameStore } from '../store/game-store'
 import { SafeAreaWrapper } from '../components/SafeAreaWrapper'
 import type { CityId } from '../store/game-store'
@@ -20,6 +21,9 @@ const CITY_SPAWN: Record<string, { x: number; y: number }> = {
   vale: { x: 11, y: 14 },
   ridge: { x: 5, y: 12 },
 }
+
+const ENEMY_SPRITE_SIZE = 96  // rendered size in px
+const ENEMY_SPRITE_CELLS = 8  // sprite grid dimension
 
 export default function BattleScreen() {
   const { enemyId } = useLocalSearchParams<{ enemyId: string }>()
@@ -97,24 +101,52 @@ export default function BattleScreen() {
   const isPsiPhase = state.phase === 'psi-question'
   const menuDisabled = !isPlayerTurn
 
+  // Enemy sprite rendering
+  const enemySprite = SPRITE_ENEMIES[resolvedEnemy.id]
+  const spriteX = width / 2 - ENEMY_SPRITE_SIZE / 2
+  const spriteY = 48
+  const cellSize = ENEMY_SPRITE_SIZE / ENEMY_SPRITE_CELLS
+
   return (
     <SafeAreaWrapper style={styles.screen}>
-      {/* Skia background */}
+      {/* Skia background — arena look with floor zone */}
       <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Rect x={0} y={0} width={width} height={height} color="#0d0d1a" />
-        {Array.from({ length: Math.ceil(height * 0.45) }, (_, i) =>
-          i % 2 === 0 ? (
-            <Rect key={i} x={0} y={i} width={width} height={1} color="#120d28" />
-          ) : (
-            <Rect key={i} x={0} y={i} width={width} height={1} color="#0f0a22" />
-          )
-        )}
-        {/* Enemy rect placeholder with pixel border */}
-        <Rect x={width / 2 - 40} y={60} width={80} height={80} color="#2a2150" />
-        <Rect x={width / 2 - 41} y={59} width={82} height={1} color="#ece9ff" />
-        <Rect x={width / 2 - 41} y={140} width={82} height={1} color="#ece9ff" />
-        <Rect x={width / 2 - 41} y={59} width={1} height={82} color="#ece9ff" />
-        <Rect x={width / 2 + 40} y={59} width={1} height={82} color="#ece9ff" />
+        {/* Sky/ceiling zone */}
+        <Rect x={0} y={0} width={width} height={height * 0.6} color="#0b0b1c" />
+        {/* Floor zone */}
+        <Rect x={0} y={height * 0.6} width={width} height={height * 0.4} color="#111128" />
+        {/* Floor divider line */}
+        <Rect x={0} y={height * 0.6 - 2} width={width} height={3} color="#2a2150" />
+        {/* Floor grid lines */}
+        <Rect x={width * 0.25} y={height * 0.6} width={1} height={height * 0.4} color="#1a1438" />
+        <Rect x={width * 0.5}  y={height * 0.6} width={1} height={height * 0.4} color="#1a1438" />
+        <Rect x={width * 0.75} y={height * 0.6} width={1} height={height * 0.4} color="#1a1438" />
+        {/* Enemy sprite or placeholder */}
+        {enemySprite
+          ? enemySprite.pixels.map((color, i) => {
+              if (!color) return null
+              const row = Math.floor(i / ENEMY_SPRITE_CELLS)
+              const col = i % ENEMY_SPRITE_CELLS
+              return (
+                <Rect
+                  key={i}
+                  x={spriteX + col * cellSize}
+                  y={spriteY + row * cellSize}
+                  width={cellSize}
+                  height={cellSize}
+                  color={color}
+                />
+              )
+            })
+          : [
+              <Rect key="bg" x={spriteX} y={spriteY} width={ENEMY_SPRITE_SIZE} height={ENEMY_SPRITE_SIZE} color="#2a2150" />,
+              <Rect key="t" x={spriteX - 1} y={spriteY - 1} width={ENEMY_SPRITE_SIZE + 2} height={1} color="#ece9ff" />,
+              <Rect key="b" x={spriteX - 1} y={spriteY + ENEMY_SPRITE_SIZE} width={ENEMY_SPRITE_SIZE + 2} height={1} color="#ece9ff" />,
+              <Rect key="l" x={spriteX - 1} y={spriteY - 1} width={1} height={ENEMY_SPRITE_SIZE + 2} color="#ece9ff" />,
+              <Rect key="r" x={spriteX + ENEMY_SPRITE_SIZE} y={spriteY - 1} width={1} height={ENEMY_SPRITE_SIZE + 2} color="#ece9ff" />,
+            ]}
+        {/* Sprite shadow */}
+        <Rect x={spriteX + 8} y={spriteY + ENEMY_SPRITE_SIZE + 4} width={ENEMY_SPRITE_SIZE - 16} height={4} color="#1a1228" />
       </Canvas>
 
       {/* Enemy area */}
@@ -148,7 +180,7 @@ export default function BattleScreen() {
           <RollingHP displayHp={state.displayHp} playerHp={state.playerHp} maxHp={state.playerMaxHp} />
         </View>
 
-        {/* Action menu */}
+        {/* Action menu — centered in available space */}
         <View style={styles.menuSection}>
           {isPsiPhase && state.pendingQuestion ? (
             <PSIAttack
@@ -171,18 +203,18 @@ export default function BattleScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#0d0d1a' },
-  enemyArea: { paddingTop: 155, alignItems: 'center', paddingHorizontal: 24, gap: 6 },
+  screen: { flex: 1, backgroundColor: '#0b0b1c' },
+  enemyArea: { paddingTop: 158, alignItems: 'center', paddingHorizontal: 24, gap: 6 },
   enemyName: { color: '#ece9ff', fontFamily: 'monospace', fontSize: 16, fontWeight: 'bold' },
-  hpBarBg: { width: '60%', height: 10, backgroundColor: '#333', borderRadius: 5, overflow: 'hidden' },
+  hpBarBg: { width: '50%', maxWidth: 240, height: 10, backgroundColor: '#333', borderRadius: 5, overflow: 'hidden' },
   hpBarFill: { height: '100%', borderRadius: 5 },
   enemyHpText: { color: '#aaa', fontFamily: 'monospace', fontSize: 11 },
-  logArea: { paddingHorizontal: 20, paddingVertical: 12, minHeight: 70, justifyContent: 'flex-end' },
-  logText: { color: '#c0a060', fontFamily: 'monospace', fontSize: 11, marginBottom: 2 },
+  logArea: { flex: 1, paddingHorizontal: 24, paddingVertical: 12, justifyContent: 'flex-end', maxHeight: 100 },
+  logText: { color: '#c0a060', fontFamily: 'monospace', fontSize: 12, marginBottom: 2 },
   victoryText: { color: '#4caf50', fontFamily: 'monospace', fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
   defeatText: { color: '#f44336', fontFamily: 'monospace', fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
-  bottomArea: { flex: 1, flexDirection: 'row', paddingHorizontal: 20, paddingBottom: 24, gap: 16, alignItems: 'flex-end' },
-  playerSection: { gap: 12, alignItems: 'center' },
+  bottomArea: { flexDirection: 'row', paddingHorizontal: 20, paddingBottom: 28, paddingTop: 12, gap: 16, alignItems: 'flex-end', borderTopWidth: 1, borderTopColor: '#2a2150' },
+  playerSection: { gap: 10, alignItems: 'center' },
   playerRect: { width: 48, height: 48, backgroundColor: '#4a3f8c', borderRadius: 4 },
-  menuSection: { flex: 1, justifyContent: 'flex-end' },
+  menuSection: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
 })

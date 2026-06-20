@@ -38,6 +38,16 @@ export function useBattle(
   const questions = getQuestionsForAct(enemy.act)
   const prevPhaseRef = useRef<BattlePhase>(state.phase)
 
+  // Auto-advance from intro to player-turn after enemy appear dialogue is shown
+  useEffect(() => {
+    if (state.phase === 'intro') {
+      const timer = setTimeout(() => {
+        setState((prev) => prev.phase === 'intro' ? { ...prev, phase: 'player-turn' } : prev)
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [state.phase])
+
   // Drain displayHp toward playerHp each frame; execute enemy turn when phase is 'enemy-turn'
   useGameLoop(
     useCallback(
@@ -78,13 +88,8 @@ export function useBattle(
     state,
     choosePSI: () => setState((prev) => engineChoosePSI(prev, questions)),
     answer: (idx) => {
-      setState((prev) => {
-        const next = engineAnswerPSI(prev, idx)
-        // Award +5 XP for a correct PSI answer (before state commit)
-        const wasCorrect = prev.pendingQuestion != null && idx === prev.pendingQuestion.c
-        if (wasCorrect) awardXP(5)
-        return next
-      })
+      if (state.pendingQuestion != null && idx === state.pendingQuestion.c) awardXP(5)
+      setState((prev) => engineAnswerPSI(prev, idx))
     },
     chooseGuard: () => setState((prev) => engineChooseGuard(prev)),
     chooseRun: () => {

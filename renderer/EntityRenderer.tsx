@@ -91,16 +91,27 @@ interface EntityRendererProps {
   entities: Entity[]
   camera: Camera
   tileSize: number
+  spriteSize?: number   // visual render size per entity; defaults to tileSize
   width: number
   height: number
   time: number
 }
 
-export function EntityRenderer({ entities, camera, tileSize, width, height, time }: EntityRendererProps) {
+export function EntityRenderer({ entities, camera, tileSize, spriteSize, width, height, time }: EntityRendererProps) {
+  const ss = spriteSize ?? tileSize   // sprite visual size in pixels
+  // Cull entities outside the visible viewport (+1 tile margin)
+  const viewLeft  = camera.x / tileSize - 1
+  const viewRight = (camera.x + width) / tileSize + 1
+  const viewTop   = camera.y / tileSize - 1
+  const viewBottom = (camera.y + height) / tileSize + 1
+  const visible = entities.filter(
+    e => e.x >= viewLeft && e.x <= viewRight && e.y >= viewTop && e.y <= viewBottom,
+  )
+
   return (
     <Canvas style={{ position: 'absolute', top: 0, left: 0, width, height }}>
       <Group>
-        {entities.flatMap((entity) => {
+        {visible.flatMap((entity) => {
           const baseSx = entity.x * tileSize - camera.x
           const baseSy = entity.y * tileSize - camera.y
 
@@ -117,14 +128,17 @@ export function EntityRenderer({ entities, camera, tileSize, width, height, time
 
           const result = getAnimForEntity(entity)
 
+          // Center sprite on tile (handles ss > tileSize when map tiles are small)
+          const spriteOff = (tileSize - ss) / 2
+
           if (!result) {
-            const size = tileSize * 0.8
-            const offset = tileSize * 0.1
+            const size = ss * 0.8
+            const offset = ss * 0.1
             return [
               <Rect
                 key={entity.id}
-                x={baseSx + offset}
-                y={sy + offset}
+                x={baseSx + spriteOff + offset}
+                y={sy + spriteOff + offset}
                 width={size}
                 height={size}
                 color={FALLBACK_COLOR[entity.type] ?? '#ffffff'}
@@ -137,7 +151,7 @@ export function EntityRenderer({ entities, camera, tileSize, width, height, time
           const frame = anim.frames[frameIdx] ?? anim.frames[0]
           if (!frame) return []
 
-          const pixelSize = tileSize / frame.size
+          const pixelSize = ss / frame.size
           return frame.pixels
             .map((color, i) => {
               if (!color) return null          // always skip transparent pixels
@@ -147,8 +161,8 @@ export function EntityRenderer({ entities, camera, tileSize, width, height, time
               return (
                 <Rect
                   key={`${entity.id}-${i}`}
-                  x={baseSx + col * pixelSize}
-                  y={sy + row * pixelSize}
+                  x={baseSx + spriteOff + col * pixelSize}
+                  y={sy + spriteOff + row * pixelSize}
                   width={pixelSize}
                   height={pixelSize}
                   color={c}

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import { AudioManager } from '../audio/AudioManager'
 import { WorldRenderer } from '../renderer/WorldRenderer'
@@ -48,9 +48,11 @@ export default function OverworldScreen() {
     if (dialogue) return
     const prev = playerRef.current
     const moved = movePlayer(prev, input.current!, OVERWORLD.grid, dt)
-    playerRef.current = moved
-    setPlayerState({ ...moved })
-    setCritters((prev) => prev.map((c) => tickCritter(c, dt, OVERWORLD.grid)))
+    if (moved !== prev) {
+      playerRef.current = moved
+      setPlayerState(moved)
+    }
+    setCritters((critterPrev) => critterPrev.map((c) => tickCritter(c, dt, OVERWORLD.grid)))
 
     const nearby = nearestInteractable(OVERWORLD.entities, moved.x, moved.y)
     setNearbyLabel(nearby ? `[E] ${nearby.type === 'building_entrance' ? 'Enter' : 'Talk'}` : null)
@@ -73,6 +75,8 @@ export default function OverworldScreen() {
     }
   }, [dialogue]))
 
+  const handleInteractRef = useRef<() => void>(() => {})
+
   function handleInteract() {
     const nearby = nearestInteractable(OVERWORLD.entities, playerRef.current.x, playerRef.current.y)
     if (!nearby) return
@@ -82,6 +86,16 @@ export default function OverworldScreen() {
       router.push(`/city/${dest}`)
     }
   }
+  handleInteractRef.current = handleInteract
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') handleInteractRef.current()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   return (
     <SafeAreaWrapper style={styles.screen}>

@@ -35,7 +35,7 @@ export function PSIAttack({ question, onAnswer, result }: PSIAttackProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 6, maxWidth: 320 },
+  container: { gap: 6, width: '100%', maxWidth: 480 },
   questionText: { color: '#ece9ff', fontFamily: 'monospace', fontSize: 12, marginBottom: 4, lineHeight: 18 },
   choice: { backgroundColor: '#1b1740', borderWidth: 1, borderColor: '#4a3f8c', borderRadius: 4, padding: 8 },
   choiceDisabled: { opacity: 0.6 },

@@ -7,7 +7,7 @@ export interface InputState {
   dy: number
 }
 
-const PLAYER_SPEED = 4
+const PLAYER_SPEED = 8
 
 function facingFromInput(dx: number, dy: number): Facing {
   if (dx > 0) return 'right'
