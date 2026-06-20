@@ -50,6 +50,7 @@ export class AudioManagerImpl {
   }
 
   sfx(id: keyof typeof SFX_MAP): void {
+    if (Platform.OS !== 'web') return
     if (!this.sfxEnabled) return
     const fn = SFX_MAP[id]
     if (fn) fn()

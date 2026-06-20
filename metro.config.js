@@ -37,6 +37,13 @@ const SKIA_WEB_PATCH = path.join(__dirname, 'patches/SkiaWeb.js')
 config.resolver = {
   ...config.resolver,
   resolveRequest: (context, moduleName, platform) => {
+    // tone is a Web Audio API library — not available in React Native.
+    // Stub it out on native so AudioManager's module-level imports don't pull
+    // in Web Audio API calls that crash on Android/iOS at import time.
+    if (platform !== 'web' && (moduleName === 'tone' || moduleName.startsWith('tone/'))) {
+      return { type: 'empty' }
+    }
+
     // canvaskit-wasm is the WASM Skia loader — only valid on web.
     // On Android/iOS, @shopify/react-native-skia uses native C++ Skia instead.
     // Metro statically bundles all dynamic imports, so we must stub this out
