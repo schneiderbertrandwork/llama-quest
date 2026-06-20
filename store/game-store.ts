@@ -61,7 +61,7 @@ const DEFAULT_PLAYER: PlayerData = {
 
 const DEFAULT_PROGRESSION: ProgressionData = {
   currentCity: 'overworld',
-  position: { x: 5, y: 5 },
+  position: { x: 52, y: 148 },
   masteredConcepts: {},
   readLessons: {},
   metNPCs: {},
