@@ -59,7 +59,7 @@ export default function SandboxScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0a0818' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 48, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#1b1740' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#1b1740' },
   title: { color: '#ffb061', fontFamily: 'monospace', fontSize: 15, fontWeight: 'bold' },
   exitBtn: { paddingHorizontal: 10, paddingVertical: 4 },
   exitText: { color: '#726cab', fontFamily: 'monospace', fontSize: 12 },

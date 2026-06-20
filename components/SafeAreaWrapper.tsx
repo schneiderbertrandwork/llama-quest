@@ -1,10 +1,10 @@
 import React from 'react'
-import { View, StyleSheet } from 'react-native'
+import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 interface Props {
   children: React.ReactNode
-  style?: object
+  style?: StyleProp<ViewStyle>
   testID?: string
 }
 
