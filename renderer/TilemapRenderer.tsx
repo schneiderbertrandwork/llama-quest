@@ -1,57 +1,104 @@
 import React, { useMemo } from 'react'
-import { Canvas, Rect, Group } from '@shopify/react-native-skia'
+import { Canvas, Rect, Circle, Group } from '@shopify/react-native-skia'
 import type { TileGrid, TileType } from '../engine/tilemap'
 import { tileAt } from '../engine/tilemap'
 import type { Camera } from '../engine/camera'
 
+// Earthbound-inspired palette
 const TILE_BASE: Record<TileType, string> = {
-  grass: '#2d5a1b',
-  forest: '#1e4d22',
-  path: '#b5934a',
-  water: '#1a5276',
-  building_wall: '#5d4037',
-  floor: '#7e6551',
-  door: '#d4ac0d',
+  grass:         '#3cb030',
+  forest:        '#1a5a10',
+  path:          '#b8986a',
+  water:         '#2266aa',
+  building_wall: '#c8b498',
+  floor:         '#8a7060',
+  door:          '#6ab868',
 }
 
 interface TileRect {
+  kind: 'rect'
   x: number; y: number; w: number; h: number; color: string
 }
+interface TileCircle {
+  kind: 'circle'
+  cx: number; cy: number; r: number; color: string
+}
+type TileShape = TileRect | TileCircle
 
-function getTextureRects(type: TileType, sx: number, sy: number, ts: number, grassPhase: number): TileRect[] {
+function r(x: number, y: number, w: number, h: number, color: string): TileShape {
+  return { kind: 'rect', x, y, w, h, color }
+}
+function c(cx: number, cy: number, radius: number, color: string): TileShape {
+  return { kind: 'circle', cx, cy, r: radius, color }
+}
+
+function getTextureShapes(type: TileType, sx: number, sy: number, ts: number): TileShape[] {
   switch (type) {
     case 'grass':
       return []
-    case 'path':
-      return [{ x: sx, y: sy + ts / 2, w: ts, h: 1, color: '#7a6347' }]
-    case 'forest':
+
+    case 'forest': {
+      // Earthbound-style circular tree canopy — three concentric circles
+      const cx = sx + ts * 0.5
+      const cy = sy + ts * 0.43
       return [
-        { x: sx + ts / 2 - 1, y: sy + 2, w: 1, h: 3, color: '#122d12' },
-        { x: sx + ts / 2 - 2, y: sy + 3, w: 3, h: 2, color: '#122d12' },
+        c(cx, cy, ts * 0.40, '#1e7a0e'),               // outer canopy (shadow)
+        c(cx - ts * 0.07, cy - ts * 0.09, ts * 0.27, '#3aa020'), // inner (bright)
+        c(cx + ts * 0.09, cy - ts * 0.06, ts * 0.13, '#52c030'), // top highlight
       ]
+    }
+
+    case 'path': {
+      // Stone blocks — 2×2 grid of rectangular stones
+      const hw = Math.floor(ts / 2)
+      const hh = Math.floor(ts / 2)
+      return [
+        r(sx + 1,      sy + 1,      hw - 2, hh - 2, '#c8a86a'),
+        r(sx + hw + 1, sy + 1,      hw - 2, hh - 2, '#bfa060'),
+        r(sx + 1,      sy + hh + 1, hw - 2, hh - 2, '#bfa060'),
+        r(sx + hw + 1, sy + hh + 1, hw - 2, hh - 2, '#c8a86a'),
+      ]
+    }
+
     case 'water': {
-      const mid = Math.floor(ts / 2)
       return [
-        { x: sx, y: sy + mid - 3, w: ts, h: 1, color: '#2a4d8b' },
-        { x: sx, y: sy + mid + 3, w: ts, h: 1, color: '#2a4d8b' },
+        r(sx + ts * 0.1,  sy + ts * 0.32, ts * 0.35, 3, '#4488cc'),
+        r(sx + ts * 0.55, sy + ts * 0.58, ts * 0.35, 3, '#4488cc'),
+        r(sx + ts * 0.2,  sy + ts * 0.72, ts * 0.25, 2, '#5599dd'),
       ]
     }
+
     case 'building_wall': {
-      const rects: TileRect[] = []
-      for (let dy = 8; dy < ts; dy += 8) {
-        rects.push({ x: sx, y: sy + dy, w: ts, h: 1, color: '#555555' })
-      }
-      return rects
+      // Cream plaster wall with horizontal mortar lines (Earthbound building style)
+      const lineColor = '#a89878'
+      return [
+        r(sx, sy + ts * 0.33, ts, 2, lineColor),
+        r(sx, sy + ts * 0.66, ts, 2, lineColor),
+        // Top edge: slightly darker overhang hint
+        r(sx, sy, ts, 5, '#b0a088'),
+      ]
     }
+
     case 'floor': {
-      const rects: TileRect[] = []
-      for (let dx = 8; dx < ts; dx += 8) {
-        rects.push({ x: sx + dx, y: sy, w: 1, h: ts, color: '#444444' })
-      }
-      return rects
+      return [
+        r(sx + Math.floor(ts / 3), sy, 2, ts, '#6e5e50'),
+        r(sx + Math.floor(ts * 2 / 3), sy, 2, ts, '#6e5e50'),
+      ]
     }
-    case 'door':
-      return [{ x: sx + ts / 4, y: sy + 4, w: ts / 2, h: ts - 8, color: '#a07820' }]
+
+    case 'door': {
+      // Green Earthbound-style door with panel detail
+      const dw = Math.floor(ts * 0.55)
+      const dh = Math.floor(ts * 0.75)
+      const dx = sx + Math.floor((ts - dw) / 2)
+      const dy = sy + Math.floor(ts * 0.15)
+      return [
+        r(dx, dy, dw, dh, '#56a055'),             // door panel
+        r(dx + 2, dy + 2, dw - 4, Math.floor(dh * 0.4), '#6ac068'),  // top panel highlight
+        r(dx + Math.floor(dw * 0.7), dy + Math.floor(dh * 0.45), 4, 4, '#3a7038'), // handle
+      ]
+    }
+
     default:
       return []
   }
@@ -66,32 +113,34 @@ interface TilemapRendererProps {
   grassPhase: number
 }
 
-export function TilemapRenderer({ grid, camera, tileSize, width, height, grassPhase }: TilemapRendererProps) {
-  const allRects = useMemo(() => {
+export function TilemapRenderer({ grid, camera, tileSize, width, height }: TilemapRendererProps) {
+  const allShapes = useMemo(() => {
     const startX = Math.max(0, Math.floor(camera.x / tileSize))
     const startY = Math.max(0, Math.floor(camera.y / tileSize))
     const endX = Math.min(grid.width, startX + Math.ceil(width / tileSize) + 2)
     const endY = Math.min(grid.height, startY + Math.ceil(height / tileSize) + 2)
-    const rects: TileRect[] = []
+    const shapes: TileShape[] = []
     for (let ty = startY; ty < endY; ty++) {
       for (let tx = startX; tx < endX; tx++) {
         const tile = tileAt(grid, tx, ty)
         if (!tile) continue
         const sx = tx * tileSize - camera.x
         const sy = ty * tileSize - camera.y
-        rects.push({ x: sx, y: sy, w: tileSize, h: tileSize, color: TILE_BASE[tile.type] })
-        for (const r of getTextureRects(tile.type, sx, sy, tileSize, grassPhase)) rects.push(r)
+        shapes.push({ kind: 'rect', x: sx, y: sy, w: tileSize, h: tileSize, color: TILE_BASE[tile.type] })
+        for (const s of getTextureShapes(tile.type, sx, sy, tileSize)) shapes.push(s)
       }
     }
-    return rects
-  }, [grid, camera, tileSize, width, height, grassPhase])
+    return shapes
+  }, [grid, camera, tileSize, width, height])
 
   return (
     <Canvas style={{ width, height }}>
       <Group>
-        {allRects.map((r, i) => (
-          <Rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} color={r.color} />
-        ))}
+        {allShapes.map((s, i) =>
+          s.kind === 'circle'
+            ? <Circle key={i} cx={s.cx} cy={s.cy} r={s.r} color={s.color} />
+            : <Rect key={i} x={s.x} y={s.y} width={s.w} height={s.h} color={s.color} />
+        )}
       </Group>
     </Canvas>
   )

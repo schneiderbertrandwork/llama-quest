@@ -10,6 +10,7 @@ const mockComponent = (name) => {
 module.exports = {
   Canvas: mockComponent('Canvas'),
   Rect: mockComponent('Rect'),
+  Circle: mockComponent('Circle'),
   Group: mockComponent('Group'),
   Text: mockComponent('SkiaText'),
   Image: mockComponent('SkiaImage'),
