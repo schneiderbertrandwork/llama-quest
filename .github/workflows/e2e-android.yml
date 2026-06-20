@@ -63,7 +63,11 @@ jobs:
           target: google_apis
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: npx detox test -c android.emu.debug --headless --record-logs failing
+          # Use android.device.debug (android.attached type) so Detox attaches to the
+          # already-running emulator at emulator-5554 instead of trying to boot its own.
+          # Detox's android.emulator type tries to start a new emulator, which fails because
+          # the CI runner doesn't have KVM permissions for x86_64 hardware acceleration.
+          script: npx detox test -c android.device.debug --headless --record-logs failing
 
       - name: Upload Detox artifacts on failure
         if: failure()
