@@ -85,3 +85,20 @@ Notes: overworld.tsx npcBlip omitted intentionally — overworld has no NPC dial
 | 4: Performance pass (CITY_TRACK to module scope) | complete | bd75244..595a4bd | review clean |
 | 5: App store metadata | complete | 595a4bd..1f09fa6 | review approved; Important: expo-doctor/expo-export unverifiable under Node 24 (pre-existing infra constraint — expo-haptics v14 exposes raw TS source); will work on Node 20 LTS in CI |
 | Playwright end-of-phase | complete | — | Title screen ✅, overworld/HUD ✅, WASD movement ✅, narrow viewport 375px no overflow ✅, Llamatown entry ✅, NPC dialogue ✅, 0 uncaught errors ✅, TouchDpad null on web ✅, haptics guarded ✅. Key lesson: use browser_click on [E] Enter/Talk prompts — browser_press_key 'e' fires too fast for game loop. |
+
+## Visual Upgrade — SNES Pixel Art + Animation
+
+Plan: docs/superpowers/plans/2026-06-19-llama-quest-visual-upgrade.md
+
+| Task | Status | Commits | Notes |
+|------|--------|---------|-------|
+| 1: Sprite data + entity types | complete | e7f6d28..1bb1d66 | review approved; Minors: redundant butterfly color override (harmless), omitted unused X constant (intentional), no px() length guard (latent) |
+| 2: PixelArt component + title llama | complete | 1bb1d66..b40b45a | review approved; Minor: loop-based JSX (valid, clear) |
+| 3: EntityRenderer with animation | complete | b40b45a..97b8cbc | review approved after fix; Fixed: gate tint was overpainting transparent pixels; WorldRenderer time made required; Minor: dead sx alias removed, test renamed |
+| 4: TilemapRenderer + WorldRenderer wiring | complete | 97b8cbc..648a936 | review approved; animated grass wind shimmer, grassPhase threaded, game-loop time accumulator in screens |
+| 5: SNES UI chrome | complete | 648a936..bcd0331 | review approved; DialogueBox + HUD double-border, BattleMenu bevel + haptics preserved, battle scanlines + enemy pixel border |
+| 6: 10x overworld rebuild | complete | bcd0331..d956cb1 | review approved; 400x300 grid, forest biomes, E-W road, 4 city branch roads, river+lake, pond, 12 deco llamas |
+| 7: Critter AI engine | complete | d956cb1..01de341 | review approved; pure tickCritter, 4 behaviors, wired into overworld |
+| 8: World population — critters + butterflies | complete | 01de341..1f66606 | review approved; 4 rabbits, 3 birds, 3 squirrels, 4 butterflies with phase offsets |
+| Hotfixes (post-plan) | complete | a060db1..97aab35 | critter tile collision + all four critter sprite redesigns (rabbit/bird/squirrel/monarch butterfly); fix: isWalkable(tile) → tile.walkable (signature mismatch crash on overworld load); world halved to 200×150; HUD text enlarged; grass scatter blades; houses context-aware roof/window/door |
+| Playwright end-of-phase | complete | — | Title ✅, name+class ✅, overworld ✅ (0 errors), WASD movement ✅, houses with terra-cotta roof+windows+doors ✅, Earthbound trees ✅, critters moving on walkable tiles ✅, HUD readable ✅, Llamatown entry via [E] Enter ✅, NPCs + pixel player in city ✅. Bug caught+fixed: critter crashed overworld on load (isWalkable signature mismatch). |

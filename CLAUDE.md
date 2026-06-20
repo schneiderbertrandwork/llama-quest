@@ -50,7 +50,7 @@ This document contains:
 | 4 — Audio | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase4-audio.md` |
 | 5 — Remaining Cities | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase5-cities.md` |
 | 6 — Mobile Polish | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase6-mobile-polish.md` |
-| Visual Upgrade — SNES Pixel Art + Animation | 🔄 In progress (plan being revised) | `docs/superpowers/plans/2026-06-19-llama-quest-visual-upgrade.md` |
+| Visual Upgrade — SNES Pixel Art + Animation | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-visual-upgrade.md` |
 
 **When a phase completes:** Update the Status column above to `✅ Complete` and add the plan file path. Also mark it done in `.superpowers/sdd/progress.md`. Also update `Architecture.md` to reflect any new files, exports, constants, or infrastructure added in the phase.
 
@@ -270,4 +270,4 @@ Fix (two parts, both in `metro.config.js`):
 
 ---
 
-**Last updated**: 2026-06-19 · Phase 6 complete (154 tests) · Visual Upgrade in progress — plan being expanded to include sprite animation, grass animation, larger world, roaming woodland creatures + butterflies
+**Last updated**: 2026-06-19 · Visual Upgrade complete (171 tests) · All phases shipped: pixel sprites, animated critters, Earthbound tile textures, SNES UI chrome, halved world, readable HUD
