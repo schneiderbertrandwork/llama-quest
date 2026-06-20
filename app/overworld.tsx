@@ -9,6 +9,7 @@ import { useGameLoop } from '../hooks/useGameLoop'
 import { usePlayerInput } from '../hooks/usePlayerInput'
 import { movePlayer } from '../engine/movement'
 import { nearestInteractable, makePlayer } from '../engine/entity'
+import { tickCritter } from '../engine/critter'
 import { OVERWORLD } from '../content/world-data'
 import { useGameStore } from '../store/game-store'
 import { getEnemiesForAct } from '../content/enemies'
@@ -29,6 +30,9 @@ export default function OverworldScreen() {
   const [playerState, setPlayerState] = useState(playerRef.current)
   const [dialogue, setDialogue] = useState<{ lines: string[]; speaker?: string } | null>(null)
   const [nearbyLabel, setNearbyLabel] = useState<string | null>(null)
+  const [critters, setCritters] = useState<Entity[]>(() =>
+    OVERWORLD.entities.filter((e) => e.type === 'critter')
+  )
 
   const { input } = usePlayerInput()
   const encounterCooldown = useRef(90)
@@ -46,6 +50,7 @@ export default function OverworldScreen() {
     const moved = movePlayer(prev, input.current!, OVERWORLD.grid, dt)
     playerRef.current = moved
     setPlayerState({ ...moved })
+    setCritters((prev) => prev.map((c) => tickCritter(c, dt)))
 
     const nearby = nearestInteractable(OVERWORLD.entities, moved.x, moved.y)
     setNearbyLabel(nearby ? `[E] ${nearby.type === 'building_entrance' ? 'Enter' : 'Talk'}` : null)
@@ -83,7 +88,7 @@ export default function OverworldScreen() {
       <WorldRenderer
         grid={OVERWORLD.grid}
         player={playerState}
-        entities={OVERWORLD.entities}
+        entities={[...OVERWORLD.entities.filter((e) => e.type !== 'critter'), ...critters]}
         tileSize={TILE_SIZE}
         screenWidth={width}
         screenHeight={height}
