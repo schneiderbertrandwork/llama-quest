@@ -46,6 +46,7 @@ export default function CityScreen() {
 
   const { input } = usePlayerInput()
   const encounterCooldown = useRef(90)
+  const timeRef = useRef(0)
 
   useEffect(() => {
     const track = CITY_TRACK[id ?? ''] ?? 'llamatown'
@@ -54,6 +55,7 @@ export default function CityScreen() {
   }, [id])
 
   useGameLoop(useCallback((dt) => {
+    timeRef.current += dt * 1000
     if (dialogue) return
     const prev = playerRef.current
     const moved = movePlayer(prev, input.current!, cityDef.grid, dt)
@@ -148,7 +150,7 @@ export default function CityScreen() {
         tileSize={TILE_SIZE}
         screenWidth={width}
         screenHeight={height}
-        time={0}
+        time={timeRef.current}
       />
       <HUD />
       <TouchDpad

@@ -8,7 +8,16 @@ describe('TilemapRenderer', () => {
     const grid = makeGrid(5, 5, 'grass')
     const camera = { x: 0, y: 0 }
     const { toJSON } = render(
-      <TilemapRenderer grid={grid} camera={camera} tileSize={32} width={320} height={240} />,
+      <TilemapRenderer grid={grid} camera={camera} tileSize={32} width={320} height={240} grassPhase={0} />,
+    )
+    expect(toJSON()).not.toBeNull()
+  })
+
+  it('accepts grassPhase=1 without crashing', () => {
+    const grid = makeGrid(5, 5, 'grass')
+    const camera = { x: 0, y: 0 }
+    const { toJSON } = render(
+      <TilemapRenderer grid={grid} camera={camera} tileSize={32} width={320} height={240} grassPhase={1} />,
     )
     expect(toJSON()).not.toBeNull()
   })

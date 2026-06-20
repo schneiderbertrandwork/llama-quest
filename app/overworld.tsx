@@ -32,6 +32,7 @@ export default function OverworldScreen() {
 
   const { input } = usePlayerInput()
   const encounterCooldown = useRef(90)
+  const timeRef = useRef(0)
 
   useEffect(() => {
     AudioManager.play('overworld')
@@ -39,6 +40,7 @@ export default function OverworldScreen() {
   }, [])
 
   useGameLoop(useCallback((dt) => {
+    timeRef.current += dt * 1000
     if (dialogue) return
     const prev = playerRef.current
     const moved = movePlayer(prev, input.current!, OVERWORLD.grid, dt)
@@ -85,7 +87,7 @@ export default function OverworldScreen() {
         tileSize={TILE_SIZE}
         screenWidth={width}
         screenHeight={height}
-        time={0}
+        time={timeRef.current}
       />
       <HUD />
       <TouchDpad

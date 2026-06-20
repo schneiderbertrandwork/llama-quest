@@ -24,9 +24,11 @@ export function WorldRenderer({ grid, player, entities, tileSize, screenWidth, s
 
   const allEntities = useMemo(() => [player, ...entities], [player, entities])
 
+  const grassPhase = Math.floor(time / 600)
+
   return (
     <View style={{ width: screenWidth, height: screenHeight, overflow: 'hidden' }}>
-      <TilemapRenderer grid={grid} camera={camera} tileSize={tileSize} width={screenWidth} height={screenHeight} />
+      <TilemapRenderer grid={grid} camera={camera} tileSize={tileSize} width={screenWidth} height={screenHeight} grassPhase={grassPhase} />
       <EntityRenderer entities={allEntities} camera={camera} tileSize={tileSize} width={screenWidth} height={screenHeight} time={time} />
     </View>
   )
