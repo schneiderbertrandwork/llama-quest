@@ -18,37 +18,35 @@ export function BattleMenu({ onPSI, onGuard, onRun, disabled }: BattleMenuProps)
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[styles.btn, styles.psi, disabled && styles.disabled]}
-        onPress={() => withHaptic(onPSI)}
-        disabled={disabled}
-      >
-        <Text style={styles.btnText}>⚡ PSI</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.btn, styles.guard, disabled && styles.disabled]}
-        onPress={() => withHaptic(onGuard)}
-        disabled={disabled}
-      >
-        <Text style={styles.btnText}>🛡 Guard</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.btn, styles.run, disabled && styles.disabled]}
-        onPress={() => withHaptic(onRun)}
-        disabled={disabled}
-      >
-        <Text style={styles.btnText}>💨 Run</Text>
-      </TouchableOpacity>
+      {[
+        { label: '⚡ PSI', style: styles.psi, onPress: onPSI },
+        { label: '🛡 Guard', style: styles.guard, onPress: onGuard },
+        { label: '💨 Run', style: styles.run, onPress: onRun },
+      ].map(({ label, style, onPress }) => (
+        <TouchableOpacity
+          key={label}
+          style={[styles.btn, style, disabled && styles.disabled]}
+          onPress={() => withHaptic(onPress)}
+          disabled={disabled}
+        >
+          <View style={[styles.bevel, styles.bevelTop]} />
+          <View style={[styles.bevel, styles.bevelLeft]} />
+          <Text style={styles.btnText}>{label}</Text>
+        </TouchableOpacity>
+      ))}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { gap: 8, minWidth: 140 },
-  btn: { borderRadius: 6, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 2, alignItems: 'center' },
+  btn: { borderRadius: 0, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 2, alignItems: 'center' },
   psi: { backgroundColor: '#1a1240', borderColor: '#a06bff' },
   guard: { backgroundColor: '#0d1f2d', borderColor: '#4fe0cf' },
   run: { backgroundColor: '#1f1208', borderColor: '#c0a060' },
   disabled: { opacity: 0.4 },
-  btnText: { color: '#fff', fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold' },
+  btnText: { color: '#ffffff', fontFamily: 'monospace', fontSize: 13, fontWeight: 'bold' },
+  bevel: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.18)' },
+  bevelTop: { top: 0, left: 0, right: 0, height: 1 },
+  bevelLeft: { top: 0, left: 0, bottom: 0, width: 1 },
 })

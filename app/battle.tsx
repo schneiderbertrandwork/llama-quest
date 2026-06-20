@@ -102,9 +102,19 @@ export default function BattleScreen() {
       {/* Skia background */}
       <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
         <Rect x={0} y={0} width={width} height={height} color="#0d0d1a" />
-        <Rect x={0} y={0} width={width} height={height * 0.45} color="#120d28" />
-        {/* Enemy rect placeholder */}
+        {Array.from({ length: Math.ceil(height * 0.45) }, (_, i) =>
+          i % 2 === 0 ? (
+            <Rect key={i} x={0} y={i} width={width} height={1} color="#120d28" />
+          ) : (
+            <Rect key={i} x={0} y={i} width={width} height={1} color="#0f0a22" />
+          )
+        )}
+        {/* Enemy rect placeholder with pixel border */}
         <Rect x={width / 2 - 40} y={60} width={80} height={80} color="#2a2150" />
+        <Rect x={width / 2 - 41} y={59} width={82} height={1} color="#ece9ff" />
+        <Rect x={width / 2 - 41} y={140} width={82} height={1} color="#ece9ff" />
+        <Rect x={width / 2 - 41} y={59} width={1} height={82} color="#ece9ff" />
+        <Rect x={width / 2 + 40} y={59} width={1} height={82} color="#ece9ff" />
       </Canvas>
 
       {/* Enemy area */}
