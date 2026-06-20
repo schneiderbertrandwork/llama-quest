@@ -23,6 +23,13 @@ const CITY_ACT: Record<string, 1 | 2 | 3 | 4> = {
   overworld: 1, llamatown: 1, forge: 2, vale: 3, ridge: 4,
 }
 
+const CITY_TRACK: Record<string, TrackId> = {
+  llamatown: 'llamatown',
+  forge: 'forge',
+  vale: 'caverns',
+  ridge: 'convergence',
+}
+
 export default function CityScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { width, height } = useWindowDimensions()
@@ -39,13 +46,6 @@ export default function CityScreen() {
 
   const { input } = usePlayerInput()
   const encounterCooldown = useRef(90)
-
-  const CITY_TRACK: Record<string, TrackId> = {
-    llamatown: 'llamatown',
-    forge: 'forge',
-    vale: 'caverns',
-    ridge: 'convergence',
-  }
 
   useEffect(() => {
     const track = CITY_TRACK[id ?? ''] ?? 'llamatown'
