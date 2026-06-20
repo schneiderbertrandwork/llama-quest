@@ -1,5 +1,7 @@
 // hooks/useBattle.ts
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Platform } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import {
   initBattle,
   choosePSI as engineChoosePSI,
@@ -56,6 +58,9 @@ export function useBattle(
   useEffect(() => {
     if (prevPhaseRef.current === 'enemy-turn' && state.phase !== 'enemy-turn') {
       AudioManager.sfx('hit')
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      }
     }
     prevPhaseRef.current = state.phase
   }, [state.phase])

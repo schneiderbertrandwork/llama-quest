@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
 import { useGameStore } from '../store/game-store'
 import type { PlayerClass } from '../store/game-store'
@@ -43,7 +44,10 @@ export default function TitleScreen() {
         <TouchableOpacity
           key={c.id}
           style={[styles.classBtn, cls === c.id && styles.classBtnActive]}
-          onPress={() => setCls(c.id)}
+          onPress={() => {
+            if (Platform.OS !== 'web') Haptics.selectionAsync()
+            setCls(c.id)
+          }}
         >
           <Text style={[styles.classBtnLabel, cls === c.id && styles.classBtnLabelActive]}>{c.label}</Text>
           <Text style={styles.classBtnDesc}>{c.desc}</Text>

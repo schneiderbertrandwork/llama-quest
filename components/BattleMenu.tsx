@@ -1,6 +1,7 @@
 // components/BattleMenu.tsx
 import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
+import * as Haptics from 'expo-haptics'
 
 interface BattleMenuProps {
   onPSI: () => void
@@ -10,15 +11,32 @@ interface BattleMenuProps {
 }
 
 export function BattleMenu({ onPSI, onGuard, onRun, disabled }: BattleMenuProps) {
+  function withHaptic(fn: () => void) {
+    if (Platform.OS !== 'web') Haptics.selectionAsync()
+    fn()
+  }
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={[styles.btn, styles.psi, disabled && styles.disabled]} onPress={onPSI} disabled={disabled}>
+      <TouchableOpacity
+        style={[styles.btn, styles.psi, disabled && styles.disabled]}
+        onPress={() => withHaptic(onPSI)}
+        disabled={disabled}
+      >
         <Text style={styles.btnText}>⚡ PSI</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[styles.btn, styles.guard, disabled && styles.disabled]} onPress={onGuard} disabled={disabled}>
+      <TouchableOpacity
+        style={[styles.btn, styles.guard, disabled && styles.disabled]}
+        onPress={() => withHaptic(onGuard)}
+        disabled={disabled}
+      >
         <Text style={styles.btnText}>🛡 Guard</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[styles.btn, styles.run, disabled && styles.disabled]} onPress={onRun} disabled={disabled}>
+      <TouchableOpacity
+        style={[styles.btn, styles.run, disabled && styles.disabled]}
+        onPress={() => withHaptic(onRun)}
+        disabled={disabled}
+      >
         <Text style={styles.btnText}>💨 Run</Text>
       </TouchableOpacity>
     </View>

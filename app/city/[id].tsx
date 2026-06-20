@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { AudioManager, TrackId } from '../../audio/AudioManager'
 import { WorldRenderer } from '../../renderer/WorldRenderer'
@@ -85,6 +86,9 @@ export default function CityScreen() {
       const lines = nearbyEntity.data['lines'] as string[]
       const name = nearbyEntity.data['name'] as string
       markNPCMet(nearbyEntity.id)
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      }
       setDialogue({ lines, speaker: name })
       AudioManager.sfx('npcBlip')
     } else if (nearbyEntity.type === 'building_entrance') {

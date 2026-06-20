@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Platform } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { AudioManager } from '../audio/AudioManager'
 
 export type PlayerClass = 'Tinkerer' | 'Scholar' | 'Architect'
@@ -102,6 +104,9 @@ export const useGameStore = create<GameState>()(
             maxHp += 5
             hp = maxHp
             AudioManager.sfx('levelUp')
+            if (Platform.OS !== 'web') {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+            }
           }
           return { player: { ...state.player, xp, level, hp, maxHp } }
         }),

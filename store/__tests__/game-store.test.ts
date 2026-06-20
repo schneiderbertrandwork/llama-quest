@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native'
 import { useGameStore } from '../game-store'
+import * as Haptics from 'expo-haptics'
 
 import { initialGameState } from '../game-store'
 
@@ -111,5 +112,37 @@ describe('markSandboxCompleted', () => {
     act(() => result.current.markSandboxCompleted('firstchat'))
     act(() => result.current.markSandboxCompleted('firstchat'))
     expect(result.current.player.xp).toBe(15)
+  })
+})
+
+describe('awardXP haptics', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    // Reset store to fresh state
+    useGameStore.setState({
+      player: { name: 'Test', class: 'Tinkerer', hp: 60, maxHp: 60, level: 1, xp: 0 },
+      progression: {
+        currentCity: 'overworld',
+        position: { x: 5, y: 5 },
+        masteredConcepts: {},
+        readLessons: {},
+        metNPCs: {},
+        completedSandboxes: {},
+        defeatedBosses: {},
+      },
+      settings: { musicEnabled: true, sfxEnabled: true, masterVolume: 0.8 },
+    })
+  })
+
+  it('calls Haptics.notificationAsync on level-up', () => {
+    useGameStore.getState().awardXP(120) // exactly one level
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+      Haptics.NotificationFeedbackType.Success,
+    )
+  })
+
+  it('does not call Haptics.notificationAsync for XP that does not trigger level-up', () => {
+    useGameStore.getState().awardXP(10)
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled()
   })
 })
