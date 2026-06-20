@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { AudioManager, TrackId } from '../../audio/AudioManager'
 import { WorldRenderer } from '../../renderer/WorldRenderer'
@@ -12,6 +12,7 @@ import { nearestInteractable, makePlayer } from '../../engine/entity'
 import { getCityDef, isGateUnlocked } from '../../content/world-data'
 import { useGameStore } from '../../store/game-store'
 import { getEnemiesForAct } from '../../content/enemies'
+import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'
 import type { Entity } from '../../engine/entity'
 
 const TILE_SIZE = 32
@@ -134,7 +135,7 @@ export default function CityScreen() {
     : null
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaWrapper style={styles.screen}>
       <WorldRenderer
         grid={cityDef.grid}
         player={playerState}
@@ -152,7 +153,7 @@ export default function CityScreen() {
       {dialogue && (
         <DialogueBox lines={dialogue.lines} speakerName={dialogue.speaker} onClose={() => setDialogue(null)} />
       )}
-    </View>
+    </SafeAreaWrapper>
   )
 }
 

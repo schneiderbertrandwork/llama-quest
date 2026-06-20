@@ -10,6 +10,7 @@ import { BattleMenu } from '../components/BattleMenu'
 import { PSIAttack } from '../components/PSIAttack'
 import { ENEMIES, BOSSES } from '../content/enemies'
 import { useGameStore } from '../store/game-store'
+import { SafeAreaWrapper } from '../components/SafeAreaWrapper'
 import type { CityId } from '../store/game-store'
 
 const CITY_SPAWN: Record<string, { x: number; y: number }> = {
@@ -97,7 +98,7 @@ export default function BattleScreen() {
   const menuDisabled = !isPlayerTurn
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaWrapper style={styles.screen}>
       {/* Skia background */}
       <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
         <Rect x={0} y={0} width={width} height={height} color="#0d0d1a" />
@@ -155,7 +156,7 @@ export default function BattleScreen() {
           )}
         </View>
       </View>
-    </View>
+    </SafeAreaWrapper>
   )
 }
 

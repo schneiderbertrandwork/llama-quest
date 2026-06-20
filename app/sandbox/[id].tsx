@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { getSandboxDef } from '../../content/sandboxes'
 import { Terminal } from '../../components/Terminal'
 import { useGameStore } from '../../store/game-store'
+import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'
 
 export default function SandboxScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -25,7 +26,7 @@ export default function SandboxScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaWrapper style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.title}>{sandbox.title}</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.exitBtn}>
@@ -52,7 +53,7 @@ export default function SandboxScreen() {
           />
         </>
       )}
-    </View>
+    </SafeAreaWrapper>
   )
 }
 

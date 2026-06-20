@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native'
+import { Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native'
 import { useRouter } from 'expo-router'
 import { AudioManager } from '../audio/AudioManager'
 import { WorldRenderer } from '../renderer/WorldRenderer'
@@ -12,6 +12,7 @@ import { nearestInteractable, makePlayer } from '../engine/entity'
 import { OVERWORLD } from '../content/world-data'
 import { useGameStore } from '../store/game-store'
 import { getEnemiesForAct } from '../content/enemies'
+import { SafeAreaWrapper } from '../components/SafeAreaWrapper'
 import type { Entity } from '../engine/entity'
 
 const TILE_SIZE = 32
@@ -75,7 +76,7 @@ export default function OverworldScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaWrapper style={styles.screen}>
       <WorldRenderer
         grid={OVERWORLD.grid}
         player={playerState}
@@ -97,7 +98,7 @@ export default function OverworldScreen() {
           onClose={() => setDialogue(null)}
         />
       )}
-    </View>
+    </SafeAreaWrapper>
   )
 }
 

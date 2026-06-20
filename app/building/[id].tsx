@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native'
+import { Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Codex } from '../../components/Codex'
 import { getLessonsForAct } from '../../content/lessons'
 import { useGameStore } from '../../store/game-store'
+import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'
 import type { Lesson } from '../../content/lessons'
 
 // Map building id to act number
@@ -33,7 +34,7 @@ export default function BuildingScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaWrapper style={styles.screen}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={styles.backText}>← Exit Building</Text>
       </TouchableOpacity>
@@ -58,7 +59,7 @@ export default function BuildingScreen() {
           )
         }}
       />
-    </View>
+    </SafeAreaWrapper>
   )
 }
 

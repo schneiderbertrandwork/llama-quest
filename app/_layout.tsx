@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Platform, View, Text, StyleSheet } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Stack } from 'expo-router'
 
 export default function RootLayout() {
@@ -27,7 +28,9 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <SafeAreaProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   )
 }
