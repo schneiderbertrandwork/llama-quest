@@ -38,13 +38,25 @@ function getTextureShapes(type: TileType, sx: number, sy: number, ts: number): T
       return []
 
     case 'forest': {
-      // Earthbound-style circular tree canopy — three concentric circles
-      const cx = sx + ts * 0.5
-      const cy = sy + ts * 0.43
+      // Earthbound-style tree: brown trunk + three-lobed leafy canopy
+      const tkW = Math.floor(ts * 0.14)
+      const tkH = Math.floor(ts * 0.32)
+      const tkX = sx + Math.floor((ts - tkW) / 2)
+      const tkY = sy + Math.floor(ts * 0.63)
+      const midY = sy + ts * 0.42
+      const topY = sy + ts * 0.26
       return [
-        c(cx, cy, ts * 0.40, '#1e7a0e'),               // outer canopy (shadow)
-        c(cx - ts * 0.07, cy - ts * 0.09, ts * 0.27, '#3aa020'), // inner (bright)
-        c(cx + ts * 0.09, cy - ts * 0.06, ts * 0.13, '#52c030'), // top highlight
+        // trunk
+        r(tkX, tkY, tkW, tkH, '#5a3010'),
+        // shadow under canopy
+        c(sx + ts * 0.50, midY + ts * 0.06, ts * 0.32, '#0d4808'),
+        // three canopy lobes
+        c(sx + ts * 0.30, midY, ts * 0.25, '#1a6a0a'),
+        c(sx + ts * 0.70, midY, ts * 0.23, '#1a6a0a'),
+        c(sx + ts * 0.50, topY, ts * 0.29, '#228a10'),
+        // highlights
+        c(sx + ts * 0.42, topY - ts * 0.08, ts * 0.14, '#38b018'),
+        c(sx + ts * 0.55, topY - ts * 0.04, ts * 0.08, '#4ecc22'),
       ]
     }
 
