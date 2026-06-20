@@ -34,7 +34,10 @@ jobs:
         run: npx expo prebuild --platform android --clean
 
       - name: Build debug APK + test APK
-        run: cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug
+        # Target :app only — assembleAndroidTest without a module prefix builds every
+        # subproject's test APK (including expo-dev-client) which fails on duplicate
+        # META-INF/LICENSE.md files from JUnit Jupiter JARs. Detox only needs :app.
+        run: cd android && ./gradlew :app:assembleDebug :app:assembleAndroidTest -DtestBuildType=debug
 
       - name: Run Detox E2E tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
