@@ -108,7 +108,7 @@ export default function BattleScreen() {
   const cellSize = ENEMY_SPRITE_SIZE / ENEMY_SPRITE_CELLS
 
   return (
-    <SafeAreaWrapper style={styles.screen}>
+    <SafeAreaWrapper testID="battle-screen" style={styles.screen}>
       {/* Skia background — arena look with floor zone */}
       <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
         {/* Sky/ceiling zone */}

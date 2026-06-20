@@ -19,12 +19,13 @@ export function BattleMenu({ onPSI, onGuard, onRun, disabled }: BattleMenuProps)
   return (
     <View style={styles.container}>
       {[
-        { label: '⚡ PSI', style: styles.psi, onPress: onPSI },
-        { label: '🛡 Guard', style: styles.guard, onPress: onGuard },
-        { label: '💨 Run', style: styles.run, onPress: onRun },
-      ].map(({ label, style, onPress }) => (
+        { label: '⚡ PSI', testID: 'battle-psi', style: styles.psi, onPress: onPSI },
+        { label: '🛡 Guard', testID: 'battle-guard', style: styles.guard, onPress: onGuard },
+        { label: '💨 Run', testID: 'battle-run', style: styles.run, onPress: onRun },
+      ].map(({ label, testID, style, onPress }) => (
         <TouchableOpacity
           key={label}
+          testID={testID}
           style={[styles.btn, style, disabled && styles.disabled]}
           onPress={() => withHaptic(onPress)}
           disabled={disabled}

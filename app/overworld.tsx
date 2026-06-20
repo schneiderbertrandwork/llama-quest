@@ -114,7 +114,7 @@ export default function OverworldScreen() {
         onInteract={handleInteract}
       />
       {nearbyLabel && !dialogue && (
-        <TouchableOpacity style={styles.interactPrompt} onPress={handleInteract}>
+        <TouchableOpacity testID="interact-prompt" style={styles.interactPrompt} onPress={handleInteract}>
           <Text style={styles.interactText}>{nearbyLabel}</Text>
         </TouchableOpacity>
       )}

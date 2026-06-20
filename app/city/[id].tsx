@@ -156,7 +156,7 @@ export default function CityScreen() {
     : null
 
   return (
-    <SafeAreaWrapper style={styles.screen}>
+    <SafeAreaWrapper testID="city-screen" style={styles.screen}>
       <WorldRenderer
         grid={cityDef.grid}
         player={playerState}
@@ -172,7 +172,7 @@ export default function CityScreen() {
         onInteract={handleInteract}
       />
       {interactLabel && !dialogue && (
-        <TouchableOpacity style={styles.prompt} onPress={handleInteract}>
+        <TouchableOpacity testID="interact-prompt" style={styles.prompt} onPress={handleInteract}>
           <Text style={styles.promptText}>{interactLabel}</Text>
         </TouchableOpacity>
       )}
