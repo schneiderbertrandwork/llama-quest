@@ -64,3 +64,13 @@ Plan: docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md
 Notes: overworld.tsx npcBlip omitted intentionally — overworld has no NPC dialogue (building entrances only); npcBlip correctly wired in city/[id].tsx.
 | 6-fix: sfx hit outside setState + CLAUDE.md Phase 4 complete | complete | 30b0c11..6fb055a | final review fixes |
 | Playwright end-of-phase | complete | — | Title/overworld/city/battle all verified. Audio: Tone.js v15.1.22 loads; AudioContext invoked for all 3 themes (overworld, llamatown, battle) — no audio-code errors. Skia Aborted() errors on battle screen are session contamination from earlier direct-nav attempt, not Phase 4 regressions. Key lesson: never navigate directly to game routes in Playwright; always go through title screen flow. |
+
+## Phase 5 — Remaining Cities
+
+| Task | Status | Commits | Notes |
+|------|--------|---------|-------|
+| 1: Model Forge CityDef + overworld entrance | complete | 98ac9f8..7ea687c | review clean; reviewer flagged "Prism Caverns" comment vs 'vale' id — false positive, they are the same city |
+| 2: Prism Caverns CityDef + overworld entrance | complete | 7ea687c..a853938 | review clean |
+| 3: The Convergence CityDef + overworld entrance | complete | a853938..6864a24 | review clean |
+| 4: Gate unlock system | complete | 6864a24..be11d20 | review clean (after fix); fix: added boss gates for Rate Limiter (Forge) + Dimensionless Beast (Caverns) — getEnemiesForAct excludes bosses so gates were inaccessible |
+| Playwright end-of-phase | complete | — | All Phase 5 features verified: Forge reachable + sandbox portal + NPC Smith (3 lines, XP) + library (8 Act II lessons); Prism Caverns reachable + NPC Oracle (3 lines, XP) + library (8 Act III lessons); Convergence reachable + NPC Architect (3 lines, XP) + library (3 Act IV lessons); locked gate message verified; 0 console errors throughout. Key lessons: city screen always uses cityDef.playerSpawn; direct URL nav breaks WASM; gate at (1,8) in Convergence shows [E] Enter immediately at spawn — walk east 0.5s + north 1s first. |

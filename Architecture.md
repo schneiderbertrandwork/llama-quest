@@ -69,7 +69,7 @@ All progression tracking uses `Record<string, boolean>` (never `Set<string>`).
 |------|-------------|
 | `lessons.ts` | 25 lessons (Acts I–IV); `LESSONS[]`, `getLessonsForAct(act)`, `getLessonById(id)` |
 | `diagrams.ts` | 10 diagrams (Acts I–IV); `DIAGRAMS: Record<string, DiagramDef>` |
-| `world-data.ts` | `OVERWORLD` (40×30) + `LLAMATOWN` (20×15); `getCityDef(id)`, `CityDef` type |
+| `world-data.ts` | `OVERWORLD` (40×30) + `LLAMATOWN` (20×15) + `FORGE` (20×18) + `CAVERNS` (22×18) + `CONVERGENCE` (20×16); `getCityDef(id)`, `CityDef` type; `ACT_CONCEPTS`, `isActMastered(act, masteredConcepts)`, `isGateUnlocked(fromAct, masteredConcepts, defeatedBosses)` |
 | `qbank.ts` | 100 quiz questions (25 lessons × 4); `QBANK`, `getQuestionsForAct(act)`, `getQuestionsForLesson(id)` |
 | `enemies.ts` | 20 enemy defs; `ENEMIES[]`, `BOSSES[]`, `getEnemiesForAct(act)`, `getBossForAct(act)` |
 | `sandboxes.ts` | 5 sandbox project defs; `SANDBOXES`, `getSandboxDef(id)` — ids: `firstchat`, `modelfile`, `api`, `collection`, `rag` |
@@ -210,4 +210,18 @@ Two Metro overrides, both required for Skia to work on web:
 
 ---
 
-*Updated: 2026-06-19 · Phase 4 complete (116 tests)*
+## content/world-data.ts — Gate Unlock System (Phase 5)
+
+| Export | Signature | What it does |
+|--------|-----------|-------------|
+| `ACT_CONCEPTS` | `Record<1\|2\|3\|4, string[]>` | Maps act number → required lesson IDs for mastery |
+| `isActMastered` | `(act, masteredConcepts) → boolean` | True when all act lesson IDs are in masteredConcepts |
+| `isGateUnlocked` | `(fromAct, masteredConcepts, defeatedBosses) → boolean` | True when act mastered AND act boss defeated |
+
+**Boss IDs by act:** `frozen-boot` (1), `rate-limiter` (2), `dimensionless-beast` (3), `hallucinator` (4).
+
+**Locked gate message** (shown by city/[id].tsx): `"Gate locked — read all Act N lessons and defeat the boss to proceed."`
+
+---
+
+*Updated: 2026-06-19 · Phase 5 complete (116 tests) · Phase 6 next*
