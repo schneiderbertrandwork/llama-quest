@@ -13,6 +13,7 @@ import { getCityDef, isGateUnlocked } from '../../content/world-data'
 import { useGameStore } from '../../store/game-store'
 import { getEnemiesForAct } from '../../content/enemies'
 import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'
+import { TouchDpad } from '../../components/TouchDpad'
 import type { Entity } from '../../engine/entity'
 
 const TILE_SIZE = 32
@@ -145,6 +146,10 @@ export default function CityScreen() {
         screenHeight={height}
       />
       <HUD />
+      <TouchDpad
+        onInput={(dx, dy) => { input.current!.dx = dx; input.current!.dy = dy }}
+        onInteract={handleInteract}
+      />
       {interactLabel && !dialogue && (
         <TouchableOpacity style={styles.prompt} onPress={handleInteract}>
           <Text style={styles.promptText}>{interactLabel}</Text>
