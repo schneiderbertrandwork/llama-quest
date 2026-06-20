@@ -12,14 +12,27 @@ module.exports = {
     },
   },
   devices: {
+    // CI: Android 34 emulator (Pixel_4_API_34 AVD) — used in e2e-android.yml
     emulator: {
       type: 'android.emulator',
       device: { avdName: 'Pixel_4_API_34' },
     },
+    // Local: physical Android device connected via USB with USB Debugging enabled
+    // Note: emulator cannot run locally (netsimd.exe blocked by corporate network)
+    attached: {
+      type: 'android.attached',
+      device: { adbName: '.*' },
+    },
   },
   configurations: {
+    // Used by CI (e2e-android.yml)
     'android.emu.debug': {
       device: 'emulator',
+      app: 'android.debug',
+    },
+    // Used for local testing with a physical device: npm run e2e:device
+    'android.device.debug': {
+      device: 'attached',
       app: 'android.debug',
     },
   },

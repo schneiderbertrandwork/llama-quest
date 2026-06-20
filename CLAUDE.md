@@ -153,7 +153,7 @@ All use `@shopify/react-native-skia`. Render colored rect placeholders (sprites 
 
 ### Hooks (`hooks/`)
 
-- `useGameLoop(callback: (dt: number) => void)` — `useFrameCallback` at 60fps; dt capped at 50ms
+- `useGameLoop(callback: (dt: number) => void)` — `requestAnimationFrame` loop at 60fps; dt capped at 50ms
 - `usePlayerInput()` → `{ input: React.RefObject<InputState>, resetInput }` — keyboard on web only
 
 ### Screens (`app/`)
@@ -186,48 +186,78 @@ XP rewards: lesson read +20, NPC met +8, correct quiz answer +5, concept mastere
 
 ## Testing
 
-81 tests across 18 suites (all passing as of Phase 3):
-- `engine/__tests__/` — tilemap, entity, camera, movement
+174 tests across 28 suites (all passing):
+- `engine/__tests__/` — tilemap, entity, camera, movement, battle, critter
 - `store/__tests__/game-store.test.ts` — store actions
-- `renderer/__tests__/TilemapRenderer.test.tsx` — Skia rendering (mocked)
-- `content/__tests__/lessons.test.ts` — lesson counts and IDs
-- `content/__tests__/sandboxes.test.ts` — sandbox definitions
-- `components/__tests__/Terminal.test.tsx` — command recognition and objectives
+- `renderer/__tests__/` — TilemapRenderer, EntityRenderer (Skia mocked)
+- `content/__tests__/` — lessons, sandboxes, qbank
+- `components/__tests__/` — Terminal, BattleMenu, TouchDpad, PixelArt, RollingHP, SafeAreaWrapper
+- `hooks/__tests__/useGameLoop.test.ts` — requestAnimationFrame loop (RAF mocked)
+- `audio/__tests__/` — sfx, themes
+- `app/__tests__/battle.test.tsx` — battle screen
 
 Skia is mocked in `__mocks__/@shopify/react-native-skia.js`. AsyncStorage mocked in `__mocks__/@react-native-async-storage/async-storage.js`.
 
-CI runs on every push/PR to `main` via `.github/workflows/ci.yml` (`npm ci --legacy-peer-deps && npm test -- --ci --coverage --watchAll=false`).
+Two CI workflows run on every push/PR:
+- **Unit tests**: `.github/workflows/ci.yml` — `npm ci && npm test -- --ci --coverage --watchAll=false`
+- **Android E2E**: `.github/workflows/e2e-android.yml` — Detox golden-path on Android 34 emulator
 
-### End-of-Phase Playwright Testing (required)
+### End-of-Phase Testing (required — both platforms)
 
-**At the end of every phase**, after all unit tests pass, run a Playwright browser session against `http://localhost:8081` to verify that the features delivered in that phase work correctly in the actual web app.
+**At the end of every phase**, after all unit tests pass, run **both** a Playwright web session and a Detox Android session. Both must pass before a phase is marked complete.
 
-**Setup:** Start the dev server first, then use the Playwright MCP tools (configured in `.mcp.json`).
+---
+
+#### Web — Playwright (local)
+
+Start the dev server, then use the Playwright MCP tools (configured in `.mcp.json`):
 
 ```bash
 npx expo start --web
-# then open a new terminal or use Playwright MCP from Claude
+# use Playwright MCP from Claude against http://localhost:8081
 ```
 
-**What to verify per phase:**
+#### Android — Detox
 
-| Phase | Playwright checks |
-|-------|-------------------|
-| 1 — Foundation | Title screen renders; name + class selection works; player spawns and moves on overworld; HUD shows HP/XP; city entrance navigates to Llamatown |
-| 2 — Battle System | Random encounter triggers after walking; battle screen renders with HP bars and menu; attacks reduce enemy HP; run/flee works; boss gate blocks until boss defeated |
-| 3 — Content Migration | Library building opens lesson list; lesson Codex renders body content; sandbox portal shows `[E] Open Terminal`; terminal accepts commands and checks off objectives; sandbox completion awards XP |
-| 4 — Audio | Music toggles on/off from settings; SFX play on battle actions |
-| 5 — Remaining Cities | Forge, Vale, Ridge cities reachable via overworld; NPCs have dialogue; buildings open correctly |
-| 6 — Mobile Polish | Responsive layout on narrow viewport; touch targets work; no visual overflow |
+**CI (preferred):** The `e2e-android.yml` workflow runs automatically on every PR. Check the workflow run for pass/fail.
 
-**Golden path for every phase check:**
-1. Load `http://localhost:8081` — title screen must render within 5 seconds
-2. Enter a name and pick a class → confirm navigation to overworld
-3. Walk the player with WASD → confirm movement and HUD updates
-4. Test the phase-specific features listed above
-5. Check browser console for uncaught errors — zero is the target
+**Local (physical device):** Connect an Android phone via USB with USB Debugging enabled, then:
 
-**If Playwright finds a regression**, fix it before marking the phase done in `progress.md` and `CLAUDE.md`.
+```bash
+# Verify device is visible
+adb devices                          # must show a device, not just emulator
+
+# Build the debug APK (requires Android Studio SDK at %LOCALAPPDATA%\Android\Sdk)
+npx expo prebuild --platform android --clean
+cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug && cd ..
+
+# Run Detox against the connected device
+npx detox test -c android.device.debug
+```
+
+> **Note — local emulator:** The Android emulator cannot run on this machine due to `netsimd.exe` being blocked by Accenture's network security agent (confirmed June 2026). Use a physical device locally or rely on CI. The AVD `Pixel_4_API_34` is configured for CI use.
+
+---
+
+**What to verify per phase (both Playwright web + Detox Android):**
+
+| Phase | Web (Playwright) checks | Android (Detox) checks |
+|-------|------------------------|------------------------|
+| 1 — Foundation | Title screen renders; name + class selection; player moves on overworld; HUD shows HP/XP; city entrance → Llamatown | Title screen; Start Game navigates to overworld without crash; HUD visible; dpad taps work |
+| 2 — Battle System | Random encounter triggers; battle screen with HP bars; attacks work; run/flee; boss gate | Battle screen renders; menu tappable; no crash on attack |
+| 3 — Content Migration | Library opens lesson list; Codex renders; sandbox terminal accepts commands; XP awarded | Building entrance; lesson list tappable; terminal visible |
+| 4 — Audio | Music toggles on/off; SFX on battle actions | No crash when audio events fire (SFX is web-only — verify no crash) |
+| 5 — Remaining Cities | Forge, Vale, Ridge reachable; NPCs dialogue; buildings open | City navigation; NPC tap → dialogue |
+| 6 — Mobile Polish | Responsive at narrow viewport; touch targets; no overflow | All touch targets reachable; no layout overflow |
+
+**Golden path (every phase, both platforms):**
+1. Title screen renders within 5 seconds
+2. Enter name + pick class → confirm navigation to overworld
+3. Move the player → confirm movement and HUD updates
+4. Test phase-specific features above
+5. Zero uncaught errors (browser console on web; no crash on Android)
+
+**If either platform finds a regression**, fix it before marking the phase done in `progress.md` and `CLAUDE.md`.
 
 ## Tech Stack
 
@@ -236,7 +266,7 @@ npx expo start --web
 | Framework | Expo (managed) | ~52.0 |
 | Navigation | expo-router | ~4.0 |
 | Rendering | @shopify/react-native-skia | 1.5.0 |
-| Game loop | react-native-reanimated `useFrameCallback` | ~3.16 |
+| Game loop | `requestAnimationFrame` (standard RN API) | built-in |
 | State | zustand + AsyncStorage | ^5.0 |
 | Testing | jest-expo + @testing-library/react-native | ~52.0 / ^12.4 |
 
@@ -270,4 +300,4 @@ Fix (two parts, both in `metro.config.js`):
 
 ---
 
-**Last updated**: 2026-06-19 · Visual Upgrade complete (171 tests) · All phases shipped: pixel sprites, animated critters, Earthbound tile textures, SNES UI chrome, halved world, readable HUD
+**Last updated**: 2026-06-20 · 174 unit tests · Dual-platform E2E testing: Playwright (web) + Detox (Android) · Android bugs fixed: Tone.js crash + useFrameCallback → requestAnimationFrame
