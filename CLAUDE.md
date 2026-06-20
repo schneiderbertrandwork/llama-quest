@@ -49,8 +49,8 @@ This document contains:
 | 3 — Content Migration | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase3-content.md` |
 | 4 — Audio | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase4-audio.md` |
 | 5 — Remaining Cities | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase5-cities.md` |
-| 6 — Mobile Polish | 🔄 In progress | `docs/superpowers/plans/2026-06-19-llama-quest-phase6-mobile-polish.md` |
-| Visual Upgrade — SNES Pixel Art | 🔄 In progress | `docs/superpowers/plans/2026-06-19-llama-quest-visual-upgrade.md` |
+| 6 — Mobile Polish | ✅ Complete | `docs/superpowers/plans/2026-06-19-llama-quest-phase6-mobile-polish.md` |
+| Visual Upgrade — SNES Pixel Art + Animation | 🔄 In progress (plan being revised) | `docs/superpowers/plans/2026-06-19-llama-quest-visual-upgrade.md` |
 
 **When a phase completes:** Update the Status column above to `✅ Complete` and add the plan file path. Also mark it done in `.superpowers/sdd/progress.md`. Also update `Architecture.md` to reflect any new files, exports, constants, or infrastructure added in the phase.
 
@@ -270,4 +270,4 @@ Fix (two parts, both in `metro.config.js`):
 
 ---
 
-**Last updated**: 2026-06-19 · Phase 5 complete · Phase 6 (Mobile Polish) + Visual Upgrade (SNES pixel art) in progress · 152 tests passing · Playwright MCP required at end of each phase
+**Last updated**: 2026-06-19 · Phase 6 complete (154 tests) · Visual Upgrade in progress — plan being expanded to include sprite animation, grass animation, larger world, roaming woodland creatures + butterflies

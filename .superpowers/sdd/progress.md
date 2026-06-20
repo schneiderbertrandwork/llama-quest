@@ -74,3 +74,14 @@ Notes: overworld.tsx npcBlip omitted intentionally — overworld has no NPC dial
 | 3: The Convergence CityDef + overworld entrance | complete | a853938..6864a24 | review clean |
 | 4: Gate unlock system | complete | 6864a24..be11d20 | review clean (after fix); fix: added boss gates for Rate Limiter (Forge) + Dimensionless Beast (Caverns) — getEnemiesForAct excludes bosses so gates were inaccessible |
 | Playwright end-of-phase | complete | — | All Phase 5 features verified: Forge reachable + sandbox portal + NPC Smith (3 lines, XP) + library (8 Act II lessons); Prism Caverns reachable + NPC Oracle (3 lines, XP) + library (8 Act III lessons); Convergence reachable + NPC Architect (3 lines, XP) + library (3 Act IV lessons); locked gate message verified; 0 console errors throughout. Key lessons: city screen always uses cityDef.playerSpawn; direct URL nav breaks WASM; gate at (1,8) in Convergence shows [E] Enter immediately at spawn — walk east 0.5s + north 1s first. |
+
+## Phase 6 — Mobile Polish
+
+| Task | Status | Commits | Notes |
+|------|--------|---------|-------|
+| 1: Safe area + SafeAreaWrapper | complete | …..7366b64 | review clean; fix: StyleProp<ViewStyle>; fix: sandbox header paddingTop 48→12 |
+| 2: TouchDpad virtual controls | complete | …..bd75244 | review clean |
+| 3: Haptic feedback | complete | bd75244..64af7b0 | review clean; CLAUDE.md update committed |
+| 4: Performance pass (CITY_TRACK to module scope) | complete | bd75244..595a4bd | review clean |
+| 5: App store metadata | complete | 595a4bd..1f09fa6 | review approved; Important: expo-doctor/expo-export unverifiable under Node 24 (pre-existing infra constraint — expo-haptics v14 exposes raw TS source); will work on Node 20 LTS in CI |
+| Playwright end-of-phase | complete | — | Title screen ✅, overworld/HUD ✅, WASD movement ✅, narrow viewport 375px no overflow ✅, Llamatown entry ✅, NPC dialogue ✅, 0 uncaught errors ✅, TouchDpad null on web ✅, haptics guarded ✅. Key lesson: use browser_click on [E] Enter/Talk prompts — browser_press_key 'e' fires too fast for game loop. |
