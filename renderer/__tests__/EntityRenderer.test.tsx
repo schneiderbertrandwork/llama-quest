@@ -48,7 +48,7 @@ describe('EntityRenderer', () => {
     expect(toJSON()).not.toBeNull()
   })
 
-  it('selects correct animation frame at time=0', () => {
+  it('renders without crashing at varying time values', () => {
     // Just confirms no crash with time prop varying
     const { rerender } = render(<EntityRenderer entities={[makePlayer(5, 5)]} {...baseProps} time={0} />)
     rerender(<EntityRenderer entities={[makePlayer(5, 5)]} {...baseProps} time={500} />)

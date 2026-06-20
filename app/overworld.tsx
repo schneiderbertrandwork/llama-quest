@@ -85,6 +85,7 @@ export default function OverworldScreen() {
         tileSize={TILE_SIZE}
         screenWidth={width}
         screenHeight={height}
+        time={0}
       />
       <HUD />
       <TouchDpad

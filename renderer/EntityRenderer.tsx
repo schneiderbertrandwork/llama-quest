@@ -113,7 +113,6 @@ export function EntityRenderer({ entities, camera, tileSize, width, height, time
             }
           }
 
-          const sx = baseSx
           const sy = baseSy + sineOffset
 
           const result = getAnimForEntity(entity)
@@ -124,7 +123,7 @@ export function EntityRenderer({ entities, camera, tileSize, width, height, time
             return [
               <Rect
                 key={entity.id}
-                x={sx + offset}
+                x={baseSx + offset}
                 y={sy + offset}
                 width={size}
                 height={size}
@@ -141,14 +140,14 @@ export function EntityRenderer({ entities, camera, tileSize, width, height, time
           const pixelSize = tileSize / frame.size
           return frame.pixels
             .map((color, i) => {
-              const c = tint ?? color
-              if (!c) return null
+              if (!color) return null          // always skip transparent pixels
+              const c = tint ?? color          // apply tint to opaque pixels
               const row = Math.floor(i / frame.size)
               const col = i % frame.size
               return (
                 <Rect
                   key={`${entity.id}-${i}`}
-                  x={sx + col * pixelSize}
+                  x={baseSx + col * pixelSize}
                   y={sy + row * pixelSize}
                   width={pixelSize}
                   height={pixelSize}

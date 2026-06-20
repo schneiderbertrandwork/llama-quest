@@ -13,7 +13,7 @@ interface WorldRendererProps {
   tileSize: number
   screenWidth: number
   screenHeight: number
-  time?: number
+  time: number
 }
 
 export function WorldRenderer({ grid, player, entities, tileSize, screenWidth, screenHeight, time }: WorldRendererProps) {
@@ -23,12 +23,11 @@ export function WorldRenderer({ grid, player, entities, tileSize, screenWidth, s
   }, [player.x, player.y, tileSize, screenWidth, screenHeight, grid.width, grid.height])
 
   const allEntities = useMemo(() => [player, ...entities], [player, entities])
-  const animTime = time ?? Date.now()
 
   return (
     <View style={{ width: screenWidth, height: screenHeight, overflow: 'hidden' }}>
       <TilemapRenderer grid={grid} camera={camera} tileSize={tileSize} width={screenWidth} height={screenHeight} />
-      <EntityRenderer entities={allEntities} camera={camera} tileSize={tileSize} width={screenWidth} height={screenHeight} time={animTime} />
+      <EntityRenderer entities={allEntities} camera={camera} tileSize={tileSize} width={screenWidth} height={screenHeight} time={time} />
     </View>
   )
 }
