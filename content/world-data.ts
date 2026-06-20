@@ -36,95 +36,85 @@ function house(g: TileGrid, x: number, y: number, w: number, h: number): void {
 }
 
 function buildOverworldGrid(): TileGrid {
-  const g = makeGrid(400, 300, 'grass')
+  const g = makeGrid(200, 150, 'grass')
 
   // ── Forest borders ────────────────────────────────────────────
-  for (let x = 0; x < 400; x++) {
-    for (let y = 0; y < 8; y++) setTile(g, x, y, 'forest')     // north edge
-    for (let y = 292; y < 300; y++) setTile(g, x, y, 'forest') // south edge
+  for (let x = 0; x < 200; x++) {
+    for (let y = 0; y < 4; y++) setTile(g, x, y, 'forest')      // north edge
+    for (let y = 146; y < 150; y++) setTile(g, x, y, 'forest')   // south edge
   }
 
   // ── West / east forest columns ────────────────────────────────
-  for (let y = 8; y < 140; y++) { setTile(g, 0, y, 'forest'); setTile(g, 1, y, 'forest') }
-  for (let y = 160; y < 292; y++) { setTile(g, 0, y, 'forest'); setTile(g, 1, y, 'forest') }
-  for (let y = 8; y < 292; y++) { setTile(g, 398, y, 'forest'); setTile(g, 399, y, 'forest') }
+  for (let y = 4; y < 70; y++) { setTile(g, 0, y, 'forest'); setTile(g, 1, y, 'forest') }
+  for (let y = 80; y < 146; y++) { setTile(g, 0, y, 'forest'); setTile(g, 1, y, 'forest') }
+  for (let y = 4; y < 146; y++) { setTile(g, 198, y, 'forest'); setTile(g, 199, y, 'forest') }
 
   // ── Interior forest biomes ────────────────────────────────────
-  for (let x = 130; x <= 160; x++) for (let y = 40; y <= 100; y++) setTile(g, x, y, 'forest')
-  for (let x = 250; x <= 310; x++) for (let y = 8; y <= 80; y++) setTile(g, x, y, 'forest')
+  for (let x = 65; x <= 80; x++) for (let y = 20; y <= 50; y++) setTile(g, x, y, 'forest')
+  for (let x = 125; x <= 155; x++) for (let y = 4; y <= 40; y++) setTile(g, x, y, 'forest')
 
   // ── Main east-west road ───────────────────────────────────────
-  for (let x = 10; x < 390; x++) {
-    setTile(g, x, 148, 'path')
-    setTile(g, x, 149, 'path')
+  for (let x = 5; x < 195; x++) {
+    setTile(g, x, 74, 'path')
+    setTile(g, x, 75, 'path')
   }
 
-  // ── North road (to Llamatown, x=52) ───────────────────────────
-  for (let y = 100; y < 148; y++) {
-    setTile(g, 50, y, 'path'); setTile(g, 51, y, 'path')
+  // ── North road (to Llamatown, x=25-26) ───────────────────────
+  for (let y = 50; y < 74; y++) {
+    setTile(g, 25, y, 'path'); setTile(g, 26, y, 'path')
   }
 
-  // ── Northeast road (to Forge, x=280) ─────────────────────────
-  for (let y = 100; y < 148; y++) {
-    setTile(g, 280, y, 'path'); setTile(g, 281, y, 'path')
+  // ── Northeast road (to Forge, x=140-141) ─────────────────────
+  for (let y = 50; y < 74; y++) {
+    setTile(g, 140, y, 'path'); setTile(g, 141, y, 'path')
   }
 
-  // ── South-central road (to Prism Caverns, x=180) ─────────────
-  for (let y = 149; y <= 240; y++) {
-    setTile(g, 180, y, 'path'); setTile(g, 181, y, 'path')
-  }
-
-  // ── Southwest road (to The Convergence, x=90) ────────────────
-  for (let y = 149; y <= 260; y++) {
+  // ── South-central road (to Prism Caverns, x=90-91) ───────────
+  for (let y = 75; y <= 120; y++) {
     setTile(g, 90, y, 'path'); setTile(g, 91, y, 'path')
   }
 
+  // ── Southwest road (to The Convergence, x=45-46) ─────────────
+  for (let y = 75; y <= 130; y++) {
+    setTile(g, 45, y, 'path'); setTile(g, 46, y, 'path')
+  }
+
   // ── River (north vertical) ────────────────────────────────────
-  for (let y = 8; y <= 100; y++) {
-    setTile(g, 200, y, 'water'); setTile(g, 201, y, 'water'); setTile(g, 202, y, 'water')
+  for (let y = 4; y <= 74; y++) {
+    setTile(g, 100, y, 'water'); setTile(g, 101, y, 'water'); setTile(g, 102, y, 'water')
   }
   // River lake
-  for (let x = 195; x <= 210; x++) for (let y = 80; y <= 100; y++) setTile(g, x, y, 'water')
-  // River south section
-  for (let y = 100; y < 148; y++) {
-    setTile(g, 200, y, 'water'); setTile(g, 201, y, 'water'); setTile(g, 202, y, 'water')
-  }
+  for (let x = 97; x <= 105; x++) for (let y = 40; y <= 50; y++) setTile(g, x, y, 'water')
 
   // ── Small pond ────────────────────────────────────────────────
-  for (let x = 340; x <= 350; x++) for (let y = 200; y <= 210; y++) setTile(g, x, y, 'water')
+  for (let x = 170; x <= 175; x++) for (let y = 100; y <= 105; y++) setTile(g, x, y, 'water')
 
-  // ── Llamatown village — houses flanking the N road (x=50-51) ─
-  // West side:  FOREST(35-41) | gap | HOUSES(43-46) | gap | ROAD(50-51)
-  // East side:  ROAD(50-51) | gap | HOUSES(54-57) | gap | FOREST(59-65)
-  house(g, 43, 141, 4, 3)  // W near main road junction
-  house(g, 43, 127, 4, 3)  // W mid-road
-  house(g, 43, 113, 4, 3)  // W north village
-  house(g, 54, 141, 4, 3)  // E near main road junction
-  house(g, 54, 127, 4, 3)  // E mid-road
-  house(g, 54, 113, 4, 3)  // E north village
+  // ── Llamatown village — houses flanking the N road (x=25-26) ─
+  house(g, 21, 70, 4, 3)  // W near main road junction
+  house(g, 21, 63, 4, 3)  // W mid-road
+  house(g, 21, 56, 4, 3)  // W north village
+  house(g, 27, 70, 4, 3)  // E near main road junction
+  house(g, 27, 63, 4, 3)  // E mid-road
+  house(g, 27, 56, 4, 3)  // E north village
   // South of main road
-  house(g, 43, 151, 4, 3)
-  house(g, 54, 151, 4, 3)
+  house(g, 21, 77, 4, 3)
+  house(g, 27, 77, 4, 3)
 
   // ── Forest corridors flanking Llamatown road ──────────────────
-  // Stop at y=147 — road path tiles at y=148 must not be overwritten
-  for (let x = 35; x <= 41; x++) for (let y = 108; y <= 147; y++) setTile(g, x, y, 'forest')
-  for (let x = 59; x <= 65; x++) for (let y = 108; y <= 147; y++) setTile(g, x, y, 'forest')
+  for (let x = 17; x <= 20; x++) for (let y = 54; y <= 73; y++) setTile(g, x, y, 'forest')
+  for (let x = 29; x <= 32; x++) for (let y = 54; y <= 73; y++) setTile(g, x, y, 'forest')
 
   // ── Forest framing the main road near spawn ───────────────────
-  // North of E-W road, west of Llamatown junction
-  for (let x = 10; x <= 34; x++) for (let y = 130; y <= 147; y++) setTile(g, x, y, 'forest')
-  // North of E-W road, east of Llamatown junction
-  for (let x = 66; x <= 100; x++) for (let y = 130; y <= 147; y++) setTile(g, x, y, 'forest')
-  // South of E-W road, west side
-  for (let x = 10; x <= 34; x++) for (let y = 152; y <= 170; y++) setTile(g, x, y, 'forest')
-  // South of E-W road, east side — skip x=90-91 (SW road to The Convergence)
-  for (let x = 66; x <= 88; x++) for (let y = 152; y <= 170; y++) setTile(g, x, y, 'forest')
-  for (let x = 93; x <= 100; x++) for (let y = 152; y <= 170; y++) setTile(g, x, y, 'forest')
+  for (let x = 5; x <= 16; x++) for (let y = 65; y <= 73; y++) setTile(g, x, y, 'forest')
+  for (let x = 33; x <= 50; x++) for (let y = 65; y <= 73; y++) setTile(g, x, y, 'forest')
+  for (let x = 5; x <= 16; x++) for (let y = 76; y <= 85; y++) setTile(g, x, y, 'forest')
+  // South — skip x=45-46 (SW road to The Convergence)
+  for (let x = 33; x <= 44; x++) for (let y = 76; y <= 85; y++) setTile(g, x, y, 'forest')
+  for (let x = 47; x <= 50; x++) for (let y = 76; y <= 85; y++) setTile(g, x, y, 'forest')
 
-  // ── Additional scenic clusters (river area, NE forest) ────────
-  for (let x = 215; x <= 240; x++) for (let y = 130; y <= 147; y++) setTile(g, x, y, 'forest')
-  for (let x = 215; x <= 240; x++) for (let y = 152; y <= 170; y++) setTile(g, x, y, 'forest')
+  // ── Additional scenic clusters (river area) ───────────────────
+  for (let x = 107; x <= 120; x++) for (let y = 65; y <= 73; y++) setTile(g, x, y, 'forest')
+  for (let x = 107; x <= 120; x++) for (let y = 76; y <= 85; y++) setTile(g, x, y, 'forest')
 
   return g
 }
@@ -158,43 +148,43 @@ function buildLlamatownGrid(): TileGrid {
 export const OVERWORLD: CityDef = {
   id: 'overworld',
   grid: buildOverworldGrid(),
-  playerSpawn: { x: 52, y: 148 },
+  playerSpawn: { x: 26, y: 74 },
   entities: [
-    makeBuildingEntrance('enter-llamatown', 52, 146, 'llamatown'),
-    makeBuildingEntrance('enter-forge', 280, 150, 'forge'),
-    makeBuildingEntrance('enter-vale', 180, 240, 'vale'),
-    makeBuildingEntrance('enter-ridge', 90, 259, 'ridge'),
+    makeBuildingEntrance('enter-llamatown', 26, 73, 'llamatown'),
+    makeBuildingEntrance('enter-forge', 140, 73, 'forge'),
+    makeBuildingEntrance('enter-vale', 90, 120, 'vale'),
+    makeBuildingEntrance('enter-ridge', 45, 130, 'ridge'),
     // Decorative llamas — 12 scattered across the world
-    makeDecoration('deco-llama-1', 25, 20),
-    makeDecoration('deco-llama-2', 80, 35),
-    makeDecoration('deco-llama-3', 170, 15),
-    makeDecoration('deco-llama-4', 230, 50),
-    makeDecoration('deco-llama-5', 350, 30),
-    makeDecoration('deco-llama-6', 30, 180),
-    makeDecoration('deco-llama-7', 120, 200),
-    makeDecoration('deco-llama-8', 250, 170),
-    makeDecoration('deco-llama-9', 320, 200),
-    makeDecoration('deco-llama-10', 370, 260),
-    makeDecoration('deco-llama-11', 60, 270),
-    makeDecoration('deco-llama-12', 200, 280),
+    makeDecoration('deco-llama-1', 12, 10),
+    makeDecoration('deco-llama-2', 40, 17),
+    makeDecoration('deco-llama-3', 85, 7),
+    makeDecoration('deco-llama-4', 115, 25),
+    makeDecoration('deco-llama-5', 175, 15),
+    makeDecoration('deco-llama-6', 15, 90),
+    makeDecoration('deco-llama-7', 60, 100),
+    makeDecoration('deco-llama-8', 125, 85),
+    makeDecoration('deco-llama-9', 160, 100),
+    makeDecoration('deco-llama-10', 185, 130),
+    makeDecoration('deco-llama-11', 30, 135),
+    makeDecoration('deco-llama-12', 100, 140),
     // Woodland creatures
-    c('critter-rabbit-1', 35, 30, 'rabbit'),
-    c('critter-rabbit-2', 220, 140, 'rabbit'),
-    c('critter-rabbit-3', 300, 180, 'rabbit'),
-    c('critter-rabbit-4', 160, 270, 'rabbit'),
-    c('critter-bird-1', 100, 60, 'bird', 6),
-    c('critter-bird-2', 260, 200, 'bird', 6),
-    c('critter-bird-3', 380, 120, 'bird', 6),
-    c('critter-squirrel-1', 165, 80, 'squirrel', 3),
-    c('critter-squirrel-2', 330, 90, 'squirrel', 3),
-    c('critter-squirrel-3', 70, 230, 'squirrel', 3),
-    c('critter-butterfly-1', 60, 120, 'butterfly', 8, 0.0),
-    c('critter-butterfly-2', 200, 60, 'butterfly', 8, 1.5),
-    c('critter-butterfly-3', 290, 250, 'butterfly', 8, 3.0),
-    c('critter-butterfly-4', 140, 260, 'butterfly', 8, 4.5),
+    c('critter-rabbit-1', 17, 15, 'rabbit'),
+    c('critter-rabbit-2', 110, 70, 'rabbit'),
+    c('critter-rabbit-3', 150, 90, 'rabbit'),
+    c('critter-rabbit-4', 80, 135, 'rabbit'),
+    c('critter-bird-1', 50, 30, 'bird', 6),
+    c('critter-bird-2', 130, 100, 'bird', 6),
+    c('critter-bird-3', 190, 60, 'bird', 6),
+    c('critter-squirrel-1', 82, 40, 'squirrel', 3),
+    c('critter-squirrel-2', 165, 45, 'squirrel', 3),
+    c('critter-squirrel-3', 35, 115, 'squirrel', 3),
+    c('critter-butterfly-1', 30, 60, 'butterfly', 8, 0.0),
+    c('critter-butterfly-2', 100, 30, 'butterfly', 8, 1.5),
+    c('critter-butterfly-3', 145, 125, 'butterfly', 8, 3.0),
+    c('critter-butterfly-4', 70, 130, 'butterfly', 8, 4.5),
     // Near spawn — visible at startup
-    c('critter-rabbit-5', 46, 144, 'rabbit', 3),
-    c('critter-butterfly-5', 57, 145, 'butterfly', 5, 0.8),
+    c('critter-rabbit-5', 23, 72, 'rabbit', 3),
+    c('critter-butterfly-5', 28, 72, 'butterfly', 5, 0.8),
   ],
   gateExit: { x: 0, y: 0, destination: 'llamatown' },
 }

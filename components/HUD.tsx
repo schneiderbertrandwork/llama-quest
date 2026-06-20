@@ -33,15 +33,15 @@ export function HUD() {
 }
 
 const styles = StyleSheet.create({
-  outerBorder: { position: 'absolute', top: 8, left: 8, minWidth: 160, borderWidth: 2, borderColor: '#c0a060', backgroundColor: '#000000' },
+  outerBorder: { position: 'absolute', top: 8, left: 8, minWidth: 200, borderWidth: 2, borderColor: '#c0a060', backgroundColor: '#000000' },
   gap: { padding: 2, backgroundColor: '#000000' },
-  innerBorder: { borderWidth: 2, borderColor: '#c0a060', backgroundColor: '#0a0826', padding: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
-  name: { color: '#f5c518', fontFamily: 'monospace', fontSize: 11, fontWeight: 'bold', flex: 1 },
-  level: { color: '#aaaaaa', fontFamily: 'monospace', fontSize: 10 },
-  label: { color: '#aaaaaa', fontFamily: 'monospace', fontSize: 10, width: 24 },
-  barOuter: { flex: 1, height: 8, backgroundColor: '#333333', borderRadius: 0, borderWidth: 1, borderColor: '#000000', overflow: 'hidden', marginHorizontal: 4 },
+  innerBorder: { borderWidth: 2, borderColor: '#c0a060', backgroundColor: '#0a0826', padding: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  name: { color: '#f5c518', fontFamily: 'monospace', fontSize: 15, fontWeight: 'bold', flex: 1 },
+  level: { color: '#aaaaaa', fontFamily: 'monospace', fontSize: 14 },
+  label: { color: '#aaaaaa', fontFamily: 'monospace', fontSize: 14, width: 28 },
+  barOuter: { flex: 1, height: 10, backgroundColor: '#333333', borderRadius: 0, borderWidth: 1, borderColor: '#000000', overflow: 'hidden', marginHorizontal: 4 },
   barFill: { height: '100%', borderRadius: 0 },
-  hpText: { color: '#ffffff', fontFamily: 'monospace', fontSize: 10, width: 48, textAlign: 'right' },
-  xpText: { color: '#7ec8e3', fontFamily: 'monospace', fontSize: 10 },
+  hpText: { color: '#ffffff', fontFamily: 'monospace', fontSize: 14, width: 56, textAlign: 'right' },
+  xpText: { color: '#7ec8e3', fontFamily: 'monospace', fontSize: 14 },
 })

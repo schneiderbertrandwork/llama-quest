@@ -32,10 +32,26 @@ function c(cx: number, cy: number, radius: number, color: string): TileShape {
   return { kind: 'circle', cx, cy, r: radius, color }
 }
 
-function getTextureShapes(type: TileType, sx: number, sy: number, ts: number): TileShape[] {
+function getTextureShapes(
+  type: TileType, sx: number, sy: number, ts: number,
+  tx: number, ty: number, grid: TileGrid,
+): TileShape[] {
   switch (type) {
-    case 'grass':
-      return []
+    case 'grass': {
+      // Scattered grass blade marks — no full-width bands that tile visibly
+      const blade = '#26a018'
+      const hi = '#4ed030'
+      const bh = Math.max(3, Math.floor(ts * 0.18))
+      const bw = Math.max(2, Math.floor(ts * 0.05))
+      const m = (dx: number, dy: number): TileShape =>
+        r(sx + Math.floor(ts * dx), sy + Math.floor(ts * dy), bw, bh, blade)
+      const h = (dx: number, dy: number): TileShape =>
+        r(sx + Math.floor(ts * dx), sy + Math.floor(ts * dy), bw + 1, Math.floor(bh * 0.5), hi)
+      return [
+        m(0.12, 0.22), m(0.38, 0.50), m(0.65, 0.28), m(0.80, 0.65), m(0.25, 0.72),
+        h(0.50, 0.15), h(0.70, 0.55),
+      ]
+    }
 
     case 'forest': {
       // Earthbound-style tree: brown trunk + three-lobed leafy canopy
@@ -81,13 +97,51 @@ function getTextureShapes(type: TileType, sx: number, sy: number, ts: number): T
     }
 
     case 'building_wall': {
-      // Cream plaster wall with horizontal mortar lines (Earthbound building style)
-      const lineColor = '#a89878'
+      const above = tileAt(grid, tx, ty - 1)
+      const below = tileAt(grid, tx, ty + 1)
+      const isTop = !above || above.type !== 'building_wall'
+      const isMiddle = !isTop && below != null && (below.type === 'building_wall' || below.type === 'door')
+      const sw = Math.max(3, Math.floor(ts * 0.08))
+
+      if (isTop) {
+        // Terra-cotta roof tile (Earthbound style)
+        const roofH = Math.floor(ts * 0.42)
+        return [
+          r(sx, sy, ts, roofH, '#c84828'),                                    // roof body
+          r(sx, sy, ts, 3, '#5a2010'),                                         // dark ridge
+          r(sx, sy + roofH - 4, ts, 4, '#a03818'),                            // roof eave shadow
+          r(sx, sy + roofH, ts, 2, '#8a6840'),                                // roof-to-wall seam
+          r(sx, sy + Math.floor(ts * 0.74), ts, 2, '#9a7850'),               // lower siding
+          r(sx + ts - sw, sy + roofH, sw, ts - roofH, '#b4a480'),            // right shadow
+        ]
+      }
+
+      if (isMiddle) {
+        // Middle wall row: siding + centered window
+        const ww = Math.floor(ts * 0.46)
+        const wh = Math.floor(ts * 0.38)
+        const wx = sx + Math.floor((ts - ww) / 2)
+        const wy = sy + Math.floor(ts * 0.28)
+        const aboveDoor = below?.type === 'door'
+        return [
+          r(sx, sy + Math.floor(ts * 0.33), ts, 2, '#9a7850'),               // upper siding
+          r(sx, sy + Math.floor(ts * 0.67), ts, 2, '#9a7850'),               // lower siding
+          r(sx + ts - sw, sy, sw, ts, '#b4a480'),                             // right shadow
+          // Window (omit on column directly above door)
+          ...(!aboveDoor ? [
+            r(wx, wy, ww, wh, '#3a3860'),                                     // frame
+            r(wx + 2, wy + 2, ww - 4, wh - 4, '#90b8e0'),                   // glass
+            r(wx + 2, wy + 2, Math.floor((ww - 5) / 2), wh - 4, '#c0d8ff'), // left pane highlight
+            r(wx + Math.floor(ww / 2), wy + 2, 2, wh - 4, '#3a3860'),       // vertical divider
+          ] : []),
+        ]
+      }
+
+      // Bottom wall row: plain siding only
       return [
-        r(sx, sy + ts * 0.33, ts, 2, lineColor),
-        r(sx, sy + ts * 0.66, ts, 2, lineColor),
-        // Top edge: slightly darker overhang hint
-        r(sx, sy, ts, 5, '#b0a088'),
+        r(sx, sy + Math.floor(ts * 0.33), ts, 2, '#9a7850'),
+        r(sx, sy + Math.floor(ts * 0.67), ts, 2, '#9a7850'),
+        r(sx + ts - sw, sy, sw, ts, '#b4a480'),
       ]
     }
 
@@ -139,7 +193,7 @@ export function TilemapRenderer({ grid, camera, tileSize, width, height }: Tilem
         const sx = tx * tileSize - camera.x
         const sy = ty * tileSize - camera.y
         shapes.push({ kind: 'rect', x: sx, y: sy, w: tileSize, h: tileSize, color: TILE_BASE[tile.type] })
-        for (const s of getTextureShapes(tile.type, sx, sy, tileSize)) shapes.push(s)
+        for (const s of getTextureShapes(tile.type, sx, sy, tileSize, tx, ty, grid)) shapes.push(s)
       }
     }
     return shapes
