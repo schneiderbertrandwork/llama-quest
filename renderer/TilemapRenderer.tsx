@@ -20,17 +20,8 @@ interface TileRect {
 
 function getTextureRects(type: TileType, sx: number, sy: number, ts: number, grassPhase: number): TileRect[] {
   switch (type) {
-    case 'grass': {
-      // Animated: phase 0 = normal dots, phase 1 = dots shifted 1px east (wind shimmer)
-      const shift = (grassPhase % 2 === 1) ? 1 : 0
-      const rects: TileRect[] = []
-      for (let dy = 0; dy < ts; dy += 8) {
-        for (let dx = 0; dx < ts; dx += 8) {
-          rects.push({ x: sx + dx + shift, y: sy + dy, w: 1, h: 1, color: '#3a7022' })
-        }
-      }
-      return rects
-    }
+    case 'grass':
+      return []
     case 'path':
       return [{ x: sx, y: sy + ts / 2, w: ts, h: 1, color: '#7a6347' }]
     case 'forest':

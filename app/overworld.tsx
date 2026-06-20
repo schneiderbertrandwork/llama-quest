@@ -17,7 +17,7 @@ import { SafeAreaWrapper } from '../components/SafeAreaWrapper'
 import { TouchDpad } from '../components/TouchDpad'
 import type { Entity } from '../engine/entity'
 
-const TILE_SIZE = 32
+const TILE_SIZE = 64
 
 export default function OverworldScreen() {
   const { width, height } = useWindowDimensions()

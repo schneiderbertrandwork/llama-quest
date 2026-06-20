@@ -17,7 +17,7 @@ import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'
 import { TouchDpad } from '../../components/TouchDpad'
 import type { Entity } from '../../engine/entity'
 
-const TILE_SIZE = 32
+const TILE_SIZE = 64
 
 const CITY_ACT: Record<string, 1 | 2 | 3 | 4> = {
   overworld: 1, llamatown: 1, forge: 2, vale: 3, ridge: 4,

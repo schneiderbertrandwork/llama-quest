@@ -25,6 +25,16 @@ export interface CityDef {
   gateExit: { x: number; y: number; destination: CityId | 'overworld' }
 }
 
+function house(g: TileGrid, x: number, y: number, w: number, h: number): void {
+  const doorX = x + Math.floor(w / 2)
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) {
+      const isBottomRow = dy === h - 1
+      setTile(g, x + dx, y + dy, isBottomRow && (x + dx === doorX) ? 'door' : 'building_wall')
+    }
+  }
+}
+
 function buildOverworldGrid(): TileGrid {
   const g = makeGrid(400, 300, 'grass')
 
@@ -82,6 +92,39 @@ function buildOverworldGrid(): TileGrid {
 
   // ── Small pond ────────────────────────────────────────────────
   for (let x = 340; x <= 350; x++) for (let y = 200; y <= 210; y++) setTile(g, x, y, 'water')
+
+  // ── Llamatown village — houses flanking the N road (x=50-51) ─
+  // West side:  FOREST(35-41) | gap | HOUSES(43-46) | gap | ROAD(50-51)
+  // East side:  ROAD(50-51) | gap | HOUSES(54-57) | gap | FOREST(59-65)
+  house(g, 43, 141, 4, 3)  // W near main road junction
+  house(g, 43, 127, 4, 3)  // W mid-road
+  house(g, 43, 113, 4, 3)  // W north village
+  house(g, 54, 141, 4, 3)  // E near main road junction
+  house(g, 54, 127, 4, 3)  // E mid-road
+  house(g, 54, 113, 4, 3)  // E north village
+  // South of main road
+  house(g, 43, 151, 4, 3)
+  house(g, 54, 151, 4, 3)
+
+  // ── Forest corridors flanking Llamatown road ──────────────────
+  // Stop at y=147 — road path tiles at y=148 must not be overwritten
+  for (let x = 35; x <= 41; x++) for (let y = 108; y <= 147; y++) setTile(g, x, y, 'forest')
+  for (let x = 59; x <= 65; x++) for (let y = 108; y <= 147; y++) setTile(g, x, y, 'forest')
+
+  // ── Forest framing the main road near spawn ───────────────────
+  // North of E-W road, west of Llamatown junction
+  for (let x = 10; x <= 34; x++) for (let y = 130; y <= 147; y++) setTile(g, x, y, 'forest')
+  // North of E-W road, east of Llamatown junction
+  for (let x = 66; x <= 100; x++) for (let y = 130; y <= 147; y++) setTile(g, x, y, 'forest')
+  // South of E-W road, west side
+  for (let x = 10; x <= 34; x++) for (let y = 152; y <= 170; y++) setTile(g, x, y, 'forest')
+  // South of E-W road, east side — skip x=90-91 (SW road to The Convergence)
+  for (let x = 66; x <= 88; x++) for (let y = 152; y <= 170; y++) setTile(g, x, y, 'forest')
+  for (let x = 93; x <= 100; x++) for (let y = 152; y <= 170; y++) setTile(g, x, y, 'forest')
+
+  // ── Additional scenic clusters (river area, NE forest) ────────
+  for (let x = 215; x <= 240; x++) for (let y = 130; y <= 147; y++) setTile(g, x, y, 'forest')
+  for (let x = 215; x <= 240; x++) for (let y = 152; y <= 170; y++) setTile(g, x, y, 'forest')
 
   return g
 }
@@ -149,6 +192,9 @@ export const OVERWORLD: CityDef = {
     c('critter-butterfly-2', 200, 60, 'butterfly', 8, 1.5),
     c('critter-butterfly-3', 290, 250, 'butterfly', 8, 3.0),
     c('critter-butterfly-4', 140, 260, 'butterfly', 8, 4.5),
+    // Near spawn — visible at startup
+    c('critter-rabbit-5', 46, 144, 'rabbit', 3),
+    c('critter-butterfly-5', 57, 145, 'butterfly', 5, 0.8),
   ],
   gateExit: { x: 0, y: 0, destination: 'llamatown' },
 }
