@@ -37,7 +37,25 @@ const SKIA_WEB_PATCH = path.join(__dirname, 'patches/SkiaWeb.js')
 config.resolver = {
   ...config.resolver,
   resolveRequest: (context, moduleName, platform) => {
+    // canvaskit-wasm is the WASM Skia loader — only valid on web.
+    // On Android/iOS, @shopify/react-native-skia uses native C++ Skia instead.
+    // Metro statically bundles all dynamic imports, so we must stub this out
+    // before canvaskit.js reaches Metro's resolver with its require('fs') call.
+    if (platform !== 'web' && moduleName.includes('canvaskit-wasm')) {
+      return { type: 'empty' }
+    }
+
     const resolution = context.resolveRequest(context, moduleName, platform)
+
+    // Also catch any resolved file inside the canvaskit-wasm package
+    if (
+      platform !== 'web' &&
+      resolution.type === 'sourceFile' &&
+      resolution.filePath.replace(/\\/g, '/').includes('canvaskit-wasm')
+    ) {
+      return { type: 'empty' }
+    }
+
     if (
       platform === 'web' &&
       resolution.type === 'sourceFile' &&
