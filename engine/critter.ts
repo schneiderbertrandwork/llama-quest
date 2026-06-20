@@ -1,5 +1,7 @@
 import type { Entity } from './entity'
 import type { CritterData } from './entity'
+import type { TileGrid } from './tilemap'
+import { tileAt, isWalkable } from './tilemap'
 
 function dist(ax: number, ay: number, bx: number, by: number): number {
   return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2)
@@ -9,7 +11,7 @@ function randomInRange(min: number, max: number): number {
   return min + Math.random() * (max - min)
 }
 
-export function tickCritter(entity: Entity, dt: number): Entity {
+export function tickCritter(entity: Entity, dt: number, grid?: TileGrid): Entity {
   const cd = entity.data as unknown as CritterData
 
   // Paused — count down timer
@@ -54,6 +56,24 @@ export function tickCritter(entity: Entity, dt: number): Entity {
   const step = Math.min(cd.speed * dt, d)
   const newX = entity.x + (dx / d) * step
   const newY = entity.y + (dy / d) * step
+
+  // Abort and pick new target if stepping into a non-walkable tile
+  if (grid) {
+    const tile = tileAt(grid, Math.floor(newX), Math.floor(newY))
+    if (!tile || !isWalkable(tile)) {
+      const angle = Math.random() * Math.PI * 2
+      const radius = Math.random() * cd.wanderRadius * 0.5
+      return {
+        ...entity,
+        data: {
+          ...entity.data,
+          targetX: cd.homeX + Math.cos(angle) * radius,
+          targetY: cd.homeY + Math.sin(angle) * radius,
+          pauseTimer: 1.0,
+        } as unknown as Record<string, unknown>,
+      }
+    }
+  }
 
   return { ...entity, x: newX, y: newY }
 }

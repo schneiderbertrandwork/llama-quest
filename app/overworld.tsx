@@ -50,7 +50,7 @@ export default function OverworldScreen() {
     const moved = movePlayer(prev, input.current!, OVERWORLD.grid, dt)
     playerRef.current = moved
     setPlayerState({ ...moved })
-    setCritters((prev) => prev.map((c) => tickCritter(c, dt)))
+    setCritters((prev) => prev.map((c) => tickCritter(c, dt, OVERWORLD.grid)))
 
     const nearby = nearestInteractable(OVERWORLD.entities, moved.x, moved.y)
     setNearbyLabel(nearby ? `[E] ${nearby.type === 'building_entrance' ? 'Enter' : 'Talk'}` : null)
