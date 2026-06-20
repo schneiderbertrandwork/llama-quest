@@ -4,6 +4,8 @@ import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
 import { useGameStore } from '../store/game-store'
 import type { PlayerClass } from '../store/game-store'
+import { PixelArt } from '../components/PixelArt'
+import { TITLE_LLAMA } from '../content/sprites'
 
 const CLASSES: { id: PlayerClass; label: string; desc: string }[] = [
   { id: 'Tinkerer', label: 'TINKERER', desc: 'A hands-on builder. Extra XP from sandboxes.' },
@@ -27,6 +29,13 @@ export default function TitleScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>LLAMA QUEST</Text>
       <Text style={styles.subtitle}>A Learning RPG</Text>
+
+      <PixelArt
+        pixels={TITLE_LLAMA.pixels}
+        size={TITLE_LLAMA.size}
+        scale={8}
+        testID="title-llama"
+      />
 
       <Text style={styles.label}>YOUR NAME</Text>
       <TextInput
@@ -68,7 +77,7 @@ export default function TitleScreen() {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: '#0d0d1a', alignItems: 'center', justifyContent: 'center', padding: 24 },
   title: { color: '#f5c518', fontFamily: 'monospace', fontSize: 28, fontWeight: 'bold', letterSpacing: 4, marginBottom: 4 },
-  subtitle: { color: '#7ec8e3', fontFamily: 'monospace', fontSize: 13, marginBottom: 32 },
+  subtitle: { color: '#7ec8e3', fontFamily: 'monospace', fontSize: 13, marginBottom: 16 },
   label: { color: '#c0a060', fontFamily: 'monospace', fontSize: 11, alignSelf: 'flex-start', marginBottom: 6, marginTop: 12, letterSpacing: 2 },
   input: { backgroundColor: '#1a1a2e', borderWidth: 2, borderColor: '#c0a060', borderRadius: 4, color: '#fff', fontFamily: 'monospace', fontSize: 16, paddingHorizontal: 12, paddingVertical: 8, width: '100%', maxWidth: 320 },
   classBtn: { width: '100%', maxWidth: 320, backgroundColor: '#1a1a2e', borderWidth: 2, borderColor: '#444', borderRadius: 4, padding: 12, marginBottom: 8 },
