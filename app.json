@@ -3,15 +3,23 @@
     "name": "Llama Quest",
     "slug": "llama-quest",
     "version": "1.0.0",
+    "description": "An Earthbound-style RPG that teaches local AI fundamentals: Ollama, ChromaDB, and RAG through city exploration, turn-based battles, and hands-on sandbox labs.",
     "scheme": "llama-quest",
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/favicon.png"
     },
+    "ios": {
+      "bundleIdentifier": "com.llamaquest.app"
+    },
+    "android": {
+      "package": "com.llamaquest.app"
+    },
     "plugins": [
       "expo-router",
-      "expo-av"
+      "expo-av",
+      "expo-haptics"
     ],
     "experiments": {
       "typedRoutes": true
