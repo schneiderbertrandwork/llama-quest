@@ -12,10 +12,10 @@ module.exports = {
     },
   },
   devices: {
-    // CI: Android 34 emulator (Pixel_4_API_34 AVD) — used in e2e-android.yml
+    // CI: android-emulator-runner@v2 names the AVD "test" by default
     emulator: {
       type: 'android.emulator',
-      device: { avdName: 'Pixel_4_API_34' },
+      device: { avdName: 'test' },
     },
     // Local: physical Android device connected via USB with USB Debugging enabled
     // Note: emulator cannot run locally (netsimd.exe blocked by corporate network)
