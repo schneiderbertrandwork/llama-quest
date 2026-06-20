@@ -45,8 +45,10 @@ jobs:
       - name: Get build artifact URL
         id: build-url
         run: |
-          URL=$(eas build:list --platform android --limit 1 --json --non-interactive | jq -r '.[0].artifacts.buildUrl // empty')
+          URL=$(eas build:list --platform android --limit 1 --json --non-interactive 2>/dev/null | jq -r '.[0].artifacts.buildUrl // empty' 2>/dev/null || echo "")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Download APK
         if: steps.build-url.outputs.url != ''
