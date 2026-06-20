@@ -7,7 +7,7 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -38,6 +38,22 @@ jobs:
         # subproject's test APK (including expo-dev-client) which fails on duplicate
         # META-INF/LICENSE.md files from JUnit Jupiter JARs. Detox only needs :app.
         run: cd android && ./gradlew :app:assembleDebug :app:assembleAndroidTest -DtestBuildType=debug
+
+      - name: Start Metro bundler in background
+        # expo-dev-client loads the JS bundle from Metro at runtime.
+        # Without Metro running, the app shows "Connect to development server"
+        # and Detox can never find game UI elements.
+        # The emulator reaches the host's Metro at 10.0.2.2:8081.
+        run: |
+          EXPO_NO_TELEMETRY=1 npx expo start --port 8081 --non-interactive &
+          echo "Waiting for Metro to be ready on port 8081..."
+          for i in $(seq 1 45); do
+            if curl -sf http://localhost:8081/status > /dev/null 2>&1; then
+              echo "Metro ready after ${i}x2 seconds"
+              break
+            fi
+            sleep 2
+          done
 
       - name: Run Detox E2E tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
