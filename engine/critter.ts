@@ -1,7 +1,7 @@
 import type { Entity } from './entity'
 import type { CritterData } from './entity'
 import type { TileGrid } from './tilemap'
-import { tileAt, isWalkable } from './tilemap'
+import { tileAt } from './tilemap'
 
 function dist(ax: number, ay: number, bx: number, by: number): number {
   return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2)
@@ -60,7 +60,7 @@ export function tickCritter(entity: Entity, dt: number, grid?: TileGrid): Entity
   // Abort and pick new target if stepping into a non-walkable tile
   if (grid) {
     const tile = tileAt(grid, Math.floor(newX), Math.floor(newY))
-    if (!tile || !isWalkable(tile)) {
+    if (!tile || !tile.walkable) {
       const angle = Math.random() * Math.PI * 2
       const radius = Math.random() * cd.wanderRadius * 0.5
       return {
