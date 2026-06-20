@@ -42,3 +42,6 @@ yarn-error.*
 
 # git worktrees
 .worktrees/
+
+# Detox E2E artifacts
+e2e/artifacts/

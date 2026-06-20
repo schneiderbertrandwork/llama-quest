@@ -39,6 +39,7 @@ export default function TitleScreen() {
 
       <Text style={styles.label}>YOUR NAME</Text>
       <TextInput
+        testID="name-input"
         style={styles.input}
         value={name}
         onChangeText={setName}
@@ -52,6 +53,7 @@ export default function TitleScreen() {
       {CLASSES.map((c) => (
         <TouchableOpacity
           key={c.id}
+          testID={`class-${c.id.toLowerCase()}`}
           style={[styles.classBtn, cls === c.id && styles.classBtnActive]}
           onPress={() => {
             if (Platform.OS !== 'web') Haptics.selectionAsync()
@@ -64,6 +66,7 @@ export default function TitleScreen() {
       ))}
 
       <TouchableOpacity
+        testID="start-game-btn"
         style={[styles.startBtn, !name.trim() && styles.startBtnDisabled]}
         onPress={handleStart}
         disabled={!name.trim()}

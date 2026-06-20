@@ -8,7 +8,7 @@ export function HUD() {
   const hpBarColor = hpPercent > 0.5 ? '#4caf50' : hpPercent > 0.25 ? '#ff9800' : '#f44336'
 
   return (
-    <View style={styles.outerBorder} pointerEvents="none">
+    <View testID="hud" style={styles.outerBorder} pointerEvents="none">
       <View style={styles.gap}>
         <View style={styles.innerBorder}>
           <View style={styles.row}>
