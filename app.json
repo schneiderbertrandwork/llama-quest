@@ -18,8 +18,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-av",
-      "expo-haptics"
+      "expo-av"
     ],
     "experiments": {
       "typedRoutes": true
