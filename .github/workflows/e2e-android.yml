@@ -54,13 +54,9 @@ jobs:
           # at emulator-5554 that android-emulator-runner already booted, instead of
           # trying to start a second emulator (which fails: no KVM on CI runner).
           # The emulator reaches the host Metro server at 10.0.2.2:8081.
-          script: |
-            EXPO_NO_TELEMETRY=1 npx expo start --port 8081 --non-interactive &
-            for i in $(seq 1 45); do
-              curl -sf http://localhost:8081/status > /dev/null 2>&1 && echo "Metro ready" && break
-              sleep 2
-            done
-            npx detox test -c android.device.debug --headless --record-logs failing
+          # Script is a separate file to avoid android-emulator-runner running each
+          # YAML line as a separate sh -c call (which breaks multi-line for loops).
+          script: bash e2e/run-detox.sh
 
       - name: Upload Detox artifacts on failure
         if: failure()
