@@ -47,6 +47,7 @@ jobs:
           target: google_apis
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
+          boot-timeout: 1200
           # Metro starts INSIDE the script (after the emulator has fully booted) so it
           # doesn't compete with the emulator for CPU/RAM during the slow boot phase.
           # android.device.debug uses android.attached — Detox attaches to the emulator
