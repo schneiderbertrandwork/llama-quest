@@ -7,7 +7,10 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # Cold Metro transformer cache: build 12min + emulator boot 14min + pre-warm 30min
+    # + 3 suites × (launchApp 20min + 5 tests × 1min) = 131min worst case.
+    # Warm cache (subsequent runs): ~50min total.
+    timeout-minutes: 180
 
     steps:
       - name: Checkout
