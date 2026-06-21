@@ -54,7 +54,9 @@ jobs:
   e2e:
     needs: warm-metro-cache
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Metro bundle assembly takes 10-30 min even with warm transformer cache.
+    # golden-path beforeAll waits up to 20 min for bundle → total session ~100 min.
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4

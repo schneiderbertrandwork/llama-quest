@@ -3,9 +3,10 @@ module.exports = {
   testRunner: {
     args: { $0: 'jest', config: 'e2e/jest.config.js' },
     // setupTimeout: session-level timer from Jest start. SIGTERMs all Jest workers
-    // if the entire session exceeds this. With warm Metro cache, all 3 suites
-    // (golden-path + travel + battle) complete in ~30-35 min.
-    jest: { setupTimeout: 3600000 }, // 1 hour — 2x margin over expected ~30min
+    // if the entire session exceeds this. Metro bundle assembly takes 10-30 min even
+    // with a warm transformer cache; golden-path beforeAll consumes most of that budget.
+    // 2 hours gives battle ample time after golden-path + travel finish.
+    jest: { setupTimeout: 7200000 }, // 2 hours
   },
   apps: {
     'android.debug': {
