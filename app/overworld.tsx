@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Text, TouchableOpacity, StyleSheet, useWindowDimensions, Platform } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useFocusEffect } from 'expo-router'
 import { AudioManager } from '../audio/AudioManager'
 import { WorldRenderer } from '../renderer/WorldRenderer'
 import { HUD } from '../components/HUD'
@@ -37,11 +37,20 @@ export default function OverworldScreen() {
   const { input } = usePlayerInput()
   const encounterCooldown = useRef(90)
   const timeRef = useRef(0)
+  const navigatingRef = useRef(false)
 
   useEffect(() => {
     AudioManager.play('overworld')
     return () => AudioManager.stop()
   }, [])
+
+  // Reset navigation guard when screen re-focuses (e.g. returning from battle).
+  // Delay 600ms to let the Skia canvas surface re-initialize before new encounters can fire.
+  useFocusEffect(useCallback(() => {
+    navigatingRef.current = true
+    const t = setTimeout(() => { navigatingRef.current = false }, 600)
+    return () => clearTimeout(t)
+  }, []))
 
   useGameLoop(useCallback((dt) => {
     timeRef.current += dt * 1000
@@ -64,11 +73,12 @@ export default function OverworldScreen() {
     if (stepped) {
       if (encounterCooldown.current > 0) {
         encounterCooldown.current -= 1
-      } else if (Math.random() < 0.06) {
+      } else if (!navigatingRef.current && Math.random() < 0.06) {
         const enemies = getEnemiesForAct(1)
         const enemy = enemies[Math.floor(Math.random() * enemies.length)]
         if (enemy) {
           encounterCooldown.current = 90
+          navigatingRef.current = true
           router.push(`/battle?enemyId=${enemy.id}`)
         }
       }
