@@ -11,10 +11,7 @@ async function goToOverworld() {
 
 describe('Travel — Overworld gate to Llamatown', () => {
   beforeAll(async () => {
-    // Give launchApp + goToOverworld up to 20 min — cold Metro cache can leave
-    // 15+ min of compilation after the pre-warm, and launchApp blocks until the
-    // Detox client (inside the RN bundle) connects.
-    jest.setTimeout(1200000)
+    jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s
     await device.launchApp({
       newInstance: true,
       url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',

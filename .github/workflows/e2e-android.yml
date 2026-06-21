@@ -5,30 +5,70 @@ on:
   workflow_dispatch:
 
 jobs:
-  e2e:
+  # Job 1: Ensure the Metro transformer cache is warm before the emulator runs.
+  # Node-only — no Android SDK, no emulator.
+  # Cache hit: completes in <2 min.
+  # Cache miss: starts Metro, requests the full Android bundle (~30 min), saves cache.
+  # The e2e job cannot start until this job succeeds.
+  warm-metro-cache:
     runs-on: ubuntu-latest
-    # Cold Metro transformer cache: build 12min + emulator boot 14min + pre-warm 30min
-    # + 3 suites × (launchApp 20min + 5 tests × 1min) = 131min worst case.
-    # Warm cache (subsequent runs): ~50min total.
-    timeout-minutes: 180
-
+    timeout-minutes: 60
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node 22
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Restore Metro transformer cache
+        id: metro-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/metro-*
+          key: metro-${{ hashFiles('package-lock.json', 'metro.config.js', 'babel.config.js') }}
+          restore-keys: metro-
+
+      - name: Warm Metro bundle (cache miss only)
+        if: steps.metro-cache.outputs.cache-hit != 'true'
+        run: |
+          CI=1 EXPO_NO_TELEMETRY=1 npx expo start --port 8081 &
+          METRO_PID=$!
+          for i in $(seq 1 45); do
+            curl -sf http://localhost:8081/status > /dev/null 2>&1 && echo "Metro ready after ${i} attempts" && break
+            sleep 2
+          done
+          echo "Requesting Android bundle to populate Metro transformer cache..."
+          curl -sf "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
+            -o /dev/null --max-time 2400 \
+            && echo "Bundle warmed successfully" \
+            || echo "WARNING: bundle warm timed out — Metro cache still partially populated"
+          kill $METRO_PID 2>/dev/null || true
+        # actions/cache post-step automatically saves /tmp/metro-* after this job.
+
+  # Job 2: Build APK and run Detox E2E tests.
+  # Restores the warm Metro cache guaranteed by Job 1.
+  # Bundle serves in ~30s. All 3 suites complete in ~30-40 min.
+  e2e:
+    needs: warm-metro-cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -42,7 +82,7 @@ jobs:
         # META-INF/LICENSE.md files from JUnit Jupiter JARs. Detox only needs :app.
         run: cd android && ./gradlew :app:assembleDebug :app:assembleAndroidTest -DtestBuildType=debug
 
-      - name: Cache Metro transformer cache
+      - name: Restore Metro transformer cache
         uses: actions/cache@v4
         with:
           path: /tmp/metro-*
@@ -58,14 +98,9 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           emulator-boot-timeout: 1200
-          # Metro starts INSIDE the script (after the emulator has fully booted) so it
-          # doesn't compete with the emulator for CPU/RAM during the slow boot phase.
+          # Metro starts INSIDE the script (after emulator has fully booted).
           # android.device.debug uses android.attached — Detox attaches to the emulator
-          # at emulator-5554 that android-emulator-runner already booted, instead of
-          # trying to start a second emulator (which fails: no KVM on CI runner).
-          # The emulator reaches the host Metro server at 10.0.2.2:8081.
-          # Script is a separate file to avoid android-emulator-runner running each
-          # YAML line as a separate sh -c call (which breaks multi-line for loops).
+          # at emulator-5554 that android-emulator-runner already booted.
           script: bash e2e/run-detox.sh
 
       - name: Upload Detox artifacts on failure

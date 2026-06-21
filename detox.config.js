@@ -2,12 +2,10 @@
 module.exports = {
   testRunner: {
     args: { $0: 'jest', config: 'e2e/jest.config.js' },
-    // setupTimeout controls Detox's globalSetup timeout AND the session-level
-    // timer that SIGTERMs Jest workers after N ms from session start.
-    // Cold Metro cache: golden-path (~5min) + travel (~8min) = 13min before battle
-    // starts. The old 600000 (10min) fired SIGTERM 2min into battle.
-    // Set to 7200000 (2h) — effectively "no session limit" for CI.
-    jest: { setupTimeout: 7200000 },
+    // setupTimeout: session-level timer from Jest start. SIGTERMs all Jest workers
+    // if the entire session exceeds this. With warm Metro cache, all 3 suites
+    // (golden-path + travel + battle) complete in ~30-35 min.
+    jest: { setupTimeout: 3600000 }, // 1 hour — 2x margin over expected ~30min
   },
   apps: {
     'android.debug': {

@@ -2,10 +2,7 @@ import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
 
 describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
-    // Give launchApp up to 20 min — on a cold Metro transformer cache, bundle
-    // compilation takes 25-35 min; launchApp waits for the Detox client (in the
-    // RN layer) to connect, which only happens after the bundle finishes loading.
-    jest.setTimeout(1200000)
+    jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s
     await device.launchApp({
       newInstance: true,
       url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
