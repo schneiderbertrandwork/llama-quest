@@ -2,8 +2,10 @@ import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
 
 describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
-    // Deep link auto-connects expo-dev-client to Metro (pre-warmed bundle loads instantly).
-    // Without the URL, expo-dev-client shows "Connect to Dev Server" and Detox SIGTERMs.
+    // Give launchApp up to 20 min — on a cold Metro transformer cache, bundle
+    // compilation takes 25-35 min; launchApp waits for the Detox client (in the
+    // RN layer) to connect, which only happens after the bundle finishes loading.
+    jest.setTimeout(1200000)
     await device.launchApp({
       newInstance: true,
       url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
@@ -12,6 +14,7 @@ describe('Llama Quest — Golden Path', () => {
     // wait forever (app is never "idle"). Disable it here; tests use explicit waitFor
     // timeouts instead.
     await device.disableSynchronization()
+    jest.setTimeout(60000) // individual tests need at most ~60s
   })
 
   afterAll(async () => {

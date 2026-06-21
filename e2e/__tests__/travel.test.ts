@@ -11,7 +11,10 @@ async function goToOverworld() {
 
 describe('Travel — Overworld gate to Llamatown', () => {
   beforeAll(async () => {
-    // Deep link auto-connects expo-dev-client to Metro (pre-warmed bundle loads instantly).
+    // Give launchApp + goToOverworld up to 20 min — cold Metro cache can leave
+    // 15+ min of compilation after the pre-warm, and launchApp blocks until the
+    // Detox client (inside the RN bundle) connects.
+    jest.setTimeout(1200000)
     await device.launchApp({
       newInstance: true,
       url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
@@ -20,6 +23,7 @@ describe('Travel — Overworld gate to Llamatown', () => {
     // game loop runs — otherwise Detox waits forever for the app to become idle.
     await device.disableSynchronization()
     await goToOverworld()
+    jest.setTimeout(60000) // individual tests need at most ~60s
   })
 
   afterAll(async () => {
