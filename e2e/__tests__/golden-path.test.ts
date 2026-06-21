@@ -2,7 +2,12 @@ import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
 
 describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
-    await device.launchApp({ newInstance: true })
+    // Deep link auto-connects expo-dev-client to Metro (pre-warmed bundle loads instantly).
+    // Without the URL, expo-dev-client shows "Connect to Dev Server" and Detox SIGTERMs.
+    await device.launchApp({
+      newInstance: true,
+      url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
+    })
   })
 
   afterAll(async () => {

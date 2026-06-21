@@ -11,7 +11,11 @@ async function goToOverworld() {
 
 describe('Travel — Overworld gate to Llamatown', () => {
   beforeAll(async () => {
-    await device.launchApp({ newInstance: true })
+    // Deep link auto-connects expo-dev-client to Metro (pre-warmed bundle loads instantly).
+    await device.launchApp({
+      newInstance: true,
+      url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
+    })
     await goToOverworld()
   })
 
