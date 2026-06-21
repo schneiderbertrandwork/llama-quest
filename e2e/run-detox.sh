@@ -17,15 +17,16 @@ done
 adb reverse tcp:8081 tcp:8081
 echo "ADB reverse: emulator localhost:8081 → host:8081"
 
-# Pre-warm the Metro JS bundle (first compile takes 6-10 min on a 2-CPU CI runner).
-# The URL /index.bundle is correct for Expo managed apps — curl returns non-zero
-# immediately on 404 (with -f), so a timeout here means it IS compiling.
-# When Detox launches the app via deep link, Metro serves the cached bundle instantly.
-echo "Pre-warming Metro bundle — this takes 10-20 min on CI (cold transformer cache)..."
+# Pre-warm the Metro JS bundle. On a cold transformer cache (first CI run after a
+# package.json change) compilation takes 25-35 min on a 2-CPU runner; on a warm
+# cache it's ~30s. Metro holds the connection open until the bundle is ready, so
+# a timeout here means the bundle is still compiling — we proceed anyway because
+# Detox tests have their own waitFor timeouts that handle a slow-loading app.
+echo "Pre-warming Metro bundle (cold: 25-35 min / warm: ~30s)..."
 curl -sf "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
-  -o /dev/null --max-time 1200 \
+  -o /dev/null --max-time 1800 \
   && echo "Bundle pre-warm complete" \
-  || echo "WARNING: bundle pre-warm exceeded 1200s — proceeding anyway"
+  || echo "WARNING: bundle pre-warm exceeded 1800s — proceeding anyway"
 
 # Run Detox E2E tests.
 # Tests use exp+llama-quest:// deep link to auto-connect expo-dev-client to Metro.
