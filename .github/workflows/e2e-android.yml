@@ -39,6 +39,13 @@ jobs:
         # META-INF/LICENSE.md files from JUnit Jupiter JARs. Detox only needs :app.
         run: cd android && ./gradlew :app:assembleDebug :app:assembleAndroidTest -DtestBuildType=debug
 
+      - name: Cache Metro transformer cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/metro-*
+          key: metro-${{ hashFiles('package-lock.json', 'metro.config.js', 'babel.config.js') }}
+          restore-keys: metro-
+
       - name: Run Detox E2E tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
