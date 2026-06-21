@@ -2,8 +2,12 @@
 module.exports = {
   testRunner: {
     args: { $0: 'jest', config: 'e2e/jest.config.js' },
-    // 600 s: APK install + app launch on a KVM-less CI emulator can take > 5 min
-    jest: { setupTimeout: 600000 },
+    // setupTimeout controls Detox's globalSetup timeout AND the session-level
+    // timer that SIGTERMs Jest workers after N ms from session start.
+    // Cold Metro cache: golden-path (~5min) + travel (~8min) = 13min before battle
+    // starts. The old 600000 (10min) fired SIGTERM 2min into battle.
+    // Set to 7200000 (2h) — effectively "no session limit" for CI.
+    jest: { setupTimeout: 7200000 },
   },
   apps: {
     'android.debug': {
