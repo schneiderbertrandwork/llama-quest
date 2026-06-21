@@ -19,9 +19,9 @@ echo "ADB reverse: emulator localhost:8081 → host:8081"
 # 180s ceiling is a safety margin; cold-cache compilation never runs here.
 echo "Pre-warming Metro bundle (warm cache: ~30s)..."
 curl -sf "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
-  -o /dev/null --max-time 180 \
+  -o /dev/null --max-time 600 \
   && echo "Bundle pre-warm complete" \
-  || echo "WARNING: bundle pre-warm exceeded 180s — proceeding"
+  || echo "WARNING: bundle pre-warm exceeded 600s — proceeding"
 
 # Run Detox E2E tests.
 # Tests use exp+llama-quest:// deep link to auto-connect expo-dev-client to Metro.
