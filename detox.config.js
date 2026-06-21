@@ -2,7 +2,8 @@
 module.exports = {
   testRunner: {
     args: { $0: 'jest', config: 'e2e/jest.config.js' },
-    jest: { setupTimeout: 300000 },
+    // 600 s: APK install + app launch on a KVM-less CI emulator can take > 5 min
+    jest: { setupTimeout: 600000 },
   },
   apps: {
     'android.debug': {
