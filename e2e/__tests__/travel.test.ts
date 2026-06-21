@@ -1,10 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
 
-// Must be at module level so the beforeAll hook inherits this timeout.
-// jest.setTimeout() inside a running hook (jest-circus) does not extend
-// the current hook's timeout — it only affects future hooks/tests.
-jest.setTimeout(1200000)
-
 // Helper: go through the title screen so tests start on the overworld.
 async function goToOverworld() {
   await waitFor(element(by.id('name-input'))).toBeVisible().withTimeout(15000)
@@ -24,7 +19,6 @@ describe('Travel — Overworld gate to Llamatown', () => {
     // game loop runs — otherwise Detox waits forever for the app to become idle.
     await device.disableSynchronization()
     await goToOverworld()
-    jest.setTimeout(60000) // individual tests need at most ~60s
   })
 
   afterAll(async () => {

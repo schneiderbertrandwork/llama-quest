@@ -1,10 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
 
-// Must be at module level so the beforeAll hook inherits this timeout.
-// jest.setTimeout() inside a running hook (jest-circus) does not extend
-// the current hook's timeout — it only affects future hooks/tests.
-jest.setTimeout(1200000)
-
 describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
     await device.launchApp({
@@ -15,7 +10,6 @@ describe('Llama Quest — Golden Path', () => {
     // wait forever (app is never "idle"). Disable it here; tests use explicit waitFor
     // timeouts instead.
     await device.disableSynchronization()
-    jest.setTimeout(60000) // individual tests need at most ~60s
   })
 
   afterAll(async () => {
