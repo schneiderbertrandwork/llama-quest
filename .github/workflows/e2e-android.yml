@@ -91,6 +91,21 @@ jobs:
           key: metro-${{ hashFiles('package-lock.json', 'metro.config.js', 'babel.config.js') }}
           restore-keys: metro-
 
+      # Start Metro BEFORE the emulator boots so bundle assembly (10-25 min) runs
+      # in parallel with emulator boot (~14 min). By the time the emulator is ready
+      # and the Detox script starts, most or all of the bundle is already assembled.
+      # Background processes persist across steps on the same runner.
+      - name: Start Metro bundler (assembles bundle during emulator boot)
+        run: |
+          CI=1 EXPO_NO_TELEMETRY=1 npx expo start --port 8081 > /tmp/metro.log 2>&1 &
+          echo $! > /tmp/metro.pid
+          for i in $(seq 1 45); do
+            curl -sf http://localhost:8081/status > /dev/null 2>&1 \
+              && echo "Metro ready after ${i} attempts (PID $(cat /tmp/metro.pid))" && break
+            sleep 2
+          done
+          echo "Bundle assembly running in background — emulator will boot in parallel"
+
       - name: Run Detox E2E tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -100,9 +115,8 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           emulator-boot-timeout: 1200
-          # Metro starts INSIDE the script (after emulator has fully booted).
-          # android.device.debug uses android.attached — Detox attaches to the emulator
-          # at emulator-5554 that android-emulator-runner already booted.
+          # Metro is already running (started before emulator boot).
+          # run-detox.sh detects it via /status and skips the start step.
           script: bash e2e/run-detox.sh
 
       - name: Upload Detox artifacts on failure
