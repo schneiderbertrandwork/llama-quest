@@ -12,6 +12,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Only search the code directly when `Architecture.md` doesn't cover the detail you need.
 
+## Exploration — Keep the Main Context Clean
+
+When investigating something **not directly required** by the current task (e.g., "what URL does expo-dev-client actually request?", "what does this CI log mean?", "how does Metro cache responses?"), **spawn an Agent subagent** instead of exploring inline. The subagent does the investigation and reports back a summary; the main context only sees the conclusion. This prevents exploratory rabbit-holes from filling up the context window.
+
+```
+Agent({
+  description: "Investigate what bundle URL expo-dev-client requests",
+  prompt: "..."   // self-contained question
+})
+```
+
+Reserve inline exploration (Grep, Read, Glob called directly) for lookups that are a single targeted query with a high chance of first-try success.
+
 ---
 
 ## Project Overview
