@@ -45,14 +45,17 @@ if [ "$HTTP_STATUS" != "200" ]; then
   echo "WARNING: pre-warm returned $HTTP_STATUS — bundle may not be cached, tests may timeout"
 fi
 
-# Capture logcat for post-mortem on failure. Tags:
-#   expo-dev-launcher — connection screen logic (will show if deep link is received)
-#   ReactNative/ReactNativeJS — RN bridge + JS console.log
-#   Detox — instrumentation messages
-#   AndroidRuntime:E — crash stack traces
-#   *:S — silence everything else
+# Capture logcat for post-mortem on failure.
+# Tag names are case-sensitive; wrong names silently capture nothing.
+#   ExpoDevLauncher  — expo-dev-client connection screen (receives deep links)
+#   DETOX / DetoxSync — Detox instrumentation messages
+#   ReactNative      — RN native bridge
+#   ReactNativeJS    — JS console.log (older RN) / ReactAndroid (newer)
+#   Hermes           — Hermes JS engine (SDK 52 uses Hermes)
+#   AndroidRuntime:E — JVM crash stack traces
+#   *:S              — silence everything else
 adb logcat -c 2>/dev/null || true
-adb logcat -v time expo-dev-launcher:V ReactNative:V ReactNativeJS:V Detox:V AndroidRuntime:E *:S \
+adb logcat -v time ExpoDevLauncher:V DETOX:V DetoxSync:V ReactNative:V ReactNativeJS:V ReactAndroid:V Hermes:V AndroidRuntime:E *:S \
   > /tmp/logcat.log 2>&1 &
 LOGCAT_PID=$!
 echo "Logcat capture started (PID $LOGCAT_PID)"
