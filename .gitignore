@@ -45,3 +45,6 @@ yarn-error.*
 
 # Detox E2E artifacts
 e2e/artifacts/
+
+# Playwright MCP console logs (auto-generated during web testing sessions)
+.playwright-mcp/
