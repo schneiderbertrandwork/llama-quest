@@ -106,13 +106,18 @@ jobs:
               && echo "Metro ready after ${i} attempts (PID $(cat /tmp/metro.pid))" && break
             sleep 2
           done
-          # Request the bundle in the background — this triggers assembly and keeps the
-          # HTTP connection alive so Metro does not cancel mid-assembly on disconnect.
-          # 7200s ceiling: Metro assembles for the full emulator boot + buffer if needed.
-          curl -sf "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
+          # Request the bundle in the background — triggers assembly immediately.
+          # nohup+disown: survives the step's shell exit so the HTTP connection
+          # stays open during emulator boot (Metro cancels assembly on disconnect).
+          # No -f flag: don't exit on HTTP errors (Metro may return 500 on first
+          # request if a file transform fails; we diagnose this in run-detox.sh).
+          nohup curl -s \
+            "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
             -o /tmp/bundle-prewarm.js \
-            --max-time 7200 &
-          echo "Bundle request started (PID $!) — assembly runs during emulator boot"
+            --max-time 7200 > /tmp/curl-bundle.log 2>&1 &
+          CURL_PID=$!
+          disown $CURL_PID
+          echo "Bundle request started (PID $CURL_PID, disowned) — assembly runs during emulator boot"
 
       - name: Run Detox E2E tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
