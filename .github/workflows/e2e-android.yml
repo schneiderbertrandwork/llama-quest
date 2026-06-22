@@ -129,4 +129,5 @@ jobs:
             e2e/artifacts/
             /tmp/metro.log
             /tmp/bundle-prewarm.log
+            /tmp/logcat.log
           retention-days: 7

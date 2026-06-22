@@ -19,6 +19,16 @@ fi
 adb reverse tcp:8081 tcp:8081
 echo "ADB reverse: emulator localhost:8081 → host:8081"
 
+# Verify emulator can reach Metro on BOTH paths before running tests.
+# expo-dev-client tries http://10.0.2.2:8081 (QEMU gateway from emulator to host).
+# If unreachable, the deep link silently fails and launchApp() times out.
+echo "=== Emulator network connectivity ==="
+echo -n "  10.0.2.2:8081 (QEMU gateway): "
+adb shell "nc -w 3 10.0.2.2 8081 </dev/null > /dev/null 2>&1 && echo OK || echo UNREACHABLE"
+echo -n "  localhost:8081 (ADB reverse):  "
+adb shell "nc -w 3 localhost 8081 </dev/null > /dev/null 2>&1 && echo OK || echo UNREACHABLE"
+echo "==="
+
 # Pre-warm the Metro bundle with the URL expo-dev-client uses.
 # expo-dev-client requests /.expo/.virtual-metro-entry.bundle?platform=android&dev=true&hot=true
 # (Expo's rewriteRequestUrl middleware rewrites this to node_modules/expo-router/entry.bundle).
@@ -35,6 +45,24 @@ if [ "$HTTP_STATUS" != "200" ]; then
   echo "WARNING: pre-warm returned $HTTP_STATUS — bundle may not be cached, tests may timeout"
 fi
 
+# Capture logcat for post-mortem on failure. Tags:
+#   expo-dev-launcher — connection screen logic (will show if deep link is received)
+#   ReactNative/ReactNativeJS — RN bridge + JS console.log
+#   Detox — instrumentation messages
+#   AndroidRuntime:E — crash stack traces
+#   *:S — silence everything else
+adb logcat -c 2>/dev/null || true
+adb logcat -v time expo-dev-launcher:V ReactNative:V ReactNativeJS:V Detox:V AndroidRuntime:E *:S \
+  > /tmp/logcat.log 2>&1 &
+LOGCAT_PID=$!
+echo "Logcat capture started (PID $LOGCAT_PID)"
+
+# Kill logcat on any script exit (success or failure).
+trap 'LINES=$(wc -l < /tmp/logcat.log 2>/dev/null || echo 0); kill '"$LOGCAT_PID"' 2>/dev/null || true; echo "Logcat: $LINES lines saved"' EXIT
+
 # Run Detox E2E tests.
-# With the bundle pre-warmed, expo-dev-client's launchApp() gets an instant cache hit.
+# Each test file's beforeAll() schedules an ADB deep link (setTimeout 10s) that fires
+# while device.launchApp() is awaiting. The deep link uses BROWSABLE + DEFAULT categories,
+# which is what expo-dev-client's intent-filter expects — bypassing Detox's own URL
+# delivery via am instrument (detoxURLOverride) that never reached the connection handler.
 npx detox test -c android.device.debug --headless --record-logs failing
