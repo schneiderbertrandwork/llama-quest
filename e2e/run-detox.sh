@@ -21,14 +21,14 @@ fi
 adb reverse tcp:8081 tcp:8081
 echo "ADB reverse: emulator localhost:8081 → host:8081"
 
-# Wait for the bundle to finish assembling. In CI, Metro has already been
-# running for ~14 min (the emulator boot duration), so the wait is short.
-# 1200s ceiling handles the case where assembly isn't done yet.
+# Wait for the bundle to finish assembling. In CI, Metro has been running since
+# before emulator boot with a live bundle request (~16 min head start).
+# 2400s ceiling: handles bundles up to 56 min total from Metro start.
 echo "Waiting for Metro bundle to be ready..."
 curl -sf "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
-  -o /dev/null --max-time 1200 \
+  -o /dev/null --max-time 2400 \
   && echo "Bundle ready" \
-  || echo "WARNING: bundle not ready after 20 min — proceeding (testTimeout: 1200000 is the fallback)"
+  || echo "WARNING: bundle not ready after 40 min — proceeding (testTimeout: 1200000 is the fallback)"
 
 # Run Detox E2E tests.
 npx detox test -c android.device.debug --headless --record-logs failing

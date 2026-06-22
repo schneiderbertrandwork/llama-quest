@@ -54,9 +54,11 @@ jobs:
   e2e:
     needs: warm-metro-cache
     runs-on: ubuntu-latest
-    # Metro bundle assembly takes 10-30 min even with warm transformer cache.
-    # golden-path beforeAll waits up to 20 min for bundle → total session ~100 min.
-    timeout-minutes: 120
+    # Metro bundle assembly (module resolution + linking) takes 30-50 min on 2-CPU runners
+    # even with warm transformer cache. Metro pre-starts before emulator boot (+14 min),
+    # bundle request fires immediately (+2 min start), so by script time the bundle has
+    # been assembling for ~16 min. Script waits up to 40 more min → handles 56-min bundles.
+    timeout-minutes: 150
 
     steps:
       - uses: actions/checkout@v4
@@ -91,10 +93,10 @@ jobs:
           key: metro-${{ hashFiles('package-lock.json', 'metro.config.js', 'babel.config.js') }}
           restore-keys: metro-
 
-      # Start Metro BEFORE the emulator boots so bundle assembly (10-25 min) runs
-      # in parallel with emulator boot (~14 min). By the time the emulator is ready
-      # and the Detox script starts, most or all of the bundle is already assembled.
-      # Background processes persist across steps on the same runner.
+      # Start Metro BEFORE the emulator boots and immediately request the bundle so
+      # assembly begins during the ~14 min emulator boot. Metro only starts assembling
+      # when a client requests the bundle — just starting the server is not enough.
+      # Background processes (curl + Metro) persist across steps on the same runner.
       - name: Start Metro bundler (assembles bundle during emulator boot)
         run: |
           CI=1 EXPO_NO_TELEMETRY=1 npx expo start --port 8081 > /tmp/metro.log 2>&1 &
@@ -104,7 +106,13 @@ jobs:
               && echo "Metro ready after ${i} attempts (PID $(cat /tmp/metro.pid))" && break
             sleep 2
           done
-          echo "Bundle assembly running in background — emulator will boot in parallel"
+          # Request the bundle in the background — this triggers assembly and keeps the
+          # HTTP connection alive so Metro does not cancel mid-assembly on disconnect.
+          # 7200s ceiling: Metro assembles for the full emulator boot + buffer if needed.
+          curl -sf "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
+            -o /tmp/bundle-prewarm.js \
+            --max-time 7200 &
+          echo "Bundle request started (PID $!) — assembly runs during emulator boot"
 
       - name: Run Detox E2E tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
