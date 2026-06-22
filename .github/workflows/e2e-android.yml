@@ -41,7 +41,9 @@ jobs:
             sleep 2
           done
           echo "Requesting Android bundle to populate Metro transformer cache..."
-          curl -sf "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
+          # package.json main=expo-router/entry — correct bundle URL is /node_modules/expo-router/entry.bundle
+          # /index.bundle returns 404 for this Expo Router project (no index.ts in project root)
+          curl -sf "http://localhost:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true&minify=false" \
             -o /dev/null --max-time 2400 \
             && echo "Bundle warmed successfully" \
             || echo "WARNING: bundle warm timed out — Metro cache still partially populated"
@@ -111,8 +113,11 @@ jobs:
           # stays open during emulator boot (Metro cancels assembly on disconnect).
           # No -f flag: don't exit on HTTP errors (Metro may return 500 on first
           # request if a file transform fails; we diagnose this in run-detox.sh).
+          # Use /node_modules/expo-router/entry.bundle — the correct entry for this
+          # Expo Router project (package.json main=expo-router/entry). /index.bundle
+          # returns 404 because there is no index.ts/js in the project root.
           nohup curl -s \
-            "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
+            "http://localhost:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true&minify=false" \
             -o /tmp/bundle-prewarm.js \
             --max-time 7200 > /tmp/curl-bundle.log 2>&1 &
           CURL_PID=$!
@@ -137,5 +142,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: detox-artifacts
-          path: e2e/artifacts/
+          path: |
+            e2e/artifacts/
+            /tmp/metro.log
+            /tmp/curl-bundle.log
           retention-days: 7
