@@ -4,7 +4,7 @@ describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
     await device.launchApp({
       newInstance: true,
-      url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
+      url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081',
     })
     // The game's 60fps requestAnimationFrame loop makes Detox's idle-synchronization
     // wait forever (app is never "idle"). Disable it here; tests use explicit waitFor

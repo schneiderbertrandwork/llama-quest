@@ -2,10 +2,11 @@
 module.exports = {
   rootDir: '..',
   testMatch: ['<rootDir>/e2e/__tests__/**/*.test.ts'],
-  // 5 min: enough for launchApp() with a warm Metro transformer cache (<120s assembly).
-  // Do NOT raise above 300000 — Detox has an internal timer bug that fires at ~263s
-  // when testTimeout is set to a high value (1200000 triggers it; 300000 does not).
-  testTimeout: 300000,
+  // 10 min per test/hook. Detox does NOT send SIGTERM — Jest does, via this setting.
+  // With expo-dev-client using 10.0.2.2:8081 (QEMU host IP), Metro serves the pre-warmed
+  // bundle instantly; app init (Skia + RN) takes ~30-120s on an unaccelerated emulator.
+  // 600000ms (10 min) gives 563s effective for beforeAll (600 - ~37s module load overhead).
+  testTimeout: 600000,
   maxWorkers: 1,
   globalSetup: 'detox/runners/jest/globalSetup',
   globalTeardown: 'detox/runners/jest/globalTeardown',

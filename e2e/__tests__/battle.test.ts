@@ -12,7 +12,7 @@ describe('Battle mechanics', () => {
   beforeAll(async () => {
     await device.launchApp({
       newInstance: true,
-      url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
+      url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081',
     })
     // Disable Detox idle-sync before navigating to the overworld where the 60fps
     // game loop runs — otherwise Detox waits forever for the app to become idle.
