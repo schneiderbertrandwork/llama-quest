@@ -95,11 +95,12 @@ jobs:
           key: metro-${{ hashFiles('package-lock.json', 'metro.config.js', 'babel.config.js') }}
           restore-keys: metro-
 
-      # Start Metro BEFORE the emulator boots and immediately request the bundle so
-      # assembly begins during the ~14 min emulator boot. Metro only starts assembling
-      # when a client requests the bundle — just starting the server is not enough.
-      # Background processes (curl + Metro) persist across steps on the same runner.
-      - name: Start Metro bundler (assembles bundle during emulator boot)
+      # Start Metro BEFORE the emulator boots so it's ready when tests call launchApp().
+      # Do NOT pre-request the bundle here — downloading 10-20MB during emulator boot
+      # exhausts the runner's GPU memory (swiftshader ColorBuffer pool) causing all
+      # expo-dev-client launches to crash. Let expo-dev-client request the bundle
+      # naturally; with warm transformer cache it assembles in <120s.
+      - name: Start Metro bundler
         run: |
           CI=1 EXPO_NO_TELEMETRY=1 npx expo start --port 8081 > /tmp/metro.log 2>&1 &
           echo $! > /tmp/metro.pid
@@ -108,21 +109,7 @@ jobs:
               && echo "Metro ready after ${i} attempts (PID $(cat /tmp/metro.pid))" && break
             sleep 2
           done
-          # Request the bundle in the background — triggers assembly immediately.
-          # nohup+disown: survives the step's shell exit so the HTTP connection
-          # stays open during emulator boot (Metro cancels assembly on disconnect).
-          # No -f flag: don't exit on HTTP errors (Metro may return 500 on first
-          # request if a file transform fails; we diagnose this in run-detox.sh).
-          # Use /node_modules/expo-router/entry.bundle — the correct entry for this
-          # Expo Router project (package.json main=expo-router/entry). /index.bundle
-          # returns 404 because there is no index.ts/js in the project root.
-          nohup curl -s \
-            "http://localhost:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true&minify=false" \
-            -o /tmp/bundle-prewarm.js \
-            --max-time 7200 > /tmp/curl-bundle.log 2>&1 &
-          CURL_PID=$!
-          disown $CURL_PID
-          echo "Bundle request started (PID $CURL_PID, disowned) — assembly runs during emulator boot"
+          echo "Metro started — bundle will assemble when expo-dev-client connects during tests"
 
       - name: Run Detox E2E tests on emulator
         uses: reactivecircus/android-emulator-runner@v2

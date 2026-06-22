@@ -2,11 +2,10 @@
 module.exports = {
   rootDir: '..',
   testMatch: ['<rootDir>/e2e/__tests__/**/*.test.ts'],
-  // 20 min: beforeAll calls device.launchApp() which blocks until the Metro bundle
-  // is served. With warm transformer cache, assembly still takes 10-25 min.
-  // testTimeout in config takes effect before any module code runs, unlike
-  // jest.setTimeout() at module level which caused timer side-effects in Detox.
-  testTimeout: 1200000,
+  // 5 min: enough for launchApp() with a warm Metro transformer cache (<120s assembly).
+  // Do NOT raise above 300000 — Detox has an internal timer bug that fires at ~263s
+  // when testTimeout is set to a high value (1200000 triggers it; 300000 does not).
+  testTimeout: 300000,
   maxWorkers: 1,
   globalSetup: 'detox/runners/jest/globalSetup',
   globalTeardown: 'detox/runners/jest/globalTeardown',
