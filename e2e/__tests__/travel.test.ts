@@ -24,7 +24,7 @@ describe('Travel — Overworld gate to Llamatown', () => {
           '-c', 'android.intent.category.DEFAULT',
           '-c', 'android.intent.category.BROWSABLE',
         ],
-        (_err, stdout) => console.log('[detox-deep-link]', stdout?.trim() || _err?.message || 'sent'),
+        (_err, stdout, stderr) => console.log('[detox-deep-link]', stdout?.trim() || _err?.message || 'sent', stderr?.trim() ? '| stderr: ' + stderr.trim() : ''),
       )
     }, 10000)
 

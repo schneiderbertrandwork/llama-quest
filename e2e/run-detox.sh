@@ -29,6 +29,12 @@ echo -n "  localhost:8081 (ADB reverse):  "
 adb shell "nc -w 3 localhost 8081 </dev/null > /dev/null 2>&1 && echo OK || echo UNREACHABLE"
 echo "==="
 
+# Verify the exp+llama-quest:// scheme is registered in the installed app.
+# If no activity handles this scheme, our ADB deep link is silently dropped.
+echo "=== exp+llama-quest:// scheme registration ==="
+adb shell "pm query-activities -a android.intent.action.VIEW -d 'exp+llama-quest://expo-development-client/?url=http://localhost:8081' 2>&1 || echo 'pm query-activities failed'"
+echo "==="
+
 # Pre-warm the Metro bundle with the URL expo-dev-client uses.
 # expo-dev-client requests /.expo/.virtual-metro-entry.bundle?platform=android&dev=true&hot=true
 # (Expo's rewriteRequestUrl middleware rewrites this to node_modules/expo-router/entry.bundle).
