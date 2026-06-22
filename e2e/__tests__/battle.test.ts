@@ -1,4 +1,3 @@
-import { execFile } from 'child_process'
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
 
 async function goToOverworld() {
@@ -11,24 +10,12 @@ async function goToOverworld() {
 
 describe('Battle mechanics', () => {
   beforeAll(async () => {
-    jest.setTimeout(300000) // 5 min: 10s wait + ~60s bundle load + goToOverworld
+    jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s + goToOverworld
 
-    const deepLinkTimer = setTimeout(() => {
-      execFile(
-        'adb',
-        [
-          'shell', 'am', 'start',
-          '-a', 'android.intent.action.VIEW',
-          '-d', 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
-          '-c', 'android.intent.category.DEFAULT',
-          '-c', 'android.intent.category.BROWSABLE',
-        ],
-        (_err, stdout, stderr) => console.log('[detox-deep-link]', stdout?.trim() || _err?.message || 'sent', stderr?.trim() ? '| stderr: ' + stderr.trim() : ''),
-      )
-    }, 10000)
-
-    await device.launchApp({ newInstance: true })
-    clearTimeout(deepLinkTimer)
+    await device.launchApp({
+      newInstance: true,
+      url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
+    })
 
     // Disable Detox idle-sync before navigating to the overworld where the 60fps
     // game loop runs — otherwise Detox waits forever for the app to become idle.
