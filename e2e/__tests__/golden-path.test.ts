@@ -18,7 +18,7 @@ describe('Llama Quest — Golden Path', () => {
         [
           'shell', 'am', 'start',
           '-a', 'android.intent.action.VIEW',
-          '-d', 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081',
+          '-d', 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
           '-c', 'android.intent.category.DEFAULT',
           '-c', 'android.intent.category.BROWSABLE',
         ],
