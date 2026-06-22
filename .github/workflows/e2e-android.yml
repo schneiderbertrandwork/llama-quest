@@ -56,10 +56,8 @@ jobs:
   e2e:
     needs: warm-metro-cache
     runs-on: ubuntu-latest
-    # Metro bundle assembly (module resolution + linking) takes 30-50 min on 2-CPU runners
-    # even with warm transformer cache. Metro pre-starts before emulator boot (+14 min),
-    # bundle request fires immediately (+2 min start), so by script time the bundle has
-    # been assembling for ~16 min. Script waits up to 40 more min → handles 56-min bundles.
+    # run-detox.sh blocks for up to 1800s waiting for the bundle to compile, then tests
+    # run in ~25-35 min. Total: emulator boot (14 min) + pre-warm (up to 30 min) + tests.
     timeout-minutes: 150
 
     steps:
@@ -95,11 +93,9 @@ jobs:
           key: metro-${{ hashFiles('package-lock.json', 'metro.config.js', 'babel.config.js') }}
           restore-keys: metro-
 
-      # Start Metro BEFORE the emulator boots so it's ready when tests call launchApp().
-      # Do NOT pre-request the bundle here — downloading 10-20MB during emulator boot
-      # exhausts the runner's GPU memory (swiftshader ColorBuffer pool) causing all
-      # expo-dev-client launches to crash. Let expo-dev-client request the bundle
-      # naturally; with warm transformer cache it assembles in <120s.
+      # Start Metro BEFORE the emulator boots so the HTTP server is ready.
+      # run-detox.sh does a blocking pre-warm of the bundle (after ADB reverse is set),
+      # which caches the bundle in Metro's memory before any launchApp() is called.
       - name: Start Metro bundler
         run: |
           CI=1 EXPO_NO_TELEMETRY=1 npx expo start --port 8081 > /tmp/metro.log 2>&1 &
@@ -109,7 +105,7 @@ jobs:
               && echo "Metro ready after ${i} attempts (PID $(cat /tmp/metro.pid))" && break
             sleep 2
           done
-          echo "Metro started — bundle will assemble when expo-dev-client connects during tests"
+          echo "Metro started — run-detox.sh will pre-warm the bundle after emulator boots"
 
       - name: Run Detox E2E tests on emulator
         uses: reactivecircus/android-emulator-runner@v2
@@ -132,5 +128,5 @@ jobs:
           path: |
             e2e/artifacts/
             /tmp/metro.log
-            /tmp/curl-bundle.log
+            /tmp/bundle-prewarm.log
           retention-days: 7

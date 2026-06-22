@@ -16,6 +16,11 @@ config.server = {
   ...config.server,
   enhanceMiddleware: (metroMiddleware, _server) => {
     return (req, res, next) => {
+      // Log all requests in CI so metro.log captures the exact bundle URL params
+      // that expo-dev-client uses (needed to pre-warm with the correct cache key).
+      if (process.env.CI) {
+        console.log(`[metro-req] ${req.method} ${req.url}`)
+      }
       if (req.url === '/canvaskit.wasm') {
         res.setHeader('Content-Type', 'application/wasm')
         fs.createReadStream(WASM_PATH).pipe(res)
