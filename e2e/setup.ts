@@ -1,19 +1,16 @@
 /**
  * Shared E2E setup helpers — imported by every test file's beforeAll.
  *
- * WHY: expo-dev-client shows a "Connect to dev server" screen on fresh app launches
- * because lastOpenedApp (in expo.modules.devlauncher.recentyopenedapps.xml) is null.
- * DEV_CLIENT_TRY_TO_LAUNCH_LAST_BUNDLE defaults to true but has nothing to auto-connect
- * to. We pre-seed this file so expo-dev-client immediately calls loadApp("localhost:8081")
- * instead of showing the connection UI.
+ * scheduleMetroConnect() — PRIMARY connection mechanism:
+ *   device.launchApp({ newInstance: true }) calls `pm clear` which wipes any
+ *   SharedPreferences seeded before the call. The ADB BROWSABLE intent fires
+ *   at T+10s WHILE launchApp() is awaiting — after the app is running but before
+ *   expo-dev-client gives up waiting — so it is immune to pm-clear.
+ *   See: memory/project-detox-root-cause.md for full diagnosis.
  *
- * A second SharedPreferences file (com.llamaquest.app_preferences.xml) pre-seeds
- * debug_http_host=localhost:8081 as a React Native fallback in case expo-dev-client's
- * DevLauncherPackagerConnectionSettings injection fails silently.
- *
- * Both files survive force-stop (they are on-disk files, not process memory).
- * Must be called AFTER the APK is installed (Detox installs before beforeAll runs)
- * but BEFORE device.launchApp() so the app reads them on first start.
+ * seedSharedPreferences() — SECONDARY (belt-and-suspenders):
+ *   Still called first in case a future Detox version stops clearing data.
+ *   Non-fatal if it fails or gets wiped.
  *
  * ADB reverse (adb reverse tcp:8081 tcp:8081) in run-detox.sh makes emulator
  * localhost:8081 resolve to the host's Metro port. 10.0.2.2:8081 (QEMU gateway)
@@ -87,7 +84,43 @@ export function seedSharedPreferences(): void {
 
         console.log(`[E2E] SharedPreferences seeded — expo-dev-client lastOpenedApp=${METRO_URL}, debug_http_host=localhost:8081`)
     } catch (e) {
-        // Non-fatal: the URL intent fallback (device.launchApp url) still runs.
+        // Non-fatal — scheduleMetroConnect's ADB intent is the reliable fallback.
         console.warn('[E2E] SharedPreferences seed failed (non-fatal):', String(e).slice(0, 400))
     }
+}
+
+/**
+ * Seeds SharedPreferences (best-effort) then schedules an ADB BROWSABLE intent
+ * to fire at T+10s while device.launchApp() is awaiting.
+ *
+ * Usage in beforeAll:
+ *   const adbTimer = scheduleMetroConnect()
+ *   await device.launchApp({ newInstance: true })
+ *   clearTimeout(adbTimer)
+ *
+ * Why T+10s: launchApp() force-stops + pm-clears the app (~3s), then the OS
+ * starts it (~2s). expo-dev-client is showing its connection UI by T+5s.
+ * The intent at T+10s arrives while expo-dev-client is idle and ready to handle it.
+ */
+export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
+    seedSharedPreferences()
+
+    // URL-encode the Metro URL for the intent URI parameter.
+    // localhost:8081 is reachable via adb reverse; 10.0.2.2:8081 is NOT in CI.
+    const intentUri = `exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081`
+
+    return setTimeout(() => {
+        try {
+            execFileSync('adb', [
+                'shell', 'am', 'start',
+                '-a', 'android.intent.action.VIEW',
+                '-c', 'android.intent.category.DEFAULT',
+                '-c', 'android.intent.category.BROWSABLE',
+                '-d', intentUri,
+            ], { stdio: 'pipe', timeout: 15000 })
+            console.log('[E2E] ADB BROWSABLE intent fired → expo-dev-client connecting to localhost:8081')
+        } catch (e) {
+            console.warn('[E2E] ADB intent failed (non-fatal):', String(e).slice(0, 200))
+        }
+    }, 10000)
 }

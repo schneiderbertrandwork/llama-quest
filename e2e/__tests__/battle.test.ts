@@ -1,5 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { seedSharedPreferences } from '../setup'
+import { scheduleMetroConnect } from '../setup'
 
 async function goToOverworld() {
   await waitFor(element(by.id('name-input'))).toBeVisible().withTimeout(15000)
@@ -11,10 +11,11 @@ async function goToOverworld() {
 
 describe('Battle mechanics', () => {
   beforeAll(async () => {
-    jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s + goToOverworld
+    jest.setTimeout(120000) // 2 min — ADB intent + warm Metro resolves in ~40s
 
-    seedSharedPreferences()
+    const adbTimer = scheduleMetroConnect()
     await device.launchApp({ newInstance: true })
+    clearTimeout(adbTimer)
 
     // Disable Detox idle-sync before navigating to the overworld where the 60fps
     // game loop runs — otherwise Detox waits forever for the app to become idle.

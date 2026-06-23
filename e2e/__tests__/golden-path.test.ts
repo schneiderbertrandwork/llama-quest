@@ -1,17 +1,18 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { seedSharedPreferences } from '../setup'
+import { scheduleMetroConnect } from '../setup'
 
 describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
-    jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s
+    jest.setTimeout(120000) // 2 min — warm Metro cache + ADB intent resolves in ~40s
 
-    // Seed expo-dev-client's SharedPreferences so it auto-connects to Metro on launch.
-    // pm query-activities shows exp+llama-quest:// resolves to MainActivity (not
-    // DevLauncherActivity), so the URL intent approach doesn't reach the dev-client
-    // connection handler. Instead: seed the lastOpenedApp preference, then launch
-    // without a URL so expo-dev-client reads the preference and auto-connects.
-    seedSharedPreferences()
+    // scheduleMetroConnect seeds SharedPreferences (best-effort) then schedules an
+    // ADB BROWSABLE intent at T+10s while launchApp() awaits. The intent is the
+    // reliable path: device.launchApp({ newInstance: true }) calls pm-clear which
+    // wipes any prefs seeded before the call, so the intent fires after the app is
+    // running and expo-dev-client can handle it.
+    const adbTimer = scheduleMetroConnect()
     await device.launchApp({ newInstance: true })
+    clearTimeout(adbTimer)
 
     // The game's 60fps requestAnimationFrame loop makes Detox's idle-synchronization
     // wait forever (app is never "idle"). Disable it here; tests use explicit waitFor
