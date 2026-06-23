@@ -29,7 +29,8 @@
       "expo-router",
       "expo-dev-client",
       "expo-av",
-      "./plugins/withAndroidTestPackaging"
+      "./plugins/withAndroidTestPackaging",
+      "./plugins/withDetoxInstrumentation"
     ],
     "experiments": {
       "typedRoutes": true
