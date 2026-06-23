@@ -1,46 +1,116 @@
-const { withAppBuildGradle, withDangerousMod } = require('@expo/config-plugins')
+const {
+  withAppBuildGradle,
+  withProjectBuildGradle,
+  withSettingsGradle,
+  withDangerousMod,
+} = require('@expo/config-plugins')
 const path = require('path')
 const fs = require('fs')
 
 /**
  * Sets up Detox instrumentation for an Expo app that uses expo-dev-client.
  *
- * Two things are required to make Detox work with expo-dev-client:
+ * Detox has no Expo config plugin and no autolinking support — everything
+ * must be added manually. Four things are required:
  *
- * 1. testInstrumentationRunner must be DetoxJUnitRunner (not the default
- *    AndroidJUnitRunner). Without this, Detox never receives the "ready"
- *    WebSocket message from the instrumentation process — every launchApp()
- *    hangs until the 600s timeout fires.
+ * 1. Detox local Maven repo. Detox ships its AAR at
+ *    node_modules/detox/Detox-android/ as a local Maven repo. This must be
+ *    registered so Gradle can resolve com.wix:detox.
  *
- * 2. DetoxTest.java (the test entry point) must bridge expo-dev-client's
- *    DevLauncherController to Detox's ReactNativeHost. The file in
- *    node_modules/expo-dev-client/e2e/android/DetoxTest.java is the
- *    official template — package name must match the app.
+ *    Expo SDK 52 / AGP 8 / RN 0.71+ puts repositories inside
+ *    dependencyResolutionManagement { repositories {} } in settings.gradle.
+ *    Older setups put them in allprojects { repositories {} } in build.gradle.
+ *    We patch both to be safe.
+ *
+ * 2. androidTestImplementation 'com.wix:detox:+' in android/app/build.gradle.
+ *
+ * 3. testInstrumentationRunner must be DetoxJUnitRunner (not AndroidJUnitRunner).
+ *    Without this, Detox never receives the WebSocket "ready" message.
+ *
+ * 4. DetoxTest.java in android/app/src/androidTest/java/<package>/.
+ *    expo-dev-client replaces the standard ReactNativeHost with
+ *    DevLauncherController.getInstance().getDevClientHost(). This file bridges
+ *    that host to Detox — without it every launchApp() hangs for 600s.
  */
 module.exports = function withDetoxInstrumentation(config) {
-  // Step 1: set DetoxJUnitRunner as the testInstrumentationRunner
-  config = withAppBuildGradle(config, (mod) => {
-    const contents = mod.modResults.contents
-    if (contents.includes('DetoxJUnitRunner')) {
+  const DETOX_MAVEN_LINE =
+    '        maven { url "$rootDir/../node_modules/detox/Detox-android" }'
+  const DETOX_MAVEN_MARKER = 'Detox-android'
+
+  // Step 1a: Try settings.gradle (dependencyResolutionManagement — Expo SDK 52 / AGP 8 / RN 0.71+)
+  // Expo 52 with AGP 8 declares all Maven repos in settings.gradle inside
+  // dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+  //   repositories { ... } }
+  // We insert the Detox local Maven repo right after the opening brace.
+  config = withSettingsGradle(config, (mod) => {
+    let contents = mod.modResults.contents
+    if (contents.includes(DETOX_MAVEN_MARKER)) {
       return mod // already applied
     }
-    mod.modResults.contents = contents.replace(
-      /testInstrumentationRunner\s+"[^"]+"/,
-      'testInstrumentationRunner "com.wix.detox.runners.DetoxJUnitRunner"'
+    // Pattern: dependencyResolutionManagement { ... repositories {
+    // [^]* matches any character including newlines (JS . does not match \n in non-/s mode)
+    const replaced = contents.replace(
+      /(dependencyResolutionManagement\s*\{[^]*?repositories\s*\{)/,
+      `$1\n${DETOX_MAVEN_LINE}`
     )
+    if (replaced !== contents) {
+      mod.modResults.contents = replaced
+    }
     return mod
   })
 
-  // Step 2: generate DetoxTest.java bridging expo-dev-client → Detox
+  // Step 1b: Try project build.gradle (allprojects.repositories — older RN / fallback)
+  // This handles cases where repositories are still declared in android/build.gradle.
+  config = withProjectBuildGradle(config, (mod) => {
+    let contents = mod.modResults.contents
+    if (contents.includes(DETOX_MAVEN_MARKER)) {
+      return mod // already applied (either from Step 1a or a previous run)
+    }
+    // Pattern: allprojects { ... repositories {
+    // [^]* matches any character including newlines.
+    const replaced = contents.replace(
+      /(allprojects\s*\{[^]*?repositories\s*\{)/,
+      `$1\n${DETOX_MAVEN_LINE}`
+    )
+    if (replaced !== contents) {
+      mod.modResults.contents = replaced
+    }
+    return mod
+  })
+
+  // Step 2 + 3: Detox dependency + DetoxJUnitRunner in android/app/build.gradle
+  config = withAppBuildGradle(config, (mod) => {
+    let contents = mod.modResults.contents
+
+    // 2a: testInstrumentationRunner
+    if (!contents.includes('DetoxJUnitRunner')) {
+      contents = contents.replace(
+        /testInstrumentationRunner\s+"[^"]+"/,
+        'testInstrumentationRunner "com.wix.detox.runners.DetoxJUnitRunner"'
+      )
+    }
+
+    // 2b: androidTestImplementation for Detox
+    if (!contents.includes('com.wix:detox')) {
+      contents = contents.replace(
+        /dependencies\s*\{/,
+        'dependencies {\n    androidTestImplementation("com.wix:detox:+")'
+      )
+    }
+
+    mod.modResults.contents = contents
+    return mod
+  })
+
+  // Step 4: generate DetoxTest.java bridging expo-dev-client -> Detox
   config = withDangerousMod(config, [
     'android',
     async (mod) => {
       const packageName = mod.android?.package ?? 'com.llamaquest.app'
-      // Convert package name to directory path (dots → slashes)
+      // Convert package name to directory path (dots -> slashes)
       const packagePath = packageName.replace(/\./g, '/')
 
-      // In withDangerousMod, modRequest.projectRoot is the correct path to the
-      // Expo project root (not mod.modResults or process.cwd).
+      // In withDangerousMod, modRequest.projectRoot is the Expo project root.
       const projectRoot = mod.modRequest.projectRoot
       const testDir = path.join(
         projectRoot,
@@ -57,15 +127,10 @@ module.exports = function withDetoxInstrumentation(config) {
       const javaContent = [
         `package ${packageName};`,
         '',
-        'import static androidx.test.espresso.Espresso.onView;',
-        'import static androidx.test.espresso.matcher.ViewMatchers.isRoot;',
         'import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;',
         '',
-        'import android.app.Activity;',
         'import android.content.Context;',
         'import android.content.ContextWrapper;',
-        'import android.view.View;',
-        'import android.view.ViewGroup;',
         '',
         'import androidx.test.ext.junit.runners.AndroidJUnit4;',
         'import androidx.test.filters.LargeTest;',
@@ -86,9 +151,9 @@ module.exports = function withDetoxInstrumentation(config) {
         '/**',
         ' * Detox test entry point for expo-dev-client apps.',
         ' *',
-        ' * DevLauncherController replaces the standard ReactNativeHost when expo-dev-client',
-        ' * is active. This class bridges that host to Detox so the WebSocket "ready"',
-        ' * handshake succeeds. Without this, Detox hangs on every launchApp() call.',
+        ' * expo-dev-client replaces the standard ReactNativeHost with',
+        ' * DevLauncherController.getDevClientHost(). This class bridges that host',
+        ' * to Detox so the WebSocket "ready" handshake succeeds.',
         ' *',
         ' * Based on: node_modules/expo-dev-client/e2e/android/DetoxTest.java',
         ' */',
@@ -116,8 +181,7 @@ module.exports = function withDetoxInstrumentation(config) {
         '    // masterTimeoutSec: max idle time before Detox gives up on a UI operation.',
         '    detoxConfig.idlePolicyConfig.masterTimeoutSec = 90;',
         '    // rnContextLoadTimeoutSec: time to wait for the React Native context (bundle)',
-        '    // to load after the instrumentation starts. On no-KVM emulators this can be',
-        '    // 60-180s; 300s gives plenty of margin.',
+        '    // to load after instrumentation starts. 300s for no-KVM emulators.',
         '    detoxConfig.rnContextLoadTimeoutSec = 300;',
         '',
         '    ReactNativeHolder reactNativeHolder = new ReactNativeHolder(',
