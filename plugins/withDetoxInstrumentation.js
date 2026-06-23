@@ -90,7 +90,7 @@ module.exports = function withDetoxInstrumentation(config) {
       // Try to replace an existing testInstrumentationRunner (single- or double-quoted)
       const replaced = contents.replace(
         /testInstrumentationRunner\s+['"][^'"]+['"]/,
-        'testInstrumentationRunner "com.wix.detox.runners.DetoxJUnitRunner"'
+        'testInstrumentationRunner "com.wix.detox.DetoxJUnitRunner"'
       )
       if (replaced !== contents) {
         // Found and replaced an existing value
@@ -99,7 +99,7 @@ module.exports = function withDetoxInstrumentation(config) {
         // No existing testInstrumentationRunner — insert into defaultConfig block
         contents = contents.replace(
           /defaultConfig\s*\{/,
-          'defaultConfig {\n        testInstrumentationRunner "com.wix.detox.runners.DetoxJUnitRunner"'
+          'defaultConfig {\n        testInstrumentationRunner "com.wix.detox.DetoxJUnitRunner"'
         )
       }
     }
