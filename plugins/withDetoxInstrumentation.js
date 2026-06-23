@@ -83,24 +83,50 @@ module.exports = function withDetoxInstrumentation(config) {
     let contents = mod.modResults.contents
 
     // 2a: testInstrumentationRunner
-    // Expo generates single-quoted values: testInstrumentationRunner 'androidx...Runner'
-    // Match both single and double-quoted forms.
+    // Expo SDK 52 / RN 0.76 generates a defaultConfig block WITHOUT testInstrumentationRunner.
+    // We must INSERT it, not replace it.
+    // Strategy: if the value already exists (any form), replace it; otherwise insert into defaultConfig.
     if (!contents.includes('DetoxJUnitRunner')) {
-      contents = contents.replace(
+      // Try to replace an existing testInstrumentationRunner (single- or double-quoted)
+      const replaced = contents.replace(
         /testInstrumentationRunner\s+['"][^'"]+['"]/,
         'testInstrumentationRunner "com.wix.detox.runners.DetoxJUnitRunner"'
       )
+      if (replaced !== contents) {
+        // Found and replaced an existing value
+        contents = replaced
+      } else {
+        // No existing testInstrumentationRunner — insert into defaultConfig block
+        contents = contents.replace(
+          /defaultConfig\s*\{/,
+          'defaultConfig {\n        testInstrumentationRunner "com.wix.detox.runners.DetoxJUnitRunner"'
+        )
+      }
     }
 
     // 2b: androidTestImplementation for Detox + transitive compile-time dependencies.
-    // DetoxTest.java references DevLauncherController which implements
-    // DevLauncherControllerInterface which extends UpdatesInterfaceCallbacks.
-    // expo-updates-interface (an auto-linked module) must also be on the test
-    // compilation classpath or javac fails with "class file not found".
+    //
+    // expo-dev-launcher (autolinked via implementation project(...)) has its own
+    // implementation-scope dependencies that are NOT exported to :app's compile
+    // classpath (Gradle's "implementation" is non-transitive). DetoxTest.java imports
+    // DevLauncherController which requires all of these at compile time:
+    //   - expo-dev-menu-interface  → ReactHostWrapper (DevLauncherController import)
+    //   - expo-dev-menu            → DevMenuManager (DevLauncherController import)
+    //   - expo-manifests           → Manifest (DevLauncherController import)
+    //   - expo-updates-interface   → UpdatesInterface + UpdatesInterfaceCallbacks
+    //                                (DevLauncherControllerInterface extends these)
+    // All four must be androidTestImplementation so javac can resolve the class files.
     if (!contents.includes('com.wix:detox')) {
       contents = contents.replace(
         /dependencies\s*\{/,
-        'dependencies {\n    androidTestImplementation("com.wix:detox:+")\n    androidTestImplementation project(":expo-updates-interface")'
+        [
+          'dependencies {',
+          '    androidTestImplementation("com.wix:detox:+")',
+          '    androidTestImplementation project(":expo-updates-interface")',
+          '    androidTestImplementation project(":expo-dev-menu-interface")',
+          '    androidTestImplementation project(":expo-dev-menu")',
+          '    androidTestImplementation project(":expo-manifests")',
+        ].join('\n')
       )
     }
 
