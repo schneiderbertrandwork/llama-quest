@@ -69,6 +69,23 @@ echo "Logcat capture started (PID $LOGCAT_PID)"
 # Kill logcat on any script exit (success or failure).
 trap 'LINES=$(wc -l < /tmp/logcat.log 2>/dev/null || echo 0); kill '"$LOGCAT_PID"' 2>/dev/null || true; echo "Logcat: $LINES lines saved"' EXIT
 
+# Wait for Android system services to be fully initialized before handing off to Detox.
+# sys.boot_completed=1 fires 10-30s before `package` and `power` services are ready on
+# slow software-emulated (no-KVM) runners. Detox's APK install hits the package manager
+# immediately, causing "Broken pipe / Can't find service: package" failures.
+echo "=== Waiting for Android system services (package + power) ==="
+for i in $(seq 1 30); do
+  PKG=$(adb shell "service check package" 2>&1)
+  PWR=$(adb shell "service check power" 2>&1)
+  if echo "$PKG" | grep -q "found" && echo "$PWR" | grep -q "found"; then
+    echo "System services ready after ${i} attempt(s)"
+    break
+  fi
+  echo "  Attempt $i/30: package=[${PKG}] power=[${PWR}] — retrying in 5s"
+  sleep 5
+done
+echo "==="
+
 # Run Detox E2E tests.
 # Each test file's beforeAll() schedules an ADB deep link (setTimeout 10s) that fires
 # while device.launchApp() is awaiting. The deep link uses BROWSABLE + DEFAULT categories,
