@@ -95,8 +95,9 @@ done
 echo "==="
 
 # Run Detox E2E tests.
-# Each test file's beforeAll() schedules an ADB deep link (setTimeout 10s) that fires
-# while device.launchApp() is awaiting. The deep link uses BROWSABLE + DEFAULT categories,
-# which is what expo-dev-client's intent-filter expects — bypassing Detox's own URL
-# delivery via am instrument (detoxURLOverride) that never reached the connection handler.
-npx detox test -c android.device.debug --headless --record-logs failing
+# CI uses android.emu.debug (type: android.emulator, avdName: 'test') — matches the
+# emulator started by android-emulator-runner@v2. android.device.debug is for local
+# physical USB-connected devices only; using it in CI causes Detox to use the wrong
+# driver, which prints "--headless not supported by android.attached" and never
+# successfully launches the app.
+npx detox test -c android.emu.debug --headless --record-logs failing
