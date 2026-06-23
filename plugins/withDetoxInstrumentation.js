@@ -83,18 +83,24 @@ module.exports = function withDetoxInstrumentation(config) {
     let contents = mod.modResults.contents
 
     // 2a: testInstrumentationRunner
+    // Expo generates single-quoted values: testInstrumentationRunner 'androidx...Runner'
+    // Match both single and double-quoted forms.
     if (!contents.includes('DetoxJUnitRunner')) {
       contents = contents.replace(
-        /testInstrumentationRunner\s+"[^"]+"/,
+        /testInstrumentationRunner\s+['"][^'"]+['"]/,
         'testInstrumentationRunner "com.wix.detox.runners.DetoxJUnitRunner"'
       )
     }
 
-    // 2b: androidTestImplementation for Detox
+    // 2b: androidTestImplementation for Detox + transitive compile-time dependencies.
+    // DetoxTest.java references DevLauncherController which implements
+    // DevLauncherControllerInterface which extends UpdatesInterfaceCallbacks.
+    // expo-updates-interface (an auto-linked module) must also be on the test
+    // compilation classpath or javac fails with "class file not found".
     if (!contents.includes('com.wix:detox')) {
       contents = contents.replace(
         /dependencies\s*\{/,
-        'dependencies {\n    androidTestImplementation("com.wix:detox:+")'
+        'dependencies {\n    androidTestImplementation("com.wix:detox:+")\n    androidTestImplementation project(":expo-updates-interface")'
       )
     }
 
