@@ -29,10 +29,17 @@ echo -n "  localhost:8081 (ADB reverse):  "
 adb shell "nc -w 3 localhost 8081 </dev/null > /dev/null 2>&1 && echo OK || echo UNREACHABLE"
 echo "==="
 
-# Verify the exp+llama-quest:// scheme is registered in the installed app.
-# If no activity handles this scheme, our ADB deep link is silently dropped.
-echo "=== exp+llama-quest:// scheme registration ==="
+# Pre-install the APK so we can check scheme registration before Detox runs.
+# Detox (npx detox test) will also install/manage the APK, but doing it here
+# first lets us run diagnostics while the APK is on-device.
+echo "=== Pre-installing APK for diagnostics ==="
+adb install -r -t android/app/build/outputs/apk/debug/app-debug.apk 2>&1 | tail -2
+
+echo "--- exp+llama-quest:// scheme registration (post-install, meaningful) ---"
 adb shell "pm query-activities -a android.intent.action.VIEW -d 'exp+llama-quest://expo-development-client/?url=http://localhost:8081' 2>&1 || echo 'pm query-activities failed'"
+
+echo "--- run-as capability (required for SharedPreferences seeding) ---"
+adb shell "run-as com.llamaquest.app sh -c 'ls /data/data/com.llamaquest.app/' 2>&1 | head -5 || echo 'run-as FAILED'"
 echo "==="
 
 # Pre-warm the Metro bundle with the URL expo-dev-client uses.
