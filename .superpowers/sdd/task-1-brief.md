@@ -1,131 +1,279 @@
-### Task 1: QBANK Migration
+### Task 1: Safe Area Integration
 
 **Files:**
-- Create: `content/qbank.ts`
-- Create: `content/__tests__/qbank.test.ts`
+- Create: `components/SafeAreaWrapper.tsx`
+- Create: `__mocks__/react-native-safe-area-context.js` (Jest mock)
+- Modify: `app/_layout.tsx` — add `SafeAreaProvider` around `GestureHandlerRootView`
+- Modify: `app/overworld.tsx` — replace root `<View style={styles.screen}>` with `<SafeAreaWrapper style={styles.screen}>`
+- Modify: `app/city/[id].tsx` — same replacement
+- Modify: `app/battle.tsx` — same replacement
+- Modify: `app/building/[id].tsx` — same replacement
+- Modify: `app/sandbox/[id].tsx` — same replacement
+- Test: `components/__tests__/SafeAreaWrapper.test.tsx`
 
 **Interfaces:**
-- Produces:
-  - `QuizQuestion` — `{ q, a, c, why, lessonId }`
-  - `QBank` — `Record<string, QuizQuestion[]>` keyed by lesson id
-  - `QBANK` — the full bank constant
-  - `getQuestionsForAct(act: 1|2|3|4): QuizQuestion[]`
-  - `getQuestionsForLesson(lessonId: string): QuizQuestion[]`
+- Produces: `SafeAreaWrapper({ children, style? })` — applies `paddingTop: insets.top, paddingBottom: insets.bottom` to a flex-1 View; exported named from `components/SafeAreaWrapper.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Verify package is installed**
 
-```typescript
-// content/__tests__/qbank.test.ts
-import { QBANK, getQuestionsForAct, getQuestionsForLesson } from '../qbank'
+```bash
+npx expo install expo-safe-area-context
+```
 
-it('has exactly 25 lesson keys', () =>
-  expect(Object.keys(QBANK)).toHaveLength(25))
+Expected: Either installs or prints "already installed". `react-native-safe-area-context` is the underlying package already present from expo-router.
 
-it('each lesson has exactly 4 questions', () => {
-  for (const [id, qs] of Object.entries(QBANK)) {
-    expect(qs).toHaveLength(4)
-  }
+- [ ] **Step 2: Create Jest mock for safe-area-context**
+
+The Jest Expo preset does not auto-mock `react-native-safe-area-context`. Create the manual mock so component tests don't fail:
+
+Create `__mocks__/react-native-safe-area-context.js`:
+```js
+const React = require('react')
+module.exports = {
+  SafeAreaProvider: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
+}
+```
+
+- [ ] **Step 3: Write the failing test**
+
+Create `components/__tests__/SafeAreaWrapper.test.tsx`:
+```tsx
+import React from 'react'
+import { render } from '@testing-library/react-native'
+import { Text } from 'react-native'
+import { SafeAreaWrapper } from '../SafeAreaWrapper'
+
+describe('SafeAreaWrapper', () => {
+  it('renders children', () => {
+    const { getByText } = render(
+      <SafeAreaWrapper>
+        <Text>hello</Text>
+      </SafeAreaWrapper>
+    )
+    expect(getByText('hello')).toBeTruthy()
+  })
+
+  it('applies inset padding from useSafeAreaInsets', () => {
+    const { getByTestId } = render(
+      <SafeAreaWrapper testID="wrapper">
+        <Text>child</Text>
+      </SafeAreaWrapper>
+    )
+    const wrapper = getByTestId('wrapper')
+    // Mock returns top:44, bottom:34
+    expect(wrapper.props.style).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ paddingTop: 44, paddingBottom: 34 }),
+      ])
+    )
+  })
 })
+```
 
-it('all correct indices are 0–3', () => {
-  for (const qs of Object.values(QBANK).flat()) {
-    expect([0, 1, 2, 3]).toContain(qs.c)
-  }
+- [ ] **Step 4: Run test to confirm it fails**
+
+```bash
+npm test -- components/__tests__/SafeAreaWrapper.test.tsx --watchAll=false
+```
+
+Expected: FAIL — `Cannot find module '../SafeAreaWrapper'`
+
+- [ ] **Step 5: Create `components/SafeAreaWrapper.tsx`**
+
+```tsx
+import React from 'react'
+import { View, StyleSheet } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+
+interface Props {
+  children: React.ReactNode
+  style?: object
+  testID?: string
+}
+
+export function SafeAreaWrapper({ children, style, testID }: Props) {
+  const insets = useSafeAreaInsets()
+  return (
+    <View
+      testID={testID}
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }, style]}
+    >
+      {children}
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
 })
-
-it('getQuestionsForAct(1) returns 24 questions (6 lessons × 4)', () =>
-  expect(getQuestionsForAct(1)).toHaveLength(24))
-
-it('getQuestionsForLesson("oll-intro") returns 4 questions', () =>
-  expect(getQuestionsForLesson('oll-intro')).toHaveLength(4))
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [ ] **Step 6: Run test to confirm it passes**
 
-```
-npm test -- content/__tests__/qbank.test.ts --watchAll=false
-```
-Expected: Cannot find module `'../qbank'`
-
-- [ ] **Step 3: Create `content/qbank.ts`**
-
-The source is `localhost-quest.html`. Search for `const QBANK={}` (line 1319) and read through line 1476 — that covers all 25 lesson blocks. Each source block looks like:
-
-```javascript
-QBANK['oll-intro']=[
-  {q:"Question?", a:["A","B","C","D"], c:0, why:"Explanation."},
-  ...
-]
+```bash
+npm test -- components/__tests__/SafeAreaWrapper.test.tsx --watchAll=false
 ```
 
-Transcribe every block into TypeScript, adding `lessonId` to every question. The complete file structure:
+Expected: PASS (2 tests)
 
-```typescript
-// content/qbank.ts
-export interface QuizQuestion {
-  q: string
-  a: [string, string, string, string]
-  c: 0 | 1 | 2 | 3
-  why: string
-  lessonId: string
+- [ ] **Step 7: Add `SafeAreaProvider` to `app/_layout.tsx`**
+
+Current `_layout.tsx` wraps everything in `GestureHandlerRootView`. Add `SafeAreaProvider` inside it:
+
+```tsx
+import { useEffect, useState } from 'react'
+import { Platform, View, Text, StyleSheet } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { Stack } from 'expo-router'
+
+export default function RootLayout() {
+  const [skiaReady, setSkiaReady] = useState(Platform.OS !== 'web')
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return
+    import('@shopify/react-native-skia/lib/module/web/LoadSkiaWeb').then(
+      ({ LoadSkiaWeb }) => LoadSkiaWeb().then(() => setSkiaReady(true)),
+    )
+  }, [])
+
+  if (!skiaReady) {
+    return (
+      <View style={styles.loading}>
+        <Text style={styles.loadingText}>Loading…</Text>
+      </View>
+    )
+  }
+
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  )
 }
 
-export type QBank = Record<string, QuizQuestion[]>
-
-// Act-to-lesson mapping — used by getQuestionsForAct
-const ACT_LESSONS: Record<1 | 2 | 3 | 4, string[]> = {
-  1: ['oll-intro', 'oll-install', 'oll-run', 'oll-manage', 'oll-models', 'oll-params'],
-  2: ['oll-modelfile', 'oll-api', 'oll-openai', 'oll-structured', 'oll-tools', 'oll-multimodal', 'oll-embed', 'oll-ops'],
-  3: ['chr-vectors', 'chr-intro', 'chr-collections', 'chr-add', 'chr-query', 'chr-filter', 'chr-ef', 'chr-persist'],
-  4: ['rag-concept', 'rag-build', 'rag-prod'],
-}
-
-export const QBANK: QBank = {
-  'oll-intro': [
-    { q: "Which best describes what Ollama is?", a: ["A tool to download, manage, and run LLMs locally", "A paid cloud LLM API", "A Python web framework", "A spreadsheet plugin"], c: 0, why: "Ollama packages and runs models **on your own machine** — no cloud required.", lessonId: 'oll-intro' },
-    { q: 'Ollama is often called the "_____ of LLMs."', a: ["Docker", "Git", "Excel", "Photoshop"], c: 0, why: "Like Docker bundles apps, Ollama bundles a model's weights, config, and prompt template into one pullable package.", lessonId: 'oll-intro' },
-    { q: "Which is a real advantage of running models locally?", a: ["Your prompts and data never leave the machine", "It is always faster than any cloud GPU", "It needs no disk space", "It removes the need for a model"], c: 0, why: "**Privacy** is the headline benefit: nothing is sent to a third party.", lessonId: 'oll-intro' },
-    { q: "The local AI stack is three parts: the server, the models on disk, and…", a: ["the clients that talk to the server", "a cloud account", "a GPU vendor login", "an internet connection"], c: 0, why: "Clients (CLI, your app, ChromaDB) all speak to the one local server.", lessonId: 'oll-intro' },
-  ],
-  // Transcribe all remaining 24 lessons from localhost-quest.html lines 1327–1476
-  // Each lesson key must have exactly 4 questions.
-  // Add `lessonId: '<key>'` to every question object.
-  // Lesson keys in order: oll-install, oll-run, oll-manage, oll-models, oll-params,
-  //   oll-modelfile, oll-api, oll-openai, oll-structured, oll-tools, oll-multimodal,
-  //   oll-embed, oll-ops,
-  //   chr-vectors, chr-intro, chr-collections, chr-add, chr-query, chr-filter, chr-ef, chr-persist,
-  //   rag-concept, rag-build, rag-prod
-}
-
-export function getQuestionsForAct(act: 1 | 2 | 3 | 4): QuizQuestion[] {
-  const lessonIds = ACT_LESSONS[act] ?? []
-  return lessonIds.flatMap(id => QBANK[id] ?? [])
-}
-
-export function getQuestionsForLesson(lessonId: string): QuizQuestion[] {
-  return QBANK[lessonId] ?? []
-}
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#1a1a2e' },
+  loading: { flex: 1, backgroundColor: '#1a1a2e', alignItems: 'center', justifyContent: 'center' },
+  loadingText: { color: '#c0a060', fontFamily: 'monospace', fontSize: 14 },
+})
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 8: Apply SafeAreaWrapper to `app/overworld.tsx`**
 
-```
-npm test -- content/__tests__/qbank.test.ts --watchAll=false
-```
-Expected: 5 passing
+Add import, replace root View:
 
-- [ ] **Step 5: TypeScript check**
+```tsx
+// Add import at top:
+import { SafeAreaWrapper } from '../components/SafeAreaWrapper'
 
-```
-npx tsc --noEmit
-```
-Expected: no errors
+// Replace:
+//   <View style={styles.screen}>
+// With:
+//   <SafeAreaWrapper style={styles.screen}>
+// And close tag:
+//   </SafeAreaWrapper>
 
-- [ ] **Step 6: Commit**
-
+// Remove `backgroundColor` from styles.screen (SafeAreaWrapper's container handles flex:1; screen background still shows through):
+// Keep styles.screen as-is (backgroundColor: '#0d0d1a' still applies via style prop)
 ```
-git add content/qbank.ts content/__tests__/qbank.test.ts
-git commit -m "feat: migrate QBANK — 100 quiz questions for 25 lessons"
+
+Full replacement in `app/overworld.tsx` — find the return statement and change it:
+```tsx
+  return (
+    <SafeAreaWrapper style={styles.screen}>
+      <WorldRenderer
+        grid={OVERWORLD.grid}
+        player={playerState}
+        entities={OVERWORLD.entities}
+        tileSize={TILE_SIZE}
+        screenWidth={width}
+        screenHeight={height}
+      />
+      <HUD />
+      {nearbyLabel && !dialogue && (
+        <TouchableOpacity style={styles.interactPrompt} onPress={handleInteract}>
+          <Text style={styles.interactText}>{nearbyLabel}</Text>
+        </TouchableOpacity>
+      )}
+      {dialogue && (
+        <DialogueBox
+          lines={dialogue.lines}
+          speakerName={dialogue.speaker}
+          onClose={() => setDialogue(null)}
+        />
+      )}
+    </SafeAreaWrapper>
+  )
+```
+
+Add the import: `import { SafeAreaWrapper } from '../components/SafeAreaWrapper'`
+
+- [ ] **Step 9: Apply SafeAreaWrapper to `app/city/[id].tsx`**
+
+Add import: `import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'`
+
+Replace root `<View style={styles.screen}>` with `<SafeAreaWrapper style={styles.screen}>` and closing `</View>` with `</SafeAreaWrapper>`.
+
+Full return statement:
+```tsx
+  return (
+    <SafeAreaWrapper style={styles.screen}>
+      <WorldRenderer
+        grid={cityDef.grid}
+        player={playerState}
+        entities={cityDef.entities}
+        tileSize={TILE_SIZE}
+        screenWidth={width}
+        screenHeight={height}
+      />
+      <HUD />
+      {interactLabel && !dialogue && (
+        <TouchableOpacity style={styles.prompt} onPress={handleInteract}>
+          <Text style={styles.promptText}>{interactLabel}</Text>
+        </TouchableOpacity>
+      )}
+      {dialogue && (
+        <DialogueBox lines={dialogue.lines} speakerName={dialogue.speaker} onClose={() => setDialogue(null)} />
+      )}
+    </SafeAreaWrapper>
+  )
+```
+
+- [ ] **Step 10: Apply SafeAreaWrapper to `app/battle.tsx`**
+
+Add import: `import { SafeAreaWrapper } from '../components/SafeAreaWrapper'`
+
+Replace root `<View style={styles.screen}>` with `<SafeAreaWrapper style={styles.screen}>` and closing tag.
+
+- [ ] **Step 11: Apply SafeAreaWrapper to `app/building/[id].tsx`**
+
+Add import: `import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'`
+
+Replace root `<View style={styles.screen}>` with `<SafeAreaWrapper style={styles.screen}>` and closing tag.
+
+- [ ] **Step 12: Apply SafeAreaWrapper to `app/sandbox/[id].tsx`**
+
+Add import: `import { SafeAreaWrapper } from '../../components/SafeAreaWrapper'`
+
+Replace root `<View style={styles.screen}>` with `<SafeAreaWrapper style={styles.screen}>` and closing tag.
+
+- [ ] **Step 13: Run full test suite**
+
+```bash
+npm test -- --watchAll=false
+```
+
+Expected: All existing tests pass (81+), plus the 2 new SafeAreaWrapper tests.
+
+- [ ] **Step 14: Commit**
+
+```bash
+git add components/SafeAreaWrapper.tsx components/__tests__/SafeAreaWrapper.test.tsx __mocks__/react-native-safe-area-context.js app/_layout.tsx app/overworld.tsx "app/city/[id].tsx" app/battle.tsx "app/building/[id].tsx" "app/sandbox/[id].tsx"
+git commit -m "feat: safe area integration — SafeAreaWrapper + SafeAreaProvider across all screens"
 ```
 
 ---

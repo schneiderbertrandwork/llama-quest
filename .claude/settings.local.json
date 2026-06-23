@@ -25,7 +25,14 @@
       "Bash(ls index.ts)",
       "Bash(cat index.ts)",
       "Bash(git rm *)",
-      "Bash(npx expo *)"
+      "Bash(npx expo *)",
+      "Bash(gh run *)",
+      "Bash(gh workflow *)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); deps={**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; keys=['@shopify/react-native-skia','react-native-reanimated','expo','react-native','react-native-gesture-handler','tone','expo-haptics','expo-av']; [print\\(f'{k}: {deps.get\\(k,\\\\\"NOT FOUND\\\\\"\\)}'\\) for k in keys]\")"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }
