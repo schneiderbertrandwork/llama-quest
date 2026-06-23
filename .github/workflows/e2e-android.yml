@@ -80,11 +80,10 @@ jobs:
       - name: Expo prebuild (generates android/ directory)
         run: npx expo prebuild --platform android --clean
 
-      - name: Inspect AndroidManifest for expo-dev-client intent filter
+      - name: Inspect AndroidManifest (full dump)
         run: |
-          echo "=== AndroidManifest intent filters (exp+llama-quest scheme) ==="
-          grep -n "expo-development-client\|exp+llama-quest\|DevLauncher\|intent-filter" \
-            android/app/src/main/AndroidManifest.xml || echo "NO MATCHING LINES — intent filter not generated"
+          echo "=== Full AndroidManifest.xml ==="
+          cat android/app/src/main/AndroidManifest.xml
           echo "==="
 
       - name: Build debug APK + test APK

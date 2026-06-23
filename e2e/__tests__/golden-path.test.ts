@@ -6,17 +6,12 @@ describe('Llama Quest — Golden Path', () => {
     jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s
 
     // Seed expo-dev-client's SharedPreferences so it auto-connects to Metro on launch.
-    // This runs after Detox installs the APK (global setup) but before launchApp().
-    // Falls back gracefully if run-as fails — the URL intent below is the primary path.
+    // pm query-activities shows exp+llama-quest:// resolves to MainActivity (not
+    // DevLauncherActivity), so the URL intent approach doesn't reach the dev-client
+    // connection handler. Instead: seed the lastOpenedApp preference, then launch
+    // without a URL so expo-dev-client reads the preference and auto-connects.
     seedSharedPreferences()
-
-    // device.launchApp({ url }) + expo-dev-client plugin in app.json registers the
-    // exp+llama-quest:// intent filter, so Android routes the URL to expo-dev-client's
-    // handler which extracts the Metro URL and connects automatically.
-    await device.launchApp({
-      newInstance: true,
-      url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
-    })
+    await device.launchApp({ newInstance: true })
 
     // The game's 60fps requestAnimationFrame loop makes Detox's idle-synchronization
     // wait forever (app is never "idle"). Disable it here; tests use explicit waitFor

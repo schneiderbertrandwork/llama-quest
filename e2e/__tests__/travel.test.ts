@@ -15,10 +15,7 @@ describe('Travel — Overworld gate to Llamatown', () => {
     jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s
 
     seedSharedPreferences()
-    await device.launchApp({
-      newInstance: true,
-      url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
-    })
+    await device.launchApp({ newInstance: true })
 
     // Disable Detox idle-sync before navigating to the overworld where the 60fps
     // game loop runs — otherwise Detox waits forever for the app to become idle.
