@@ -1,4 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
+import { seedSharedPreferences } from '../setup'
 
 async function goToOverworld() {
   await waitFor(element(by.id('name-input'))).toBeVisible().withTimeout(15000)
@@ -12,6 +13,7 @@ describe('Battle mechanics', () => {
   beforeAll(async () => {
     jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s + goToOverworld
 
+    seedSharedPreferences()
     await device.launchApp({
       newInstance: true,
       url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',

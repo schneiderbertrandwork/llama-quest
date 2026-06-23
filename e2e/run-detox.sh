@@ -53,15 +53,23 @@ fi
 
 # Capture logcat for post-mortem on failure.
 # Tag names are case-sensitive; wrong names silently capture nothing.
-#   ExpoDevLauncher  — expo-dev-client connection screen (receives deep links)
-#   DETOX / DetoxSync — Detox instrumentation messages
-#   ReactNative      — RN native bridge
-#   ReactNativeJS    — JS console.log (older RN) / ReactAndroid (newer)
-#   Hermes           — Hermes JS engine (SDK 52 uses Hermes)
-#   AndroidRuntime:E — JVM crash stack traces
-#   *:S              — silence everything else
+# expo-dev-client internal tags (confirmed from expo-dev-client source):
+#   DevLauncherActivity / DevLauncherController / DevLauncherIntentRegistry
+#   ExpoDevLauncher — older alias
+# React Native / Hermes:
+#   ReactNative / ReactNativeJS / ReactAndroid / Hermes
+# Detox:
+#   DETOX / DetoxSync
+# Catch-all for crashes:
+#   AndroidRuntime:E
+# Use *:W (warn+) as the floor instead of *:S so we don't silently miss new tags.
 adb logcat -c 2>/dev/null || true
-adb logcat -v time ExpoDevLauncher:V DETOX:V DetoxSync:V ReactNative:V ReactNativeJS:V ReactAndroid:V Hermes:V AndroidRuntime:E *:S \
+adb logcat -v time \
+  DevLauncherActivity:V DevLauncherController:V DevLauncherIntentRegistry:V \
+  ExpoDevLauncher:V ExpoModulesCore:V \
+  DETOX:V DetoxSync:V \
+  ReactNative:V ReactNativeJS:V ReactAndroid:V Hermes:V \
+  AndroidRuntime:E *:W \
   > /tmp/logcat.log 2>&1 &
 LOGCAT_PID=$!
 echo "Logcat capture started (PID $LOGCAT_PID)"

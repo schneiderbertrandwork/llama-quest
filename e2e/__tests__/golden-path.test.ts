@@ -1,13 +1,18 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
+import { seedSharedPreferences } from '../setup'
 
 describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
     jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s
 
-    // device.launchApp({ url }) uses Detox's internal startActivity() which delivers
-    // the URL to expo-dev-client without needing BROWSABLE/DEFAULT intent categories
-    // (internal Android calls bypass that requirement). External adb am start from
-    // Node.js does require those categories but is blocked in the instrumentation context.
+    // Seed expo-dev-client's SharedPreferences so it auto-connects to Metro on launch.
+    // This runs after Detox installs the APK (global setup) but before launchApp().
+    // Falls back gracefully if run-as fails — the URL intent below is the primary path.
+    seedSharedPreferences()
+
+    // device.launchApp({ url }) + expo-dev-client plugin in app.json registers the
+    // exp+llama-quest:// intent filter, so Android routes the URL to expo-dev-client's
+    // handler which extracts the Metro URL and connects automatically.
     await device.launchApp({
       newInstance: true,
       url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',

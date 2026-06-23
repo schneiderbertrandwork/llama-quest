@@ -1,4 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
+import { seedSharedPreferences } from '../setup'
 
 // Helper: go through the title screen so tests start on the overworld.
 async function goToOverworld() {
@@ -13,6 +14,7 @@ describe('Travel — Overworld gate to Llamatown', () => {
   beforeAll(async () => {
     jest.setTimeout(120000) // 2 min — warm Metro cache serves bundle in ~30s
 
+    seedSharedPreferences()
     await device.launchApp({
       newInstance: true,
       url: 'exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081',
