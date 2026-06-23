@@ -29,11 +29,18 @@ echo -n "  localhost:8081 (ADB reverse):  "
 adb shell "nc -w 3 localhost 8081 </dev/null > /dev/null 2>&1 && echo OK || echo UNREACHABLE"
 echo "==="
 
-# Pre-install the APK so we can check scheme registration before Detox runs.
-# Detox (npx detox test) will also install/manage the APK, but doing it here
-# first lets us run diagnostics while the APK is on-device.
-echo "=== Pre-installing APK for diagnostics ==="
+# Pre-install BOTH APKs (main + test instrumentation) so that Detox can run
+# with --reuse (skip its own install step). Installing inside Detox's globalSetup
+# was the root cause of emulator OOM crashes on no-KVM runners: the package
+# manager work caused the emulator to crash ~4 min into the Detox session, and
+# Detox then tried to relaunch the emulator (which fails without KVM).
+# Installing here — after ADB reverse is set — means the APKs land cleanly on
+# the already-booted emulator before Detox touches anything.
+echo "=== Pre-installing main APK ==="
 adb install -r -t android/app/build/outputs/apk/debug/app-debug.apk 2>&1 | tail -2
+
+echo "=== Pre-installing test instrumentation APK ==="
+adb install -r -t android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1 | tail -2
 
 echo "--- exp+llama-quest:// scheme registration (post-install, meaningful) ---"
 adb shell "pm query-activities -a android.intent.action.VIEW -d 'exp+llama-quest://expo-development-client/?url=http://localhost:8081' 2>&1 || echo 'pm query-activities failed'"
@@ -102,9 +109,12 @@ done
 echo "==="
 
 # Run Detox E2E tests.
-# CI uses android.emu.debug (type: android.emulator, avdName: 'test') — matches the
-# emulator started by android-emulator-runner@v2. android.device.debug is for local
-# physical USB-connected devices only; using it in CI causes Detox to use the wrong
-# driver, which prints "--headless not supported by android.attached" and never
-# successfully launches the app.
-npx detox test -c android.emu.debug --headless --record-logs failing
+# --reuse: skip APK installation (both main + test APKs are pre-installed above).
+#   This prevents Detox's globalSetup from running a second, OOM-inducing APK install
+#   on the no-KVM emulator. Both APKs are already on the device from the pre-install step.
+# android.emu.debug uses type: android.attached (adbName: emulator-5554) — Detox
+#   attaches to the already-running emulator without managing its lifecycle. Using
+#   android.emulator type caused Detox to attempt KVM-accelerated relaunch on crash,
+#   which always fails on GitHub Actions (exit code 224).
+# No --headless flag: android.attached ignores it, and it produces a harmless warning.
+npx detox test -c android.emu.debug --reuse --record-logs failing
