@@ -9,10 +9,13 @@ async function goToOverworld() {
   await waitFor(element(by.id('hud'))).toBeVisible().withTimeout(15000)
 }
 
+// Set per-test timeout at module level so it takes effect before jest-circus
+// initialises the run. Setting inside beforeAll cannot extend Detox's session-level
+// setupTimeout because that timer starts before any test file code executes.
+jest.setTimeout(600000) // 10 min — matches e2e/jest.config.js testTimeout
+
 describe('Battle mechanics', () => {
   beforeAll(async () => {
-    jest.setTimeout(120000) // 2 min — ADB intent + warm Metro resolves in ~40s
-
     const adbTimer = scheduleMetroConnect()
     await device.launchApp({ newInstance: true })
     clearTimeout(adbTimer)

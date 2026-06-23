@@ -1,10 +1,16 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
 import { scheduleMetroConnect } from '../setup'
 
+// Set per-test timeout at module level so it takes effect before jest-circus
+// initialises the run — overrides testTimeout in e2e/jest.config.js only if this
+// value is larger (it isn't, so this just documents the intent).
+// NOTE: do NOT put jest.setTimeout inside beforeAll; by the time beforeAll runs,
+// Detox has already read the timeout from global[TEST_TIMEOUT_SYMBOL] and a value
+// set inside beforeAll cannot retroactively extend the session-level setupTimeout.
+jest.setTimeout(600000) // 10 min — matches e2e/jest.config.js testTimeout
+
 describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
-    jest.setTimeout(120000) // 2 min — warm Metro cache + ADB intent resolves in ~40s
-
     // scheduleMetroConnect seeds SharedPreferences (best-effort) then schedules an
     // ADB BROWSABLE intent at T+10s while launchApp() awaits. The intent is the
     // reliable path: device.launchApp({ newInstance: true }) calls pm-clear which
