@@ -130,13 +130,18 @@ export function seedSharedPreferences(): void {
  * fires immediately and fails every interaction with "has-window-focus=false", even
  * though the 300-second waitFor timeout has not expired.
  *
- * Implementation: uses `adb shell dumpsys window windows` to check for the string
- * "mCurrentFocus=.*com.llamaquest.app" which appears when our window is focused.
- * Falls back to `am start -n .MainActivity` on each poll iteration to ensure the
- * activity is always being pushed to front.
+ * Implementation: polls `adb shell dumpsys window windows` until the string
+ * "mCurrentFocus=Window{...com.llamaquest.app" appears. This matches both the
+ * expo-dev-client launcher activity (DevLauncherActivity) and the React Native
+ * app activity (MainActivity) — both run in com.llamaquest.app's process.
+ *
+ * Does NOT fire `am start` on every poll: on swiftshader (non-_indirect) the app
+ * acquires focus naturally after bundle load. Firing am start caused recursive ANR
+ * cycles because each start triggered a new IWindowSession.relayout Binder IPC
+ * call that re-triggered the ANR on swiftshader_indirect emulators.
  */
 export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
-    const pollIntervalMs = 10000
+    const pollIntervalMs = 5000
     const start = Date.now()
     let attempt = 0
 
@@ -144,27 +149,9 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
     while (true) {
         attempt++
 
-        // Always try to bring MainActivity to front — harmless if already focused,
-        // and dismisses any covering system dialog (ANR / crash dialog).
-        await new Promise<void>((resolve) => {
-            execFile(
-                'adb',
-                [
-                    'shell', 'am', 'start',
-                    '-n', `${PACKAGE}/.MainActivity`,
-                    '--activity-no-animation',
-                ],
-                { timeout: 10000 },
-                (err) => {
-                    if (err) {
-                        console.warn(`[E2E] waitForWindowFocus am start attempt ${attempt} failed (non-fatal):`, err.message.slice(0, 100))
-                    }
-                    resolve()
-                },
-            )
-        })
-
-        // Check if the window now has focus.
+        // Check focus FIRST — before firing am start — so we don't trigger
+        // unnecessary Activity relayouts. On swiftshader (non-_indirect), the
+        // app window acquires focus quickly after bundle load without nudging.
         const hasFocus = await new Promise<boolean>((resolve) => {
             execFile(
                 'adb',
@@ -175,7 +162,9 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
                         resolve(false)
                         return
                     }
-                    // mCurrentFocus=Window{... com.llamaquest.app/...} signals focus
+                    // mCurrentFocus=Window{... com.llamaquest.app/...} signals focus.
+                    // Matches both DevLauncherActivity (expo-dev-client launcher) and
+                    // MainActivity (React Native app) — both run in com.llamaquest.app.
                     const focused = stdout.includes('mCurrentFocus') &&
                         stdout.includes('com.llamaquest.app') &&
                         /mCurrentFocus=Window\{[^}]*com\.llamaquest\.app/.test(stdout)

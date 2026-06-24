@@ -163,7 +163,15 @@ jobs:
           target: google_apis
           avd-name: test
           cores: 2
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # swiftshader (not swiftshader_indirect): the _indirect variant routes GPU
+          # buffer management through system_server's SurfaceFlinger via synchronous
+          # Binder IPC (IWindowSession.relayout), which blocks the main thread for >5s
+          # on slow CI hardware and triggers Android's ANR watchdog. The resulting
+          # system ANR dialog steals foreground focus and cannot be dismissed in headless
+          # mode, causing all Espresso interactions to fail with "has-window-focus=false".
+          # swiftshader (direct) uses an in-process software renderer that bypasses the
+          # system_server Binder round-trip, eliminating the relayout ANR entirely.
+          emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           emulator-boot-timeout: 1200
           emulator-port: 5554
