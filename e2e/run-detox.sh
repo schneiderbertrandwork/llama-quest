@@ -102,6 +102,21 @@ if [ "$HTTP_STATUS" != "200" ]; then
   echo "WARNING: pre-warm returned $HTTP_STATUS — bundle may not be cached, tests may timeout"
 fi
 
+# Suppress ANR (App Not Responding) system dialogs before running tests.
+# On no-KVM swiftshader emulators, HardwareRenderer initialisation can block
+# the main thread for >5 s during the first Activity resume, triggering Android's
+# ANR watchdog. Android then shows an "App not responding" system dialog which
+# steals window focus from the app. In headless (-no-window) mode the dialog is
+# never auto-dismissed, so every subsequent Espresso interaction fails with
+# "has-window-focus=false". Disabling these settings prevents the dialogs from
+# appearing so the app retains window focus throughout the test session.
+echo "=== Suppressing ANR / crash dialogs ==="
+adb shell settings put global anr_show_background 0
+adb shell settings put global show_first_crash_dialog_dev_option 0
+adb shell settings put global show_first_crash_dialog 0
+echo "ANR and crash dialog suppression active"
+echo "==="
+
 # Capture logcat for post-mortem on failure.
 # Tag names are case-sensitive; wrong names silently capture nothing.
 # expo-dev-client internal tags (confirmed from expo-dev-client source):

@@ -1,5 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
+import { scheduleMetroConnect, clearAsyncStorage, waitForWindowFocus } from '../setup'
 
 // Helper: go through the title screen so tests start on the overworld.
 async function goToOverworld() {
@@ -36,6 +36,10 @@ describe('Travel — Overworld gate to Llamatown', () => {
     // detox.config.js (the 60fps game loop keeps mqt_js permanently busy).
     // Belt-and-suspenders call here in case config-level arg doesn't take effect.
     await device.disableSynchronization()
+
+    // Wait until the app window has focus before any Espresso interaction.
+    // See golden-path.test.ts beforeAll for the full explanation.
+    await waitForWindowFocus(300000) // 5 min — bundle cold-load on no-KVM CI emulator
     await goToOverworld()
   })
 

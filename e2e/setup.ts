@@ -117,6 +117,87 @@ export function seedSharedPreferences(): void {
 }
 
 /**
+ * Polls via ADB until the app's window has focus (has-window-focus=true), or until
+ * timeoutMs is reached.  Fires `am start .MainActivity` on every attempt to keep
+ * bringing the activity to front and to dismiss any covering system dialog (ANR,
+ * crash dialog, etc.) that could be stealing window focus.
+ *
+ * Call this AFTER device.launchApp() and BEFORE the first Detox waitFor() call in
+ * beforeAll.  Without this, Espresso's internal 10-second window-focus pre-condition
+ * fires immediately and fails every interaction with "has-window-focus=false", even
+ * though the 300-second waitFor timeout has not expired.
+ *
+ * Implementation: uses `adb shell dumpsys window windows` to check for the string
+ * "mCurrentFocus=.*com.llamaquest.app" which appears when our window is focused.
+ * Falls back to `am start -n .MainActivity` on each poll iteration to ensure the
+ * activity is always being pushed to front.
+ */
+export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
+    const pollIntervalMs = 10000
+    const start = Date.now()
+    let attempt = 0
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        attempt++
+
+        // Always try to bring MainActivity to front — harmless if already focused,
+        // and dismisses any covering system dialog (ANR / crash dialog).
+        await new Promise<void>((resolve) => {
+            execFile(
+                'adb',
+                [
+                    'shell', 'am', 'start',
+                    '-n', `${PACKAGE}/.MainActivity`,
+                    '--activity-no-animation',
+                ],
+                { timeout: 10000 },
+                (err) => {
+                    if (err) {
+                        console.warn(`[E2E] waitForWindowFocus am start attempt ${attempt} failed (non-fatal):`, err.message.slice(0, 100))
+                    }
+                    resolve()
+                },
+            )
+        })
+
+        // Check if the window now has focus.
+        const hasFocus = await new Promise<boolean>((resolve) => {
+            execFile(
+                'adb',
+                ['shell', 'dumpsys', 'window', 'windows'],
+                { timeout: 10000 },
+                (err, stdout) => {
+                    if (err || !stdout) {
+                        resolve(false)
+                        return
+                    }
+                    // mCurrentFocus=Window{... com.llamaquest.app/...} signals focus
+                    const focused = stdout.includes('mCurrentFocus') &&
+                        stdout.includes('com.llamaquest.app') &&
+                        /mCurrentFocus=Window\{[^}]*com\.llamaquest\.app/.test(stdout)
+                    resolve(focused)
+                },
+            )
+        })
+
+        if (hasFocus) {
+            console.log(`[E2E] Window focus acquired after ${attempt} attempt(s) (${Date.now() - start}ms)`)
+            return
+        }
+
+        const elapsed = Date.now() - start
+        if (elapsed + pollIntervalMs > timeoutMs) {
+            console.warn(`[E2E] waitForWindowFocus timed out after ${elapsed}ms — proceeding anyway`)
+            return
+        }
+
+        console.log(`[E2E] waitForWindowFocus attempt ${attempt}: no focus yet (${elapsed}ms elapsed) — retrying in ${pollIntervalMs}ms`)
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
+    }
+}
+
+/**
  * Seeds SharedPreferences (best-effort) then schedules an ADB BROWSABLE intent
  * to fire at T+10s while device.launchApp() is awaiting.
  *
@@ -137,16 +218,17 @@ export function seedSharedPreferences(): void {
  * Why NO resetAppState: pm clear fails with exit code 1 on the 3rd call in the
  * same emulator session. Use clearAsyncStorage() (run-as) before this call instead.
  *
- * Focus recovery timers (T+3min, T+4min, T+5min):
- * On no-KVM CI emulators, Hermes JS compilation during bundle load can saturate
- * the main thread for 3-4 minutes. ANRWatchDog detects this as an ANR and Android
- * shows an "App not responding" dialog that steals window focus. In headless mode
- * the dialog never auto-dismisses, so all subsequent Espresso interactions fail
- * with "has-window-focus=false". Using `am start -n .MainActivity` at T+3/4/5min
- * brings the app activity to front, which implicitly dismisses any covering system
- * dialog (including ANR) and restores window focus to the app. These timers are
- * safe regardless of app state — `am start` with singleTask launch mode re-uses
- * the existing task without recreating the activity or disrupting navigation state.
+ * Focus recovery timers (T+3min to T+6min every 30s):
+ * On no-KVM CI emulators, HardwareRenderer.init blocks ~5s on swiftshader_indirect
+ * during the first Activity resume (~T+3m10s–T+3m30s). ANRWatchDog detects this and
+ * Android shows an "App not responding" dialog that steals window focus. In headless
+ * mode the dialog never auto-dismisses. run-detox.sh suppresses ANR dialogs via
+ * `settings put global anr_show_background 0` as the primary fix. These timers are
+ * belt-and-suspenders: they sweep every 30s starting at T+3min, bringing
+ * MainActivity to front and dismissing any remaining system dialog. `am start` with
+ * singleTask launch mode re-uses the existing task without recreating the activity,
+ * so navigation state is preserved. Additionally, tests call waitForWindowFocus()
+ * before any Espresso interaction to ensure focus is confirmed via ADB poll.
  */
 export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
     seedSharedPreferences()
@@ -202,15 +284,24 @@ export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
         })
     }
 
-    // T+3min: restore focus after early ANR during bundle compilation
-    setTimeout(() => bringToFront('T+3min focus-recovery'), 180000)
-
-    // T+4min: restore focus (no re-intent — re-firing after bundle is loaded would
-    // trigger expo-dev-client to reload the bundle, disrupting in-progress tests)
-    setTimeout(() => bringToFront('T+4min focus-recovery'), 240000)
-
-    // T+5min: final focus sweep — by now the bundle should have loaded
-    setTimeout(() => bringToFront('T+5min focus-recovery'), 300000)
+    // Focus-recovery sweep: fire every 30s from T+3min to T+6min.
+    //
+    // Why T+3min onwards (not earlier): the ANR on no-KVM emulators fires at
+    // T+3m10s to T+3m30s (HardwareRenderer.init blocks ~5s on swiftshader_indirect
+    // during the first Activity resume). Firing before the ANR is too early — the
+    // dialog appears after our am start and steals focus back. Run-detox.sh disables
+    // ANR dialogs via `settings put global anr_show_background 0` so this is a
+    // belt-and-suspenders sweep in case any system dialog survived.
+    //
+    // Why no re-intent: re-firing the BROWSABLE intent after the bundle has loaded
+    // would tell expo-dev-client to reload the bundle, which resets navigation
+    // state and makes all subsequent tests fail.
+    for (let i = 0; i <= 6; i++) {
+        setTimeout(
+            () => bringToFront(`T+${3 + i * 0.5}min focus-recovery`),
+            (180 + i * 30) * 1000,
+        )
+    }
 
     return handle
 }
