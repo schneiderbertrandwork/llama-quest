@@ -1,16 +1,17 @@
 /**
  * Shared E2E setup helpers — imported by every test file's beforeAll.
  *
- * scheduleMetroConnect() — PRIMARY connection mechanism:
- *   device.launchApp({ newInstance: true }) calls `pm clear` which wipes any
- *   SharedPreferences seeded before the call. The ADB BROWSABLE intent fires
- *   at T+10s WHILE launchApp() is awaiting — after the app is running but before
- *   expo-dev-client gives up waiting — so it is immune to pm-clear.
- *   See: memory/project-detox-root-cause.md for full diagnosis.
+ * clearAsyncStorage() — called FIRST in each suite's beforeAll:
+ *   Uses run-as to remove only /data/data/<pkg>/databases (AsyncStorage).
+ *   Avoids pm clear entirely — pm clear fails with exit code 1 on the 3rd
+ *   consecutive call in the same emulator session (Android package manager
+ *   race/busy state). Non-fatal; goToOverworld() has a catch fallback.
  *
- * seedSharedPreferences() — SECONDARY (belt-and-suspenders):
- *   Still called first in case a future Detox version stops clearing data.
- *   Non-fatal if it fails or gets wiped.
+ * scheduleMetroConnect() — Metro connection mechanism:
+ *   Seeds SharedPreferences (best-effort) then schedules an ADB BROWSABLE
+ *   intent at T+10s while launchApp({ newInstance: true }) is awaiting.
+ *   The intent fires after expo-dev-client is running and ready to handle it.
+ *   See: memory/project-detox-root-cause.md for full diagnosis.
  *
  * ADB reverse (adb reverse tcp:8081 tcp:8081) in run-detox.sh makes emulator
  * localhost:8081 resolve to the host's Metro port. 10.0.2.2:8081 (QEMU gateway)
@@ -24,6 +25,28 @@ import * as path from 'path'
 
 const PACKAGE = 'com.llamaquest.app'
 const METRO_URL = 'http://localhost:8081'
+
+/**
+ * Clears the AsyncStorage databases directory via run-as so the app always
+ * starts on the title screen (no persisted player state).
+ *
+ * Call BEFORE scheduleMetroConnect / launchApp in every suite's beforeAll.
+ * Non-fatal — if it fails, goToOverworld() has a try/catch fallback.
+ *
+ * Why run-as instead of resetAppState / pm clear:
+ *   pm clear fails with exit code 1 on the 3rd consecutive call in the same
+ *   emulator session. run-as only removes the databases dir (AsyncStorage),
+ *   which is all we need to reset game state. No package manager touched.
+ */
+export function clearAsyncStorage(): void {
+    try {
+        const clearCmd = `run-as ${PACKAGE} sh -c 'rm -rf /data/data/${PACKAGE}/databases'`
+        execFileSync('adb', ['shell', clearCmd], { stdio: 'pipe', timeout: 10000 })
+        console.log('[E2E] AsyncStorage cleared — suite starts with no saved game state')
+    } catch (e) {
+        console.warn('[E2E] AsyncStorage clear failed (non-fatal):', String(e).slice(0, 200))
+    }
+}
 
 export function seedSharedPreferences(): void {
     try {
@@ -98,18 +121,17 @@ export function seedSharedPreferences(): void {
  * to fire at T+10s while device.launchApp() is awaiting.
  *
  * Usage in beforeAll:
+ *   clearAsyncStorage()           // wipe AsyncStorage (no pm clear)
  *   const adbTimer = scheduleMetroConnect()
- *   await device.launchApp({ newInstance: true, resetAppState: true })
+ *   await device.launchApp({ newInstance: true })  // NO resetAppState
  *   clearTimeout(adbTimer)
  *
- * Why T+10s: resetAppState calls pm clear (~2s), then the OS relaunches the app
- * (~2s). expo-dev-client is showing its connection UI by T+5s.
- * The intent at T+10s arrives while expo-dev-client is idle and ready to handle it.
+ * Why T+10s: newInstance:true force-stops and relaunches (~2-3s total).
+ * expo-dev-client shows its connection UI by T+4s.
+ * The intent at T+10s arrives while expo-dev-client is ready to handle it.
  *
- * Why resetAppState (not delete): delete:true does a full uninstall+reinstall
- * (~60-90s in CI). The T+10s intent fires during the reinstall → misses the running
- * app → Detox's 265s launch timer fires SIGTERM. resetAppState (pm clear only) is
- * fast so the app is running well before T+10s.
+ * Why NO resetAppState: pm clear fails with exit code 1 on the 3rd call in the
+ * same emulator session. Use clearAsyncStorage() (run-as) before this call instead.
  */
 export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
     seedSharedPreferences()

@@ -1,13 +1,18 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { scheduleMetroConnect } from '../setup'
+import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
 
 async function goToOverworld() {
   // 120s timeout: expo-dev-client connects to Metro after BROWSABLE intent (~10s),
   // then cold bundle load on a slow CI emulator can take up to 2 min.
-  await waitFor(element(by.id('name-input'))).toBeVisible().withTimeout(120000)
-  await element(by.id('name-input')).typeText('Hero')
-  await element(by.id('class-tinkerer')).tap()
-  await element(by.id('start-game-btn')).tap()
+  // try/catch: if clearAsyncStorage() failed, app may start directly on overworld.
+  try {
+    await waitFor(element(by.id('name-input'))).toBeVisible().withTimeout(120000)
+    await element(by.id('name-input')).typeText('Hero')
+    await element(by.id('class-tinkerer')).tap()
+    await element(by.id('start-game-btn')).tap()
+  } catch {
+    // already on overworld — clearAsyncStorage failed, persisted state survived
+  }
   await waitFor(element(by.id('hud'))).toBeVisible().withTimeout(15000)
 }
 
@@ -18,13 +23,12 @@ jest.setTimeout(600000) // 10 min — matches e2e/jest.config.js testTimeout
 
 describe('Battle mechanics', () => {
   beforeAll(async () => {
+    // Clear AsyncStorage first (run-as, non-fatal) so app starts on title screen.
+    // We do NOT use resetAppState/pm clear — pm clear fails with exit code 1 on the
+    // 3rd consecutive call in the same emulator session.
+    clearAsyncStorage()
     const adbTimer = scheduleMetroConnect()
-    // resetAppState: true calls pm-clear (wipes AsyncStorage / SharedPreferences) so
-    // the app always starts on the title screen, not the overworld.
-    // NOTE: delete: true does a full uninstall+reinstall which takes 60-90s on CI and
-    // makes run-as fail with "unknown package". resetAppState achieves the same data
-    // wipe while keeping the package registered and avoiding the reinstall overhead.
-    await device.launchApp({ newInstance: true, resetAppState: true })
+    await device.launchApp({ newInstance: true })
     clearTimeout(adbTimer)
 
     // Synchronization is disabled globally via detoxEnableSynchronization:0 in

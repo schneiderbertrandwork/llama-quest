@@ -1,5 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { scheduleMetroConnect } from '../setup'
+import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
 
 // Set per-test timeout at module level so it takes effect before jest-circus
 // initialises the run — overrides testTimeout in e2e/jest.config.js only if this
@@ -11,18 +11,12 @@ jest.setTimeout(600000) // 10 min — matches e2e/jest.config.js testTimeout
 
 describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
-    // scheduleMetroConnect seeds SharedPreferences (best-effort) then schedules an
-    // ADB BROWSABLE intent at T+10s while launchApp() awaits. The intent is the
-    // reliable path: device.launchApp({ newInstance: true }) calls pm-clear which
-    // wipes any prefs seeded before the call, so the intent fires after the app is
-    // running and expo-dev-client can handle it.
+    // Clear AsyncStorage first (run-as, non-fatal) so app starts on title screen.
+    // We do NOT use resetAppState/pm clear — pm clear fails with exit code 1 on the
+    // 3rd consecutive call in the same emulator session.
+    clearAsyncStorage()
     const adbTimer = scheduleMetroConnect()
-    // resetAppState: true calls pm-clear (wipes AsyncStorage / SharedPreferences) so
-    // the app always starts on the title screen, not the overworld.
-    // NOTE: delete: true does a full uninstall+reinstall which takes 60-90s on CI and
-    // makes run-as fail with "unknown package". resetAppState achieves the same data
-    // wipe while keeping the package registered and avoiding the reinstall overhead.
-    await device.launchApp({ newInstance: true, resetAppState: true })
+    await device.launchApp({ newInstance: true })
     clearTimeout(adbTimer)
 
     // Synchronization is disabled globally via detoxEnableSynchronization:0 in
