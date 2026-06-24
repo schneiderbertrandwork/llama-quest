@@ -19,9 +19,6 @@
  */
 
 import { execFileSync, execFile } from 'child_process'
-import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
 
 const PACKAGE = 'com.llamaquest.app'
 const METRO_URL = 'http://localhost:8081'
@@ -81,33 +78,39 @@ export function seedSharedPreferences(): void {
             `</map>`,
         ].join('\n')
 
-        // Write to host temp files (avoids shell-quoting issues with JSON content).
-        const tmpDir = os.tmpdir()
-        const dlPrefsPath = path.join(tmpDir, 'e2e-dl-prefs.xml')
-        const rnPrefsPath = path.join(tmpDir, 'e2e-rn-prefs.xml')
-        fs.writeFileSync(dlPrefsPath, devLauncherXml, 'utf8')
-        fs.writeFileSync(rnPrefsPath, rnXml, 'utf8')
-
-        // Push to device public storage (readable by run-as).
-        execFileSync('adb', ['push', dlPrefsPath, '/sdcard/e2e-dl-prefs.xml'],
-            { stdio: 'pipe', timeout: 15000 })
-        execFileSync('adb', ['push', rnPrefsPath, '/sdcard/e2e-rn-prefs.xml'],
-            { stdio: 'pipe', timeout: 15000 })
-
-        // Copy into app's private SharedPreferences directory via run-as.
-        // run-as requires a debuggable APK — assembleDebug satisfies this.
-        // mkdir -p is safe even if shared_prefs already exists.
+        // Write XML directly into the app's SharedPreferences via run-as + stdin pipe.
         //
-        // IMPORTANT: adb shell joins all extra args with spaces before sending to
-        // the device shell, so 'sh -c <cmd>' must be passed as a SINGLE adb shell
-        // argument — use the single-string form of adb shell to avoid splitting.
+        // Why not adb push → /sdcard/ → run-as cp:
+        //   Android 34 google_apis emulator denies write access to /sdcard/ from adb
+        //   (Permission denied on cp). The /sdcard/ route is unreliable across API
+        //   levels and emulator flavours.
+        //
+        // Instead: pipe XML content via stdin to 'adb shell run-as ... sh -c cat >'.
+        // execFileSync with { input: ... } writes to the child process's stdin, which
+        // adb forwards to the device shell. This bypasses /sdcard/ entirely and writes
+        // directly into the app's private data directory.
+        //
+        // Shell escaping: the XML content is safe (no single-quotes, no NULs). The
+        // 'cat > path' command is wrapped in run-as so it runs as the app user.
         const prefs = `/data/data/${PACKAGE}/shared_prefs`
-        const shellCmd =
-            `run-as ${PACKAGE} sh -c ` +
-            `'mkdir -p ${prefs} && ` +
-            `cp /sdcard/e2e-dl-prefs.xml ${prefs}/expo.modules.devlauncher.recentyopenedapps.xml && ` +
-            `cp /sdcard/e2e-rn-prefs.xml ${prefs}/${PACKAGE}_preferences.xml'`
-        execFileSync('adb', ['shell', shellCmd], { stdio: 'pipe', timeout: 20000 })
+
+        // Ensure the shared_prefs directory exists first.
+        execFileSync('adb', [
+            'shell',
+            `run-as ${PACKAGE} sh -c 'mkdir -p ${prefs}'`,
+        ], { stdio: 'pipe', timeout: 10000 })
+
+        // Write expo-dev-client recently-opened-apps registry.
+        execFileSync('adb', [
+            'shell',
+            `run-as ${PACKAGE} sh -c 'cat > ${prefs}/expo.modules.devlauncher.recentyopenedapps.xml'`,
+        ], { input: devLauncherXml, stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000 })
+
+        // Write React Native debug_http_host preference.
+        execFileSync('adb', [
+            'shell',
+            `run-as ${PACKAGE} sh -c 'cat > ${prefs}/${PACKAGE}_preferences.xml'`,
+        ], { input: rnXml, stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000 })
 
         console.log(`[E2E] SharedPreferences seeded — expo-dev-client lastOpenedApp=${METRO_URL}, debug_http_host=localhost:8081`)
     } catch (e) {
