@@ -18,7 +18,7 @@
  * is UNREACHABLE in GitHub Actions CI — always use localhost:8081.
  */
 
-import { execFileSync } from 'child_process'
+import { execFileSync, execFile } from 'child_process'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -144,18 +144,25 @@ export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
     // localhost:8081 is reachable via adb reverse; 10.0.2.2:8081 is NOT in CI.
     const intentUri = `exp+llama-quest://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081`
 
+    // Use async execFile (not execFileSync) so the Node.js event loop is NEVER
+    // blocked when the intent fires. execFileSync inside a setTimeout callback
+    // blocks the entire event loop for up to its timeout duration — this prevents
+    // Detox's internal async ADB callbacks (including launchApp resolution) from
+    // running, causing a deadlock where both our ADB call and Detox's ADB calls
+    // starve each other → ETIMEDOUT on our side, launchApp never resolves.
     return setTimeout(() => {
-        try {
-            execFileSync('adb', [
-                'shell', 'am', 'start',
-                '-a', 'android.intent.action.VIEW',
-                '-c', 'android.intent.category.DEFAULT',
-                '-c', 'android.intent.category.BROWSABLE',
-                '-d', intentUri,
-            ], { stdio: 'pipe', timeout: 15000 })
-            console.log('[E2E] ADB BROWSABLE intent fired → expo-dev-client connecting to localhost:8081')
-        } catch (e) {
-            console.warn('[E2E] ADB intent failed (non-fatal):', String(e).slice(0, 200))
-        }
+        execFile('adb', [
+            'shell', 'am', 'start',
+            '-a', 'android.intent.action.VIEW',
+            '-c', 'android.intent.category.DEFAULT',
+            '-c', 'android.intent.category.BROWSABLE',
+            '-d', intentUri,
+        ], { timeout: 15000 }, (err) => {
+            if (err) {
+                console.warn('[E2E] ADB intent failed (non-fatal):', err.message.slice(0, 200))
+            } else {
+                console.log('[E2E] ADB BROWSABLE intent fired → expo-dev-client connecting to localhost:8081')
+            }
+        })
     }, 10000)
 }
