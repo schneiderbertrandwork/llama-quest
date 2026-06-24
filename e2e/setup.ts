@@ -99,12 +99,17 @@ export function seedSharedPreferences(): void {
  *
  * Usage in beforeAll:
  *   const adbTimer = scheduleMetroConnect()
- *   await device.launchApp({ newInstance: true })
+ *   await device.launchApp({ newInstance: true, resetAppState: true })
  *   clearTimeout(adbTimer)
  *
- * Why T+10s: launchApp() force-stops + pm-clears the app (~3s), then the OS
- * starts it (~2s). expo-dev-client is showing its connection UI by T+5s.
+ * Why T+10s: resetAppState calls pm clear (~2s), then the OS relaunches the app
+ * (~2s). expo-dev-client is showing its connection UI by T+5s.
  * The intent at T+10s arrives while expo-dev-client is idle and ready to handle it.
+ *
+ * Why resetAppState (not delete): delete:true does a full uninstall+reinstall
+ * (~60-90s in CI). The T+10s intent fires during the reinstall → misses the running
+ * app → Detox's 265s launch timer fires SIGTERM. resetAppState (pm clear only) is
+ * fast so the app is running well before T+10s.
  */
 export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
     seedSharedPreferences()
