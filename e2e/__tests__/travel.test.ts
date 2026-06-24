@@ -17,14 +17,14 @@ jest.setTimeout(600000) // 10 min — matches e2e/jest.config.js testTimeout
 
 describe('Travel — Overworld gate to Llamatown', () => {
   beforeAll(async () => {
-    // Disable Detox idle-sync BEFORE launching: the 60fps game loop starts as soon
-    // as the app loads, keeping mqt_js permanently busy. If synchronization is still
-    // on when launchApp() resolves, Espresso times out after 90s waiting for idle.
-    await device.disableSynchronization()
-
     const adbTimer = scheduleMetroConnect()
     await device.launchApp({ newInstance: true })
     clearTimeout(adbTimer)
+
+    // Synchronization is disabled globally via detoxEnableSynchronization:0 in
+    // detox.config.js (the 60fps game loop keeps mqt_js permanently busy).
+    // Belt-and-suspenders call here in case config-level arg doesn't take effect.
+    await device.disableSynchronization()
     await goToOverworld()
   })
 

@@ -13,6 +13,10 @@ module.exports = {
       type: 'android.apk',
       binaryPath: 'android/app/build/outputs/apk/debug/app-debug.apk',
       build: 'cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug',
+      // The 60fps game loop keeps mqt_js permanently busy, causing Espresso's
+      // idle-synchronization inside launchApp() to time out after 90s.
+      // Disable Detox sync globally so tests use explicit waitFor() instead.
+      launchArgs: { detoxEnableSynchronization: 0 },
     },
   },
   devices: {
