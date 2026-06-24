@@ -19,9 +19,12 @@ jest.setTimeout(600000) // 10 min — matches e2e/jest.config.js testTimeout
 describe('Battle mechanics', () => {
   beforeAll(async () => {
     const adbTimer = scheduleMetroConnect()
-    // delete: true clears AsyncStorage so the app always starts on the title screen,
-    // not the overworld (which it would restore if the golden-path suite ran first).
-    await device.launchApp({ newInstance: true, delete: true })
+    // resetAppState: true calls pm-clear (wipes AsyncStorage / SharedPreferences) so
+    // the app always starts on the title screen, not the overworld.
+    // NOTE: delete: true does a full uninstall+reinstall which takes 60-90s on CI and
+    // makes run-as fail with "unknown package". resetAppState achieves the same data
+    // wipe while keeping the package registered and avoiding the reinstall overhead.
+    await device.launchApp({ newInstance: true, resetAppState: true })
     clearTimeout(adbTimer)
 
     // Synchronization is disabled globally via detoxEnableSynchronization:0 in
