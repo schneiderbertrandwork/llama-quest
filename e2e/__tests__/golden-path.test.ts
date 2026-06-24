@@ -16,14 +16,14 @@ describe('Llama Quest — Golden Path', () => {
     // reliable path: device.launchApp({ newInstance: true }) calls pm-clear which
     // wipes any prefs seeded before the call, so the intent fires after the app is
     // running and expo-dev-client can handle it.
+    // Disable Detox idle-sync BEFORE launching: the 60fps game loop starts as soon
+    // as the app loads, keeping mqt_js permanently busy. If synchronization is still
+    // on when launchApp() resolves, Espresso times out after 90s waiting for idle.
+    await device.disableSynchronization()
+
     const adbTimer = scheduleMetroConnect()
     await device.launchApp({ newInstance: true })
     clearTimeout(adbTimer)
-
-    // The game's 60fps requestAnimationFrame loop makes Detox's idle-synchronization
-    // wait forever (app is never "idle"). Disable it here; tests use explicit waitFor
-    // timeouts instead.
-    await device.disableSynchronization()
   })
 
   afterAll(async () => {
