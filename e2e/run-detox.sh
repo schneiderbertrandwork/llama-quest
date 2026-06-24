@@ -57,7 +57,9 @@ echo "==="
 # land cleanly on the already-booted emulator before Detox touches anything.
 echo "=== Pre-installing main APK ==="
 for attempt in 1 2 3; do
-  INSTALL_OUT=$(adb install -r -t android/app/build/outputs/apk/debug/app-debug.apk 2>&1)
+  # '|| true' prevents set -e from aborting on a non-zero adb exit code so the
+  # retry loop can continue.  The Success/failure check is done via grep below.
+  INSTALL_OUT=$(adb install -r -t android/app/build/outputs/apk/debug/app-debug.apk 2>&1) || true
   echo "$INSTALL_OUT" | tail -2
   if echo "$INSTALL_OUT" | grep -q "Success"; then
     echo "Main APK installed successfully (attempt $attempt)"
@@ -69,7 +71,9 @@ done
 
 echo "=== Pre-installing test instrumentation APK ==="
 for attempt in 1 2 3; do
-  INSTALL_OUT=$(adb install -r -t android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1)
+  # '|| true' prevents set -e from aborting on a non-zero adb exit code so the
+  # retry loop can continue.  The Success/failure check is done via grep below.
+  INSTALL_OUT=$(adb install -r -t android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1) || true
   echo "$INSTALL_OUT" | tail -2
   if echo "$INSTALL_OUT" | grep -q "Success"; then
     echo "Test APK installed successfully (attempt $attempt)"
