@@ -17,7 +17,9 @@ describe('Llama Quest — Golden Path', () => {
     // wipes any prefs seeded before the call, so the intent fires after the app is
     // running and expo-dev-client can handle it.
     const adbTimer = scheduleMetroConnect()
-    await device.launchApp({ newInstance: true })
+    // delete: true clears AsyncStorage so the app always starts on the title screen,
+    // not the overworld (which it would restore if prior state was saved).
+    await device.launchApp({ newInstance: true, delete: true })
     clearTimeout(adbTimer)
 
     // Synchronization is disabled globally via detoxEnableSynchronization:0 in

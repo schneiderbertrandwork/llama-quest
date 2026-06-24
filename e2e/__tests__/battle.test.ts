@@ -19,7 +19,9 @@ jest.setTimeout(600000) // 10 min — matches e2e/jest.config.js testTimeout
 describe('Battle mechanics', () => {
   beforeAll(async () => {
     const adbTimer = scheduleMetroConnect()
-    await device.launchApp({ newInstance: true })
+    // delete: true clears AsyncStorage so the app always starts on the title screen,
+    // not the overworld (which it would restore if the golden-path suite ran first).
+    await device.launchApp({ newInstance: true, delete: true })
     clearTimeout(adbTimer)
 
     // Synchronization is disabled globally via detoxEnableSynchronization:0 in
