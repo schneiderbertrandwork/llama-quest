@@ -98,6 +98,36 @@ jobs:
           cat android/app/src/androidTest/java/com/llamaquest/app/DetoxTest.java || echo "(not found)"
           echo "==="
 
+      - name: Free disk space for emulator
+        # The default ubuntu-latest runner has ~14 GB free, but the API 34 google_apis
+        # emulator userdata partition needs ~7.4 GB.  After the Gradle build the runner
+        # is down to ~3.5 GB, which is not enough — the emulator logs
+        # "FATAL | Not enough space to create userdata partition" and exits immediately,
+        # so ADB never sees it and the 1200 s boot-timeout spins to exhaustion.
+        # Remove large pre-installed packages that we don't need for E2E:
+        #   - /usr/local/lib/android/sdk: pre-installed SDK (we install our own via setup-android)
+        #     NOTE: do NOT remove this before the build — setup-android is already done.
+        #     Instead only clean the big items that aren't needed at this point.
+        #   - /opt/hostedtoolcache: language runtimes we don't use (Haskell, PyPy, Ruby, Go …)
+        #   - /usr/share/dotnet, /usr/local/share/powershell: .NET / PS toolchain
+        #   - /usr/share/swift: Swift compiler
+        # This typically recovers ~10-12 GB, leaving plenty of room for the emulator.
+        run: |
+          echo "=== Disk before cleanup ==="
+          df -h /
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /opt/hostedtoolcache/go
+          sudo rm -rf /opt/hostedtoolcache/node/20* /opt/hostedtoolcache/node/21* /opt/hostedtoolcache/node/23*
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /usr/lib/google-cloud-sdk
+          sudo rm -rf /usr/share/miniconda
+          sudo docker system prune -af --volumes 2>/dev/null || true
+          echo "=== Disk after cleanup ==="
+          df -h /
+
       - name: Build debug APK + test APK
         # Target :app only — assembleAndroidTest without a module prefix builds every
         # subproject's test APK (including expo-dev-client) which fails on duplicate
@@ -131,9 +161,16 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
+          avd-name: test
+          cores: 2
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           emulator-boot-timeout: 1200
+          emulator-port: 5554
+          # 4 GB userdata partition — enough for test APKs, well under the ~8+ GB free
+          # after the disk-cleanup step above.  Default (~7.4 GB) caused FATAL crash
+          # on runners that only had ~3.5 GB available after the Gradle build.
+          disk-size: 4096M
           # Metro is already running (started before emulator boot).
           # run-detox.sh detects it via /status and skips the start step.
           script: bash e2e/run-detox.sh
