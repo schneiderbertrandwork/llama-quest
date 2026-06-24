@@ -29,18 +29,55 @@ echo -n "  localhost:8081 (ADB reverse):  "
 adb shell "nc -w 3 localhost 8081 </dev/null > /dev/null 2>&1 && echo OK || echo UNREACHABLE"
 echo "==="
 
+# Wait for Android system services to be fully initialized BEFORE installing APKs.
+# sys.boot_completed=1 fires 10-30s before `package` and `power` services are ready
+# on slow software-emulated (no-KVM) runners. Installing APKs before the package
+# manager service is ready causes "Broken pipe" / "Can't find service: package" —
+# the APK silently fails to install and Detox then reports "package not installed".
+# This wait must come BEFORE adb install, not after.
+echo "=== Waiting for Android system services (package + power) ==="
+for i in $(seq 1 60); do
+  PKG=$(adb shell "service check package" 2>&1)
+  PWR=$(adb shell "service check power" 2>&1)
+  if echo "$PKG" | grep -q "found" && echo "$PWR" | grep -q "found"; then
+    echo "System services ready after ${i} attempt(s)"
+    break
+  fi
+  echo "  Attempt $i/60: package=[${PKG}] power=[${PWR}] — retrying in 5s"
+  sleep 5
+done
+echo "==="
+
 # Pre-install BOTH APKs (main + test instrumentation) so that Detox can run
 # with --reuse (skip its own install step). Installing inside Detox's globalSetup
 # was the root cause of emulator OOM crashes on no-KVM runners: the package
 # manager work caused the emulator to crash ~4 min into the Detox session, and
 # Detox then tried to relaunch the emulator (which fails without KVM).
-# Installing here — after ADB reverse is set — means the APKs land cleanly on
-# the already-booted emulator before Detox touches anything.
+# Installing here — after system services are confirmed ready — means the APKs
+# land cleanly on the already-booted emulator before Detox touches anything.
 echo "=== Pre-installing main APK ==="
-adb install -r -t android/app/build/outputs/apk/debug/app-debug.apk 2>&1 | tail -2
+for attempt in 1 2 3; do
+  INSTALL_OUT=$(adb install -r -t android/app/build/outputs/apk/debug/app-debug.apk 2>&1)
+  echo "$INSTALL_OUT" | tail -2
+  if echo "$INSTALL_OUT" | grep -q "Success"; then
+    echo "Main APK installed successfully (attempt $attempt)"
+    break
+  fi
+  echo "Main APK install attempt $attempt failed — retrying in 10s..."
+  sleep 10
+done
 
 echo "=== Pre-installing test instrumentation APK ==="
-adb install -r -t android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1 | tail -2
+for attempt in 1 2 3; do
+  INSTALL_OUT=$(adb install -r -t android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1)
+  echo "$INSTALL_OUT" | tail -2
+  if echo "$INSTALL_OUT" | grep -q "Success"; then
+    echo "Test APK installed successfully (attempt $attempt)"
+    break
+  fi
+  echo "Test APK install attempt $attempt failed — retrying in 10s..."
+  sleep 10
+done
 
 echo "--- exp+llama-quest:// scheme registration (post-install, meaningful) ---"
 adb shell "pm query-activities -a android.intent.action.VIEW -d 'exp+llama-quest://expo-development-client/?url=http://localhost:8081' 2>&1 || echo 'pm query-activities failed'"
@@ -90,23 +127,6 @@ echo "Logcat capture started (PID $LOGCAT_PID)"
 
 # Kill logcat on any script exit (success or failure).
 trap 'LINES=$(wc -l < /tmp/logcat.log 2>/dev/null || echo 0); kill '"$LOGCAT_PID"' 2>/dev/null || true; echo "Logcat: $LINES lines saved"' EXIT
-
-# Wait for Android system services to be fully initialized before handing off to Detox.
-# sys.boot_completed=1 fires 10-30s before `package` and `power` services are ready on
-# slow software-emulated (no-KVM) runners. Detox's APK install hits the package manager
-# immediately, causing "Broken pipe / Can't find service: package" failures.
-echo "=== Waiting for Android system services (package + power) ==="
-for i in $(seq 1 30); do
-  PKG=$(adb shell "service check package" 2>&1)
-  PWR=$(adb shell "service check power" 2>&1)
-  if echo "$PKG" | grep -q "found" && echo "$PWR" | grep -q "found"; then
-    echo "System services ready after ${i} attempt(s)"
-    break
-  fi
-  echo "  Attempt $i/30: package=[${PKG}] power=[${PWR}] — retrying in 5s"
-  sleep 5
-done
-echo "==="
 
 # Run Detox E2E tests.
 # --reuse: skip APK installation (both main + test APKs are pre-installed above).
