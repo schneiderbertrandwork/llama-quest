@@ -31,7 +31,7 @@ describe('Llama Quest — Golden Path', () => {
     // first test because the RN window hasn't taken focus yet.
     await waitFor(element(by.id('name-input')))
       .toBeVisible()
-      .withTimeout(120000) // 2 min — bundle cold-load on slow CI emulator
+      .withTimeout(300000) // 5 min — bundle cold-load on no-KVM CI emulator
   })
 
   afterAll(async () => {

@@ -3,18 +3,18 @@ import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
 
 // Helper: go through the title screen so tests start on the overworld.
 async function goToOverworld() {
-  // 120s timeout: expo-dev-client connects to Metro after BROWSABLE intent (~10s),
-  // then cold bundle load on a slow CI emulator can take up to 2 min.
+  // 300s timeout: expo-dev-client connects to Metro after BROWSABLE intent (~20s),
+  // then cold bundle load on a no-KVM CI emulator can take up to 5 min.
   // try/catch: if clearAsyncStorage() failed, app may start directly on overworld.
   try {
-    await waitFor(element(by.id('name-input'))).toBeVisible().withTimeout(120000)
+    await waitFor(element(by.id('name-input'))).toBeVisible().withTimeout(300000)
     await element(by.id('name-input')).typeText('Hero')
     await element(by.id('class-tinkerer')).tap()
     await element(by.id('start-game-btn')).tap()
   } catch {
     // already on overworld — clearAsyncStorage failed, persisted state survived
   }
-  await waitFor(element(by.id('hud'))).toBeVisible().withTimeout(15000)
+  await waitFor(element(by.id('hud'))).toBeVisible().withTimeout(30000)
 }
 
 // Set per-test timeout at module level so it takes effect before jest-circus
