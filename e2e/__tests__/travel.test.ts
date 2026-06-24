@@ -28,9 +28,9 @@ describe('Travel — Overworld gate to Llamatown', () => {
     // We do NOT use resetAppState/pm clear — pm clear fails with exit code 1 on the
     // 3rd consecutive call in the same emulator session.
     clearAsyncStorage()
-    const adbTimer = scheduleMetroConnect()
+    scheduleMetroConnect()
     await device.launchApp({ newInstance: true })
-    clearTimeout(adbTimer)
+    // timer fires at T+10s — do NOT cancel early; window focus requires it
 
     // Synchronization is disabled globally via detoxEnableSynchronization:0 in
     // detox.config.js (the 60fps game loop keeps mqt_js permanently busy).

@@ -121,10 +121,14 @@ export function seedSharedPreferences(): void {
  * to fire at T+10s while device.launchApp() is awaiting.
  *
  * Usage in beforeAll:
- *   clearAsyncStorage()           // wipe AsyncStorage (no pm clear)
- *   const adbTimer = scheduleMetroConnect()
- *   await device.launchApp({ newInstance: true })  // NO resetAppState
- *   clearTimeout(adbTimer)
+ *   clearAsyncStorage()
+ *   scheduleMetroConnect()   // start T+10s timer BEFORE launchApp
+ *   await device.launchApp({ newInstance: true })
+ *   // do NOT clearTimeout — let the intent fire
+ *
+ * Why not clearTimeout: without pm clear, launchApp() returns in ~4s.
+ * The T+10s intent must fire WHILE Espresso's 10s window-focus wait is running.
+ * If cancelled, expo-dev-client's idle screen never takes focus → has-window-focus=false.
  *
  * Why T+10s: newInstance:true force-stops and relaunches (~2-3s total).
  * expo-dev-client shows its connection UI by T+4s.
