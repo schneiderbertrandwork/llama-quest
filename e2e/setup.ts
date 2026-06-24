@@ -136,6 +136,17 @@ export function seedSharedPreferences(): void {
  *
  * Why NO resetAppState: pm clear fails with exit code 1 on the 3rd call in the
  * same emulator session. Use clearAsyncStorage() (run-as) before this call instead.
+ *
+ * Focus recovery timers (T+3min, T+4min, T+5min):
+ * On no-KVM CI emulators, Hermes JS compilation during bundle load can saturate
+ * the main thread for 3-4 minutes. ANRWatchDog detects this as an ANR and Android
+ * shows an "App not responding" dialog that steals window focus. In headless mode
+ * the dialog never auto-dismisses, so all subsequent Espresso interactions fail
+ * with "has-window-focus=false". Using `am start -n .MainActivity` at T+3/4/5min
+ * brings the app activity to front, which implicitly dismisses any covering system
+ * dialog (including ANR) and restores window focus to the app. These timers are
+ * safe regardless of app state — `am start` with singleTask launch mode re-uses
+ * the existing task without recreating the activity or disrupting navigation state.
  */
 export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
     seedSharedPreferences()
@@ -150,7 +161,7 @@ export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
     // Detox's internal async ADB callbacks (including launchApp resolution) from
     // running, causing a deadlock where both our ADB call and Detox's ADB calls
     // starve each other → ETIMEDOUT on our side, launchApp never resolves.
-    return setTimeout(() => {
+    const handle = setTimeout(() => {
         execFile('adb', [
             'shell', 'am', 'start',
             '-a', 'android.intent.action.VIEW',
@@ -165,4 +176,41 @@ export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
             }
         })
     }, 10000)
+
+    // Focus-recovery timers: dismiss any ANR dialog and restore window focus.
+    // On no-KVM CI emulators, Hermes JS compilation during bundle load (~3-5 min)
+    // saturates the main thread. ANRWatchDog detects this and Android shows an
+    // "App not responding" dialog that steals window focus. In headless -no-window
+    // mode the dialog never auto-dismisses, so all subsequent Espresso interactions
+    // fail with "has-window-focus=false". Bringing MainActivity to the foreground
+    // via `am start` implicitly dismisses the ANR dialog (Android clears system
+    // alerts when the target activity is re-launched to front) and restores focus.
+    // This is safe regardless of which screen the app is on — `am start` with
+    // singleTask launch mode brings the existing task to front without recreating
+    // the activity, so any ongoing navigation state is preserved.
+    const bringToFront = (label: string) => {
+        execFile('adb', [
+            'shell', 'am', 'start',
+            '-n', 'com.llamaquest.app/.MainActivity',
+            '--activity-no-animation',
+        ], { timeout: 10000 }, (err) => {
+            if (err) {
+                console.warn(`[E2E] ${label} bring-to-front failed (non-fatal):`, err.message.slice(0, 100))
+            } else {
+                console.log(`[E2E] ${label} — brought MainActivity to front, dismissed any ANR dialog`)
+            }
+        })
+    }
+
+    // T+3min: restore focus after early ANR during bundle compilation
+    setTimeout(() => bringToFront('T+3min focus-recovery'), 180000)
+
+    // T+4min: restore focus (no re-intent — re-firing after bundle is loaded would
+    // trigger expo-dev-client to reload the bundle, disrupting in-progress tests)
+    setTimeout(() => bringToFront('T+4min focus-recovery'), 240000)
+
+    // T+5min: final focus sweep — by now the bundle should have loaded
+    setTimeout(() => bringToFront('T+5min focus-recovery'), 300000)
+
+    return handle
 }
