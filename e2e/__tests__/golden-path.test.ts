@@ -24,6 +24,15 @@ describe('Llama Quest — Golden Path', () => {
     // detox.config.js (the 60fps game loop keeps mqt_js permanently busy).
     // Belt-and-suspenders call here in case config-level arg doesn't take effect.
     await device.disableSynchronization()
+
+    // Wait for the title screen to be visible before tests begin.
+    // expo-dev-client connects to Metro after the BROWSABLE intent fires (~10s),
+    // then the bundle loads and the React Native window takes focus.
+    // Without this wait, Espresso fails with "has-window-focus=false" on the
+    // first test because the RN window hasn't taken focus yet.
+    await waitFor(element(by.id('name-input')))
+      .toBeVisible()
+      .withTimeout(120000) // 2 min — bundle cold-load on slow CI emulator
   })
 
   afterAll(async () => {

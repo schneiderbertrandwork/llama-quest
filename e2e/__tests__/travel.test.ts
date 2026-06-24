@@ -3,7 +3,9 @@ import { scheduleMetroConnect } from '../setup'
 
 // Helper: go through the title screen so tests start on the overworld.
 async function goToOverworld() {
-  await waitFor(element(by.id('name-input'))).toBeVisible().withTimeout(15000)
+  // 120s timeout: expo-dev-client connects to Metro after BROWSABLE intent (~10s),
+  // then cold bundle load on a slow CI emulator can take up to 2 min.
+  await waitFor(element(by.id('name-input'))).toBeVisible().withTimeout(120000)
   await element(by.id('name-input')).typeText('Hero')
   await element(by.id('class-tinkerer')).tap()
   await element(by.id('start-game-btn')).tap()

@@ -74,13 +74,17 @@ export function seedSharedPreferences(): void {
         // Copy into app's private SharedPreferences directory via run-as.
         // run-as requires a debuggable APK — assembleDebug satisfies this.
         // mkdir -p is safe even if shared_prefs already exists.
+        //
+        // IMPORTANT: adb shell joins all extra args with spaces before sending to
+        // the device shell, so 'sh -c <cmd>' must be passed as a SINGLE adb shell
+        // argument — use the single-string form of adb shell to avoid splitting.
         const prefs = `/data/data/${PACKAGE}/shared_prefs`
-        execFileSync('adb', [
-            'shell', 'run-as', PACKAGE, 'sh', '-c',
-            `mkdir -p ${prefs} && ` +
+        const shellCmd =
+            `run-as ${PACKAGE} sh -c ` +
+            `'mkdir -p ${prefs} && ` +
             `cp /sdcard/e2e-dl-prefs.xml ${prefs}/expo.modules.devlauncher.recentyopenedapps.xml && ` +
-            `cp /sdcard/e2e-rn-prefs.xml ${prefs}/${PACKAGE}_preferences.xml`,
-        ], { stdio: 'pipe', timeout: 20000 })
+            `cp /sdcard/e2e-rn-prefs.xml ${prefs}/${PACKAGE}_preferences.xml'`
+        execFileSync('adb', ['shell', shellCmd], { stdio: 'pipe', timeout: 20000 })
 
         console.log(`[E2E] SharedPreferences seeded — expo-dev-client lastOpenedApp=${METRO_URL}, debug_http_host=localhost:8081`)
     } catch (e) {
