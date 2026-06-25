@@ -106,6 +106,27 @@ if [ "$HTTP_STATUS" != "200" ]; then
   echo "WARNING: pre-warm returned $HTTP_STATUS — bundle may not be cached, tests may timeout"
 fi
 
+# Pre-warm SoLoader native library cache.
+#
+# On first launch, SoLoader runs DirectApkSoSource.buildLibDepsCacheImpl which
+# walks every .so in the APK and builds a dependency graph. On no-KVM CI hardware
+# this blocks the main thread for >5s, triggering Android's ANR watchdog. The
+# resulting ANR dialog steals has-window-focus from the app; the window manager
+# never re-assigns focus, causing every Espresso interaction to fail.
+#
+# The SoLoader cache is written to the app's private data directory and persists
+# across am force-stop (only pm clear would remove it). Launching the app once
+# here — before any Detox test runs — lets SoLoader build its cache on a launch
+# where ANR doesn't matter. All 3 test-suite launches then get a cache hit (fast
+# native init, no ANR, window focus acquired normally).
+echo "=== Pre-warming SoLoader native library cache ==="
+adb shell am start -n com.llamaquest.app/expo.modules.devlauncher.launcher.DevLauncherActivity
+echo "App launched for SoLoader pre-warm — waiting 60s for native library init..."
+sleep 60
+adb shell am force-stop com.llamaquest.app
+echo "SoLoader pre-warm complete — app stopped, cache persisted in app data dir"
+echo "==="
+
 # Suppress ANR (App Not Responding) system dialogs before running tests.
 # On no-KVM swiftshader emulators, HardwareRenderer initialisation can block
 # the main thread for >5 s during the first Activity resume, triggering Android's
