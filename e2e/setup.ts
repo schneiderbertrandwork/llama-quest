@@ -190,8 +190,9 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
 }
 
 /**
- * Seeds SharedPreferences (best-effort) then schedules an ADB BROWSABLE intent
- * to fire at T+10s while device.launchApp() is awaiting.
+ * Seeds SharedPreferences (best-effort) then schedules an ADB intent to fire at
+ * T+10s while device.launchApp() is awaiting, delivering the Metro URL directly
+ * to DevLauncherActivity by component name.
  *
  * Usage in beforeAll:
  *   clearAsyncStorage()
@@ -199,28 +200,20 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
  *   await device.launchApp({ newInstance: true })
  *   // do NOT clearTimeout — let the intent fire
  *
- * Why not clearTimeout: without pm clear, launchApp() returns in ~4s.
- * The T+10s intent must fire WHILE Espresso's 10s window-focus wait is running.
- * If cancelled, expo-dev-client's idle screen never takes focus → has-window-focus=false.
- *
  * Why T+10s: newInstance:true force-stops and relaunches (~2-3s total).
  * expo-dev-client shows its connection UI by T+4s.
  * The intent at T+10s arrives while expo-dev-client is ready to handle it.
  *
+ * Why target DevLauncherActivity with -n, not action+category routing:
+ *   The AndroidManifest registers exp+llama-quest on MainActivity (singleTask),
+ *   NOT on DevLauncherActivity. Action+category routing sends the intent to
+ *   MainActivity, which brings its task to the foreground and destroys
+ *   DevLauncherActivity mid-bundle-load — Metro never gets a request.
+ *   The -n flag bypasses manifest routing and delivers the URL directly to the
+ *   already-running DevLauncherActivity.
+ *
  * Why NO resetAppState: pm clear fails with exit code 1 on the 3rd call in the
  * same emulator session. Use clearAsyncStorage() (run-as) before this call instead.
- *
- * Focus recovery timers (T+3min to T+6min every 30s):
- * On no-KVM CI emulators, HardwareRenderer.init blocks ~5s on swiftshader_indirect
- * during the first Activity resume (~T+3m10s–T+3m30s). ANRWatchDog detects this and
- * Android shows an "App not responding" dialog that steals window focus. In headless
- * mode the dialog never auto-dismisses. run-detox.sh suppresses ANR dialogs via
- * `settings put global anr_show_background 0` as the primary fix. These timers are
- * belt-and-suspenders: they sweep every 30s starting at T+3min, bringing
- * MainActivity to front and dismissing any remaining system dialog. `am start` with
- * singleTask launch mode re-uses the existing task without recreating the activity,
- * so navigation state is preserved. Additionally, tests call waitForWindowFocus()
- * before any Espresso interaction to ensure focus is confirmed via ADB poll.
  */
 export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
     seedSharedPreferences()
@@ -235,65 +228,38 @@ export function scheduleMetroConnect(): ReturnType<typeof setTimeout> {
     // Detox's internal async ADB callbacks (including launchApp resolution) from
     // running, causing a deadlock where both our ADB call and Detox's ADB calls
     // starve each other → ETIMEDOUT on our side, launchApp never resolves.
+    //
+    // WHY -n (component) not -a/-c (action/category routing):
+    //   The AndroidManifest registers the exp+llama-quest scheme on MainActivity,
+    //   NOT on DevLauncherActivity. Action+category routing therefore delivers the
+    //   intent to MainActivity (singleTask), which brings MainActivity's task to
+    //   the foreground and destroys DevLauncherActivity's task mid-bundle-load.
+    //   Specifying the component directly bypasses the manifest intent-filter
+    //   routing and delivers the URL to the already-running DevLauncherActivity.
     const handle = setTimeout(() => {
         execFile('adb', [
             'shell', 'am', 'start',
+            '-n', 'com.llamaquest.app/expo.modules.devlauncher.launcher.DevLauncherActivity',
             '-a', 'android.intent.action.VIEW',
-            '-c', 'android.intent.category.DEFAULT',
-            '-c', 'android.intent.category.BROWSABLE',
             '-d', intentUri,
         ], { timeout: 15000 }, (err) => {
             if (err) {
                 console.warn('[E2E] ADB intent failed (non-fatal):', err.message.slice(0, 200))
             } else {
-                console.log('[E2E] ADB BROWSABLE intent fired → expo-dev-client connecting to localhost:8081')
+                console.log('[E2E] ADB intent fired → DevLauncherActivity connecting to localhost:8081')
             }
         })
     }, 10000)
 
-    // Focus-recovery timers: dismiss any ANR dialog and restore window focus.
-    // On no-KVM CI emulators, Hermes JS compilation during bundle load (~3-5 min)
-    // saturates the main thread. ANRWatchDog detects this and Android shows an
-    // "App not responding" dialog that steals window focus. In headless -no-window
-    // mode the dialog never auto-dismisses, so all subsequent Espresso interactions
-    // fail with "has-window-focus=false". Bringing MainActivity to the foreground
-    // via `am start` implicitly dismisses the ANR dialog (Android clears system
-    // alerts when the target activity is re-launched to front) and restores focus.
-    // This is safe regardless of which screen the app is on — `am start` with
-    // singleTask launch mode brings the existing task to front without recreating
-    // the activity, so any ongoing navigation state is preserved.
-    const bringToFront = (label: string) => {
-        execFile('adb', [
-            'shell', 'am', 'start',
-            '-n', 'com.llamaquest.app/.MainActivity',
-            '--activity-no-animation',
-        ], { timeout: 10000 }, (err) => {
-            if (err) {
-                console.warn(`[E2E] ${label} bring-to-front failed (non-fatal):`, err.message.slice(0, 100))
-            } else {
-                console.log(`[E2E] ${label} — brought MainActivity to front, dismissed any ANR dialog`)
-            }
-        })
-    }
-
-    // Focus-recovery sweep: fire every 30s from T+3min to T+6min.
+    // NOTE: Focus-recovery timers (am start .MainActivity at T+3min..T+6min) were
+    // removed. They fired during DevLauncherActivity's bundle load window and
+    // brought MainActivity (singleTask) to the foreground, which destroyed the
+    // DevLauncherActivity task — preventing the bundle from ever loading.
     //
-    // Why T+3min onwards (not earlier): the ANR on no-KVM emulators fires at
-    // T+3m10s to T+3m30s (HardwareRenderer.init blocks ~5s on swiftshader_indirect
-    // during the first Activity resume). Firing before the ANR is too early — the
-    // dialog appears after our am start and steals focus back. Run-detox.sh disables
-    // ANR dialogs via `settings put global anr_show_background 0` so this is a
-    // belt-and-suspenders sweep in case any system dialog survived.
-    //
-    // Why no re-intent: re-firing the BROWSABLE intent after the bundle has loaded
-    // would tell expo-dev-client to reload the bundle, which resets navigation
-    // state and makes all subsequent tests fail.
-    for (let i = 0; i <= 6; i++) {
-        setTimeout(
-            () => bringToFront(`T+${3 + i * 0.5}min focus-recovery`),
-            (180 + i * 30) * 1000,
-        )
-    }
+    // ANR dialogs are already suppressed by run-detox.sh via:
+    //   settings put global anr_show_background 0
+    // and the emulator uses -gpu swiftshader (not swiftshader_indirect), which
+    // eliminates the relayout-Binder ANR path. No recovery timers are needed.
 
     return handle
 }
