@@ -146,8 +146,9 @@ export function seedSharedPreferences(): void {
  * expo-dev-client launcher activity (DevLauncherActivity) and the React Native
  * app activity (MainActivity) — both run in com.llamaquest.app's process.
  */
-export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
+export async function waitForWindowFocus(timeoutMs = 840000): Promise<void> {
     const pollIntervalMs = 5000
+    const CRASH_GRACE_POLLS = 4  // allow ~20s for process to appear after launchApp
     const start = Date.now()
     let attempt = 0
 
@@ -155,8 +156,24 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
     while (true) {
         attempt++
 
-        // Check focus FIRST — before broadcasting CLOSE_SYSTEM_DIALOGS — so we
-        // exit immediately when focus is already held by the app.
+        // Crash detection: check the process is alive before checking focus.
+        // `pidof <pkg>` returns the PID if running, empty string if not.
+        // Skip for the first CRASH_GRACE_POLLS polls — the process may not yet be
+        // visible in ps immediately after launchApp() returns.
+        if (attempt > CRASH_GRACE_POLLS) {
+            const isAlive = await new Promise<boolean>((resolve) => {
+                execFile('adb', ['shell', 'pidof', PACKAGE], { timeout: 5000 },
+                    (err, stdout) => resolve(!err && stdout.trim().length > 0))
+            })
+            if (!isAlive) {
+                throw new Error(
+                    `[E2E] App process ${PACKAGE} is not running after ${Date.now() - start}ms — ` +
+                    'app likely crashed. Check logcat artifacts for stack trace.',
+                )
+            }
+        }
+
+        // Check window focus.
         const hasFocus = await new Promise<boolean>((resolve) => {
             execFile(
                 'adb',
@@ -209,7 +226,7 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
             execFile('adb', ['shell', 'input', 'tap', '540', '960'], { timeout: 5000 }, () => resolve())
         })
 
-        console.log(`[E2E] waitForWindowFocus attempt ${attempt}: no focus yet (${elapsed}ms elapsed) — retrying in ${pollIntervalMs}ms`)
+        console.log(`[E2E] waitForWindowFocus attempt ${attempt}: alive, no focus (${elapsed}ms) — tapped screen, retrying`)
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
     }
 }
