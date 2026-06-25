@@ -1,5 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { scheduleMetroConnect, clearAsyncStorage, waitForWindowFocus } from '../setup'
+import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
 
 // Set per-test timeout at module level so it takes effect before jest-circus
 // initialises the run — overrides testTimeout in e2e/jest.config.js only if this
@@ -24,20 +24,15 @@ describe('Llama Quest — Golden Path', () => {
     // Belt-and-suspenders call here in case config-level arg doesn't take effect.
     await device.disableSynchronization()
 
-    // Wait until the app's window has focus before calling any waitFor().
-    // Espresso checks "has-window-focus=true" as a 10-second pre-condition on
-    // every interaction — if the window doesn't have focus the call fails
-    // immediately, regardless of the waitFor timeout. On no-KVM CI emulators,
-    // HardwareRenderer.init blocks ~5 s during the first Activity resume, causing
-    // an ANR dialog to briefly steal focus. waitForWindowFocus() polls via ADB and
-    // fires `am start .MainActivity` on every attempt, which brings the activity to
-    // front and dismisses any covering system dialog (ANR / crash overlay).
-    await waitForWindowFocus(300000) // 5 min — bundle cold-load on no-KVM CI emulator
-
-    // Belt-and-suspenders: also wait for the name-input element to be visible.
+    // Wait for the title screen name-input to become visible.
+    // On no-KVM CI emulators, SoLoader + React Native JNI initialisation blocks
+    // the main thread for ~5-6 min, but waitFor(...).toBeVisible() polls element
+    // existence without triggering Espresso's 10-second window-focus sync barrier
+    // (only interaction calls like tap() trigger that barrier). 840 s = 14 min gives
+    // ample headroom for cold-start on slow CI hardware.
     await waitFor(element(by.id('name-input')))
       .toBeVisible()
-      .withTimeout(180000) // 3 min — window focus confirmed or timed out above
+      .withTimeout(840000) // 14 min — no-KVM cold-start can take 5-6 min
   })
 
   afterAll(async () => {

@@ -1,5 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { scheduleMetroConnect, clearAsyncStorage, waitForWindowFocus } from '../setup'
+import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
 
 async function goToOverworld() {
   // 300s timeout: expo-dev-client connects to Metro after BROWSABLE intent (~20s),
@@ -36,9 +36,9 @@ describe('Battle mechanics', () => {
     // Belt-and-suspenders call here in case config-level arg doesn't take effect.
     await device.disableSynchronization()
 
-    // Wait until the app window has focus before any Espresso interaction.
-    // See golden-path.test.ts beforeAll for the full explanation.
-    await waitForWindowFocus(300000) // 5 min — bundle cold-load on no-KVM CI emulator
+    // goToOverworld() polls waitFor(name-input).withTimeout(300000) — element
+    // visibility polling does NOT trigger Espresso's window-focus sync barrier,
+    // so this works even while the main thread is blocked by SoLoader/JNI init.
     await goToOverworld()
   })
 
