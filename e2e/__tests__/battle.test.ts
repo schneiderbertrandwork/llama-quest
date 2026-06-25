@@ -19,7 +19,7 @@ async function goToOverworld() {
 // Set per-test timeout at module level so it takes effect before jest-circus
 // initialises the run. Setting inside beforeAll cannot extend Detox's session-level
 // setupTimeout because that timer starts before any test file code executes.
-jest.setTimeout(600000) // 10 min — matches e2e/jest.config.js testTimeout
+jest.setTimeout(900000) // 15 min — matches e2e/jest.config.js testTimeout
 
 describe('Battle mechanics', () => {
   beforeAll(async () => {

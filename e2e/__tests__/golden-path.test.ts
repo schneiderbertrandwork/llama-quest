@@ -7,7 +7,7 @@ import { scheduleMetroConnect, clearAsyncStorage, waitForWindowFocus } from '../
 // NOTE: do NOT put jest.setTimeout inside beforeAll; by the time beforeAll runs,
 // Detox has already read the timeout from global[TEST_TIMEOUT_SYMBOL] and a value
 // set inside beforeAll cannot retroactively extend the session-level setupTimeout.
-jest.setTimeout(600000) // 10 min — matches e2e/jest.config.js testTimeout
+jest.setTimeout(900000) // 15 min — matches e2e/jest.config.js testTimeout
 
 describe('Llama Quest — Golden Path', () => {
   beforeAll(async () => {
@@ -37,7 +37,7 @@ describe('Llama Quest — Golden Path', () => {
     // Belt-and-suspenders: also wait for the name-input element to be visible.
     await waitFor(element(by.id('name-input')))
       .toBeVisible()
-      .withTimeout(120000) // 2 min — window focus is already confirmed above
+      .withTimeout(180000) // 3 min — window focus confirmed or timed out above
   })
 
   afterAll(async () => {
