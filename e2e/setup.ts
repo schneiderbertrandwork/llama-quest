@@ -121,24 +121,28 @@ export function seedSharedPreferences(): void {
 
 /**
  * Polls via ADB until the app's window has focus (has-window-focus=true), or until
- * timeoutMs is reached.  Fires `am start .MainActivity` on every attempt to keep
- * bringing the activity to front and to dismiss any covering system dialog (ANR,
- * crash dialog, etc.) that could be stealing window focus.
+ * timeoutMs is reached.
+ *
+ * On every poll fires:
+ *   1. `am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS` — the
+ *      standard Android API to dismiss ANR/crash system overlays programmatically.
+ *   2. `input keyevent 4` (BACK) — belt-and-suspenders for dialogs that have
+ *      captured input focus and may ignore the broadcast.
  *
  * Call this AFTER device.launchApp() and BEFORE the first Detox waitFor() call in
  * beforeAll.  Without this, Espresso's internal 10-second window-focus pre-condition
  * fires immediately and fails every interaction with "has-window-focus=false", even
- * though the 300-second waitFor timeout has not expired.
+ * though the outer waitFor timeout has not expired.
+ *
+ * Root cause on no-KVM CI: SoLoader blocks the main thread during
+ * DevLauncherActivity.onCreate(), triggering Android's ANR watchdog. Android shows
+ * a foreground ANR dialog that steals window focus. anr_show_background=0 does NOT
+ * suppress foreground ANRs — CLOSE_SYSTEM_DIALOGS is the correct dismissal path.
  *
  * Implementation: polls `adb shell dumpsys window windows` until the string
  * "mCurrentFocus=Window{...com.llamaquest.app" appears. This matches both the
  * expo-dev-client launcher activity (DevLauncherActivity) and the React Native
  * app activity (MainActivity) — both run in com.llamaquest.app's process.
- *
- * Does NOT fire `am start` on every poll: on swiftshader (non-_indirect) the app
- * acquires focus naturally after bundle load. Firing am start caused recursive ANR
- * cycles because each start triggered a new IWindowSession.relayout Binder IPC
- * call that re-triggered the ANR on swiftshader_indirect emulators.
  */
 export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
     const pollIntervalMs = 5000
@@ -149,9 +153,8 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
     while (true) {
         attempt++
 
-        // Check focus FIRST — before firing am start — so we don't trigger
-        // unnecessary Activity relayouts. On swiftshader (non-_indirect), the
-        // app window acquires focus quickly after bundle load without nudging.
+        // Check focus FIRST — before broadcasting CLOSE_SYSTEM_DIALOGS — so we
+        // exit immediately when focus is already held by the app.
         const hasFocus = await new Promise<boolean>((resolve) => {
             execFile(
                 'adb',
@@ -184,23 +187,30 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
             return
         }
 
-        // Every 3rd poll (every ~15s), send a MENU keyevent (keycode 82) to wake/focus
-        // the screen and dismiss any system overlay (soft keyboard, IME, notifications)
-        // that may be holding window focus away from the app.
+        // On every poll: broadcast CLOSE_SYSTEM_DIALOGS to dismiss the ANR dialog.
         //
-        // Why KEYCODE_MENU (82) instead of am start:
-        //   am start .MainActivity (singleTask) destroys DevLauncherActivity's task.
-        //   am start DevLauncherActivity can spawn a second instance, confusing Espresso.
-        //   KEYCODE_MENU just wakes the screen and gives the foreground app a focus nudge
-        //   without affecting Activity states or creating new tasks.
+        // Root cause: on no-KVM swiftshader CI emulators, SoLoader blocks the main
+        // thread during DevLauncherActivity.onCreate(), triggering Android's ANR
+        // watchdog. Android shows a foreground ANR dialog that steals window focus.
+        // This is NOT a background ANR — anr_show_background=0 does NOT suppress it.
         //
-        // Why every 3rd poll (not every poll): the keyevent generates a UI event that
-        // Espresso may intercept; batching prevents flooding the event queue.
-        if (attempt % 3 === 0) {
-            await new Promise<void>((resolve) => {
-                execFile('adb', ['shell', 'input', 'keyevent', '82'], { timeout: 5000 }, () => resolve())
-            })
-        }
+        // Fix: android.intent.action.CLOSE_SYSTEM_DIALOGS is the standard Android API
+        // to dismiss system overlays (ANR dialogs, crash dialogs, notifications).
+        // Unlike am start, it does not affect Activity states or create new tasks.
+        // Unlike keyevent 82 (MENU), it directly targets system dialogs.
+        //
+        // Belt-and-suspenders: also send BACK (keyevent 4) which Android uses to
+        // dismiss dialogs when CLOSE_SYSTEM_DIALOGS is blocked by a system dialog
+        // that has captured input focus.
+        await new Promise<void>((resolve) => {
+            execFile('adb', [
+                'shell', 'am', 'broadcast',
+                '-a', 'android.intent.action.CLOSE_SYSTEM_DIALOGS',
+            ], { timeout: 5000 }, () => resolve())
+        })
+        await new Promise<void>((resolve) => {
+            execFile('adb', ['shell', 'input', 'keyevent', '4'], { timeout: 5000 }, () => resolve())
+        })
 
         console.log(`[E2E] waitForWindowFocus attempt ${attempt}: no focus yet (${elapsed}ms elapsed) — retrying in ${pollIntervalMs}ms`)
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
