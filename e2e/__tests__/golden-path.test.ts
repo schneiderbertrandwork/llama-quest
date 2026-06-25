@@ -1,5 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
+import { scheduleMetroConnect, clearAsyncStorage, waitForWindowFocus } from '../setup'
 
 // Set per-test timeout at module level so it takes effect before jest-circus
 // initialises the run — overrides testTimeout in e2e/jest.config.js only if this
@@ -24,15 +24,15 @@ describe('Llama Quest — Golden Path', () => {
     // Belt-and-suspenders call here in case config-level arg doesn't take effect.
     await device.disableSynchronization()
 
-    // Wait for the title screen name-input to become visible.
-    // On no-KVM CI emulators, SoLoader + React Native JNI initialisation blocks
-    // the main thread for ~5-6 min, but waitFor(...).toBeVisible() polls element
-    // existence without triggering Espresso's 10-second window-focus sync barrier
-    // (only interaction calls like tap() trigger that barrier). 840 s = 14 min gives
-    // ample headroom for cold-start on slow CI hardware.
+    // Poll via ADB until the app window has focus, tapping the screen on every
+    // attempt to trigger window-manager focus re-assignment. 840s = 14 min gives
+    // ample headroom for the SoLoader/JNI cold-start ANR (~3-6 min on no-KVM CI).
+    await waitForWindowFocus(840000)
+
+    // Belt-and-suspenders: wait for name-input after focus confirmed (or timed out).
     await waitFor(element(by.id('name-input')))
       .toBeVisible()
-      .withTimeout(840000) // 14 min — no-KVM cold-start can take 5-6 min
+      .withTimeout(840000) // 14 min — covers the case where focus was just acquired
   })
 
   afterAll(async () => {

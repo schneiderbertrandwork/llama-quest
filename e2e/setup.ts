@@ -124,20 +124,22 @@ export function seedSharedPreferences(): void {
  * timeoutMs is reached.
  *
  * On every poll fires:
- *   1. `am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS` — the
- *      standard Android API to dismiss ANR/crash system overlays programmatically.
- *   2. `input keyevent 4` (BACK) — belt-and-suspenders for dialogs that have
- *      captured input focus and may ignore the broadcast.
+ *   1. `input keyevent KEYCODE_WAKEUP` — ensures the screen is interactive.
+ *   2. `input tap 540 960` — OS-level touch at center screen. Triggers the Android
+ *      window manager to assign has-window-focus=true to the foreground window.
+ *      Works even when Espresso can't interact (no focus required for ADB input
+ *      injection). If an ANR overlay is present, the tap interacts with it.
  *
  * Call this AFTER device.launchApp() and BEFORE the first Detox waitFor() call in
  * beforeAll.  Without this, Espresso's internal 10-second window-focus pre-condition
  * fires immediately and fails every interaction with "has-window-focus=false", even
  * though the outer waitFor timeout has not expired.
  *
- * Root cause on no-KVM CI: SoLoader blocks the main thread during
- * DevLauncherActivity.onCreate(), triggering Android's ANR watchdog. Android shows
- * a foreground ANR dialog that steals window focus. anr_show_background=0 does NOT
- * suppress foreground ANRs — CLOSE_SYSTEM_DIALOGS is the correct dismissal path.
+ * Root cause on no-KVM CI: SoLoader + RN JNI blocks DevLauncherActivity's main
+ * thread, triggering Android's ANR watchdog. After the ANR resolves the app window
+ * is visible but has-window-focus=false — the window manager does not automatically
+ * re-grant focus in headless emulator mode. An OS-level tap triggers focus
+ * re-assignment without requiring existing focus (unlike Espresso interactions).
  *
  * Implementation: polls `adb shell dumpsys window windows` until the string
  * "mCurrentFocus=Window{...com.llamaquest.app" appears. This matches both the
@@ -187,29 +189,24 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
             return
         }
 
-        // On every poll: broadcast CLOSE_SYSTEM_DIALOGS to dismiss the ANR dialog.
+        // Wake the screen (no-op if already awake) then tap the center of the screen.
         //
-        // Root cause: on no-KVM swiftshader CI emulators, SoLoader blocks the main
-        // thread during DevLauncherActivity.onCreate(), triggering Android's ANR
-        // watchdog. Android shows a foreground ANR dialog that steals window focus.
-        // This is NOT a background ANR — anr_show_background=0 does NOT suppress it.
+        // Root cause: on no-KVM swiftshader CI emulators, SoLoader + React Native JNI
+        // blocks DevLauncherActivity's main thread, triggering ANR. After the ANR
+        // resolves the app window is visible and rendering but the Android window
+        // manager has NOT re-assigned has-window-focus=true to the Activity — likely
+        // because the focus transfer back from the ANR system overlay was dropped in
+        // headless emulator mode.
         //
-        // Fix: android.intent.action.CLOSE_SYSTEM_DIALOGS is the standard Android API
-        // to dismiss system overlays (ANR dialogs, crash dialogs, notifications).
-        // Unlike am start, it does not affect Activity states or create new tasks.
-        // Unlike keyevent 82 (MENU), it directly targets system dialogs.
-        //
-        // Belt-and-suspenders: also send BACK (keyevent 4) which Android uses to
-        // dismiss dialogs when CLOSE_SYSTEM_DIALOGS is blocked by a system dialog
-        // that has captured input focus.
+        // Fix: `adb shell input tap X Y` is OS-level touch injection — it bypasses
+        // Espresso entirely and works when has-window-focus=false. Tapping the app
+        // surface triggers the window manager to assign focus to that window.
+        // If an ANR / crash overlay is still present, the tap interacts with it
+        // (possibly hitting a button or dismissing it), clearing the way for the
+        // app window to reclaim focus on the next poll.
+        execFile('adb', ['shell', 'input', 'keyevent', 'KEYCODE_WAKEUP'], { timeout: 5000 }, () => {})
         await new Promise<void>((resolve) => {
-            execFile('adb', [
-                'shell', 'am', 'broadcast',
-                '-a', 'android.intent.action.CLOSE_SYSTEM_DIALOGS',
-            ], { timeout: 5000 }, () => resolve())
-        })
-        await new Promise<void>((resolve) => {
-            execFile('adb', ['shell', 'input', 'keyevent', '4'], { timeout: 5000 }, () => resolve())
+            execFile('adb', ['shell', 'input', 'tap', '540', '960'], { timeout: 5000 }, () => resolve())
         })
 
         console.log(`[E2E] waitForWindowFocus attempt ${attempt}: no focus yet (${elapsed}ms elapsed) — retrying in ${pollIntervalMs}ms`)

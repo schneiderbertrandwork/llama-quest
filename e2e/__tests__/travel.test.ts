@@ -1,5 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
+import { scheduleMetroConnect, clearAsyncStorage, waitForWindowFocus } from '../setup'
 
 // Helper: go through the title screen so tests start on the overworld.
 async function goToOverworld() {
@@ -37,9 +37,9 @@ describe('Travel — Overworld gate to Llamatown', () => {
     // Belt-and-suspenders call here in case config-level arg doesn't take effect.
     await device.disableSynchronization()
 
-    // goToOverworld() polls waitFor(name-input).withTimeout(300000) — element
-    // visibility polling does NOT trigger Espresso's window-focus sync barrier,
-    // so this works even while the main thread is blocked by SoLoader/JNI init.
+    // Poll via ADB until the app window has focus, tapping the screen each attempt.
+    // See golden-path.test.ts and setup.ts for full explanation.
+    await waitForWindowFocus(840000)
     await goToOverworld()
   })
 
