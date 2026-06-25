@@ -184,6 +184,24 @@ export async function waitForWindowFocus(timeoutMs = 300000): Promise<void> {
             return
         }
 
+        // Every 3rd poll (every ~15s), send a MENU keyevent (keycode 82) to wake/focus
+        // the screen and dismiss any system overlay (soft keyboard, IME, notifications)
+        // that may be holding window focus away from the app.
+        //
+        // Why KEYCODE_MENU (82) instead of am start:
+        //   am start .MainActivity (singleTask) destroys DevLauncherActivity's task.
+        //   am start DevLauncherActivity can spawn a second instance, confusing Espresso.
+        //   KEYCODE_MENU just wakes the screen and gives the foreground app a focus nudge
+        //   without affecting Activity states or creating new tasks.
+        //
+        // Why every 3rd poll (not every poll): the keyevent generates a UI event that
+        // Espresso may intercept; batching prevents flooding the event queue.
+        if (attempt % 3 === 0) {
+            await new Promise<void>((resolve) => {
+                execFile('adb', ['shell', 'input', 'keyevent', '82'], { timeout: 5000 }, () => resolve())
+            })
+        }
+
         console.log(`[E2E] waitForWindowFocus attempt ${attempt}: no focus yet (${elapsed}ms elapsed) — retrying in ${pollIntervalMs}ms`)
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
     }
