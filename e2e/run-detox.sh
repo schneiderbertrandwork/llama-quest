@@ -106,49 +106,57 @@ if [ "$HTTP_STATUS" != "200" ]; then
   echo "WARNING: pre-warm returned $HTTP_STATUS — bundle may not be cached, tests may timeout"
 fi
 
-# Pre-warm SoLoader native library cache — two phases.
+# Pre-warm SoLoader native library cache.
 #
-# Root cause: on no-KVM CI hardware, SoLoader runs two slow init paths:
+# Root cause: on no-KVM CI hardware, SoLoader.DirectApkSoSource.buildLibDepsCacheImpl
+# walks every .so in the main APK zip and builds a dependency graph. This blocks the
+# main thread for 5-15 minutes on software-emulated runners. Android's ANR watchdog
+# fires after 5s of main-thread block, showing a foreground overlay dialog and
+# permanently clearing has-window-focus from the app process.
 #
-#   1. DirectApkSoSource.buildLibDepsCacheImpl (main APK):
-#      Walks every .so in the main APK zip and builds a dependency graph.
-#      Takes ~210s on software-emulated runners. Triggered by ANY app launch
-#      (am start OR am instrument). Cache is written to the app's private data
-#      dir and persists across am force-stop.
+# SoLoader writes a file-based dependency cache to the app's private data dir. Once
+# written, subsequent process launches read the cache instead of re-parsing ELF headers,
+# making library loading much faster (no ANR).
 #
-#   2. InstrumentedSoFileLoader (test APK — Detox native libs):
-#      Loads .so files from the test APK. Only runs under am instrument (not
-#      am start). Also triggers the ANR watchdog on no-KVM hardware.
+# Strategy: launch the app, poll until it actually has window focus (= SoLoader +
+# full startup complete = cache fully written to disk), then force-stop.
+# On the next launch (Detox launchApp), SoLoader reads the cache and skips the slow
+# ELF-parsing path, completing without triggering ANR.
 #
-# Both paths trigger Android's ANR watchdog, which shows a foreground overlay
-# dialog and permanently clears has-window-focus from the app process.
+# Previous approach (fixed 300s sleep) failed because:
+#   - SoLoader takes 5-15 min on no-KVM CI (not 210s as estimated)
+#   - force-stopping mid-write leaves the cache file partially written / corrupt
+#   - Subsequent process launches rebuild the cache from scratch → same ANR
 #
-# Phase 1: am start + 300s sleep.
-#   Warms DirectApkSoSource. 210s + 90s margin = 300s. am force-stop after
-#   does NOT clear the cache — only pm clear would.
-#
-# Phase 2: am instrument with a non-matching class filter.
-#   Warms InstrumentedSoFileLoader. DetoxTestRunner initialises its native libs
-#   (SoLoader), then tries to connect to the Detox server. Since no server is
-#   running, it exits or times out. timeout 480 is the safety net; || true
-#   ignores the non-zero exit. am force-stop after cleans up the process.
-echo "=== Pre-warming SoLoader native library cache (Phase 1: am start) ==="
+# Poll-until-focus approach ensures the cache is fully written before we stop the app.
+echo "=== Pre-warming SoLoader native library cache (wait for window focus) ==="
 adb shell am start -n com.llamaquest.app/expo.modules.devlauncher.launcher.DevLauncherActivity
-echo "App launched — waiting 300s for DirectApkSoSource native library init (~210s on no-KVM CI)..."
-sleep 300
+echo "App launched — polling for window focus (SoLoader + full startup must complete)..."
+PREWARM_START=$(date +%s)
+PREWARM_TIMEOUT=1200  # 20 min max; SoLoader takes 5-15 min on no-KVM CI
+PREWARM_FOCUS=0
+for i in $(seq 1 240); do
+  # Dismiss ANR dialogs on every poll so the app can continue loading.
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
+  adb shell input tap 540 960 > /dev/null 2>&1 || true
+  # Check for window focus (app fully started, SoLoader done).
+  FOCUS=$(adb shell dumpsys window windows 2>/dev/null | grep "mCurrentFocus" || true)
+  if echo "$FOCUS" | grep -q "com.llamaquest.app"; then
+    ELAPSED=$(( $(date +%s) - PREWARM_START ))
+    echo "Window focus acquired after ${ELAPSED}s — SoLoader cache fully written"
+    PREWARM_FOCUS=1
+    break
+  fi
+  ELAPSED=$(( $(date +%s) - PREWARM_START ))
+  if [ "$ELAPSED" -ge "$PREWARM_TIMEOUT" ]; then
+    echo "WARNING: pre-warm timed out after ${ELAPSED}s without focus — continuing anyway"
+    break
+  fi
+  echo "  Pre-warm poll $i: no focus yet (${ELAPSED}s elapsed) — dismissing ANR + retrying in 5s"
+  sleep 5
+done
 adb shell am force-stop com.llamaquest.app 2>/dev/null || true
-echo "Phase 1 complete — DirectApkSoSource cache persisted in app data dir"
-echo "==="
-
-echo "=== Pre-warming SoLoader native library cache (Phase 2: am instrument) ==="
-echo "Running am instrument to initialise InstrumentedSoFileLoader (test APK native libs)..."
-timeout 480 adb shell am instrument -w -r \
-  -e class com.nonexistent.SkipAllTests \
-  com.llamaquest.app.test/com.wix.detox.runner.DetoxTestRunner \
-  > /tmp/soloader-prewarm-instrument.log 2>&1 || true
-echo "Phase 2 complete (exit ignored) — InstrumentedSoFileLoader cache warmed"
-cat /tmp/soloader-prewarm-instrument.log 2>/dev/null | tail -5 || true
-adb shell am force-stop com.llamaquest.app 2>/dev/null || true
+echo "Pre-warm complete — SoLoader cache persisted in app data dir (focus=${PREWARM_FOCUS})"
 echo "==="
 
 # Suppress ANR (App Not Responding) system dialogs before running tests.
