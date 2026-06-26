@@ -206,27 +206,34 @@ export async function waitForWindowFocus(timeoutMs = 840000): Promise<void> {
             return
         }
 
-        // Wake the screen (no-op if already awake) then tap the center of the screen.
+        // Wake the screen (no-op if already awake) then dismiss any ANR/system dialog,
+        // then tap the center of the screen.
         //
         // Root cause: on no-KVM swiftshader CI emulators, SoLoader + React Native JNI
-        // blocks DevLauncherActivity's main thread, triggering ANR. After the ANR
-        // resolves the app window is visible and rendering but the Android window
-        // manager has NOT re-assigned has-window-focus=true to the Activity — likely
-        // because the focus transfer back from the ANR system overlay was dropped in
-        // headless emulator mode.
+        // blocks DevLauncherActivity's main thread, triggering ANR. The ANR dialog is
+        // a foreground system overlay — `settings put global anr_show_background 0`
+        // has no effect on foreground ANRs (confirmed finding). The dialog steals
+        // has-window-focus permanently in headless mode; the window manager never
+        // re-grants focus back to the app.
         //
-        // Fix: `adb shell input tap X Y` is OS-level touch injection — it bypasses
-        // Espresso entirely and works when has-window-focus=false. Tapping the app
-        // surface triggers the window manager to assign focus to that window.
-        // If an ANR / crash overlay is still present, the tap interacts with it
-        // (possibly hitting a button or dismissing it), clearing the way for the
-        // app window to reclaim focus on the next poll.
+        // Fix (two steps):
+        //   1. `am broadcast CLOSE_SYSTEM_DIALOGS` — the official Android API to dismiss
+        //      system overlays including ANR dialogs. Fires the broadcast that tells all
+        //      system dialogs (ANR, crash, etc.) to close themselves. This is what the
+        //      Android home button triggers internally.
+        //   2. `input tap X Y` — OS-level touch injection after dialogs are dismissed.
+        //      Tapping the app surface triggers the window manager to assign focus.
         execFile('adb', ['shell', 'input', 'keyevent', 'KEYCODE_WAKEUP'], { timeout: 5000 }, () => {})
+        // Dismiss ANR / system dialogs via the official broadcast API.
+        await new Promise<void>((resolve) => {
+            execFile('adb', ['shell', 'am', 'broadcast', '-a', 'android.intent.action.CLOSE_SYSTEM_DIALOGS'],
+                { timeout: 5000 }, () => resolve())
+        })
         await new Promise<void>((resolve) => {
             execFile('adb', ['shell', 'input', 'tap', '540', '960'], { timeout: 5000 }, () => resolve())
         })
 
-        console.log(`[E2E] waitForWindowFocus attempt ${attempt}: alive, no focus (${elapsed}ms) — tapped screen, retrying`)
+        console.log(`[E2E] waitForWindowFocus attempt ${attempt}: alive, no focus (${elapsed}ms) — broadcast CLOSE_SYSTEM_DIALOGS + tapped screen, retrying`)
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
     }
 }

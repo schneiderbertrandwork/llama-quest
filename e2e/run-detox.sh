@@ -121,8 +121,8 @@ fi
 # native init, no ANR, window focus acquired normally).
 echo "=== Pre-warming SoLoader native library cache ==="
 adb shell am start -n com.llamaquest.app/expo.modules.devlauncher.launcher.DevLauncherActivity
-echo "App launched for SoLoader pre-warm — waiting 60s for native library init..."
-sleep 60
+echo "App launched for SoLoader pre-warm — waiting 120s for native library init (60s was insufficient)..."
+sleep 120
 adb shell am force-stop com.llamaquest.app
 echo "SoLoader pre-warm complete — app stopped, cache persisted in app data dir"
 echo "==="
