@@ -106,25 +106,49 @@ if [ "$HTTP_STATUS" != "200" ]; then
   echo "WARNING: pre-warm returned $HTTP_STATUS — bundle may not be cached, tests may timeout"
 fi
 
-# Pre-warm SoLoader native library cache.
+# Pre-warm SoLoader native library cache — two phases.
 #
-# On first launch, SoLoader runs DirectApkSoSource.buildLibDepsCacheImpl which
-# walks every .so in the APK and builds a dependency graph. On no-KVM CI hardware
-# this blocks the main thread for >5s, triggering Android's ANR watchdog. The
-# resulting ANR dialog steals has-window-focus from the app; the window manager
-# never re-assigns focus, causing every Espresso interaction to fail.
+# Root cause: on no-KVM CI hardware, SoLoader runs two slow init paths:
 #
-# The SoLoader cache is written to the app's private data directory and persists
-# across am force-stop (only pm clear would remove it). Launching the app once
-# here — before any Detox test runs — lets SoLoader build its cache on a launch
-# where ANR doesn't matter. All 3 test-suite launches then get a cache hit (fast
-# native init, no ANR, window focus acquired normally).
-echo "=== Pre-warming SoLoader native library cache ==="
+#   1. DirectApkSoSource.buildLibDepsCacheImpl (main APK):
+#      Walks every .so in the main APK zip and builds a dependency graph.
+#      Takes ~210s on software-emulated runners. Triggered by ANY app launch
+#      (am start OR am instrument). Cache is written to the app's private data
+#      dir and persists across am force-stop.
+#
+#   2. InstrumentedSoFileLoader (test APK — Detox native libs):
+#      Loads .so files from the test APK. Only runs under am instrument (not
+#      am start). Also triggers the ANR watchdog on no-KVM hardware.
+#
+# Both paths trigger Android's ANR watchdog, which shows a foreground overlay
+# dialog and permanently clears has-window-focus from the app process.
+#
+# Phase 1: am start + 300s sleep.
+#   Warms DirectApkSoSource. 210s + 90s margin = 300s. am force-stop after
+#   does NOT clear the cache — only pm clear would.
+#
+# Phase 2: am instrument with a non-matching class filter.
+#   Warms InstrumentedSoFileLoader. DetoxTestRunner initialises its native libs
+#   (SoLoader), then tries to connect to the Detox server. Since no server is
+#   running, it exits or times out. timeout 480 is the safety net; || true
+#   ignores the non-zero exit. am force-stop after cleans up the process.
+echo "=== Pre-warming SoLoader native library cache (Phase 1: am start) ==="
 adb shell am start -n com.llamaquest.app/expo.modules.devlauncher.launcher.DevLauncherActivity
-echo "App launched for SoLoader pre-warm — waiting 120s for native library init (60s was insufficient)..."
-sleep 120
-adb shell am force-stop com.llamaquest.app
-echo "SoLoader pre-warm complete — app stopped, cache persisted in app data dir"
+echo "App launched — waiting 300s for DirectApkSoSource native library init (~210s on no-KVM CI)..."
+sleep 300
+adb shell am force-stop com.llamaquest.app 2>/dev/null || true
+echo "Phase 1 complete — DirectApkSoSource cache persisted in app data dir"
+echo "==="
+
+echo "=== Pre-warming SoLoader native library cache (Phase 2: am instrument) ==="
+echo "Running am instrument to initialise InstrumentedSoFileLoader (test APK native libs)..."
+timeout 480 adb shell am instrument -w -r \
+  -e class com.nonexistent.SkipAllTests \
+  com.llamaquest.app.test/com.wix.detox.runner.DetoxTestRunner \
+  > /tmp/soloader-prewarm-instrument.log 2>&1 || true
+echo "Phase 2 complete (exit ignored) — InstrumentedSoFileLoader cache warmed"
+cat /tmp/soloader-prewarm-instrument.log 2>/dev/null | tail -5 || true
+adb shell am force-stop com.llamaquest.app 2>/dev/null || true
 echo "==="
 
 # Suppress ANR (App Not Responding) system dialogs before running tests.
