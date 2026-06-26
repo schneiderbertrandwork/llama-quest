@@ -46,6 +46,13 @@ for i in $(seq 1 60); do
   echo "  Attempt $i/60: package=[${PKG}] power=[${PWR}] — retrying in 5s"
   sleep 5
 done
+# Extra stabilisation delay: 'service check package' reports "found" before the
+# package manager binder is actually ready to handle streamed installs. Confirmed:
+# run 28252776206 — services "ready" at T+0 but all 3 install attempts failed with
+# "Broken pipe (32)" and "Can't find service: package". A 60s wait after the
+# service check passes gives the package manager time to fully initialise.
+echo "Waiting 60s for package manager to fully stabilise after service check..."
+sleep 60
 echo "==="
 
 # Pre-install BOTH APKs (main + test instrumentation) so that Detox can run
@@ -55,33 +62,50 @@ echo "==="
 # Detox then tried to relaunch the emulator (which fails without KVM).
 # Installing here — after system services are confirmed ready — means the APKs
 # land cleanly on the already-booted emulator before Detox touches anything.
+#
+# Retry count raised from 3 → 10, interval raised from 10s → 30s:
+# Confirmed (run 28252776206): package manager "Broken pipe" persisted across all
+# 3 original attempts (30s total). 10 attempts × 30s = 5 min budget, long enough
+# for the package manager to fully recover even on slow no-KVM emulators.
 echo "=== Pre-installing main APK ==="
-for attempt in 1 2 3; do
+MAIN_APK_OK=0
+for attempt in $(seq 1 10); do
   # '|| true' prevents set -e from aborting on a non-zero adb exit code so the
   # retry loop can continue.  The Success/failure check is done via grep below.
   INSTALL_OUT=$(adb install -r -t android/app/build/outputs/apk/debug/app-debug.apk 2>&1) || true
   echo "$INSTALL_OUT" | tail -2
   if echo "$INSTALL_OUT" | grep -q "Success"; then
     echo "Main APK installed successfully (attempt $attempt)"
+    MAIN_APK_OK=1
     break
   fi
-  echo "Main APK install attempt $attempt failed — retrying in 10s..."
-  sleep 10
+  echo "Main APK install attempt $attempt/10 failed — retrying in 30s..."
+  sleep 30
 done
+if [ "$MAIN_APK_OK" -eq 0 ]; then
+  echo "ERROR: Main APK failed to install after 10 attempts — aborting. Detox cannot run without the app." >&2
+  exit 1
+fi
 
 echo "=== Pre-installing test instrumentation APK ==="
-for attempt in 1 2 3; do
+TEST_APK_OK=0
+for attempt in $(seq 1 10); do
   # '|| true' prevents set -e from aborting on a non-zero adb exit code so the
   # retry loop can continue.  The Success/failure check is done via grep below.
   INSTALL_OUT=$(adb install -r -t android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1) || true
   echo "$INSTALL_OUT" | tail -2
   if echo "$INSTALL_OUT" | grep -q "Success"; then
     echo "Test APK installed successfully (attempt $attempt)"
+    TEST_APK_OK=1
     break
   fi
-  echo "Test APK install attempt $attempt failed — retrying in 10s..."
-  sleep 10
+  echo "Test APK install attempt $attempt/10 failed — retrying in 30s..."
+  sleep 30
 done
+if [ "$TEST_APK_OK" -eq 0 ]; then
+  echo "ERROR: Test APK failed to install after 10 attempts — aborting. Detox cannot run without the instrumentation runner." >&2
+  exit 1
+fi
 
 echo "--- exp+llama-quest:// scheme registration (post-install, meaningful) ---"
 adb shell "pm query-activities -a android.intent.action.VIEW -d 'exp+llama-quest://expo-development-client/?url=http://localhost:8081' 2>&1 || echo 'pm query-activities failed'"
