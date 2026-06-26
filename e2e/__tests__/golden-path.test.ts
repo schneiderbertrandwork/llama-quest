@@ -1,5 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { scheduleMetroConnect, clearAsyncStorage, waitForWindowFocus } from '../setup'
+import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
 
 // Set per-test timeout at module level so it takes effect before jest-circus
 // initialises the run — overrides testTimeout in e2e/jest.config.js only if this
@@ -24,15 +24,18 @@ describe('Llama Quest — Golden Path', () => {
     // Belt-and-suspenders call here in case config-level arg doesn't take effect.
     await device.disableSynchronization()
 
-    // Poll via ADB until the app window has focus, tapping the screen on every
-    // attempt to trigger window-manager focus re-assignment. 840s = 14 min gives
-    // ample headroom for the SoLoader/JNI cold-start ANR (~3-6 min on no-KVM CI).
-    await waitForWindowFocus(840000)
-
-    // Belt-and-suspenders: wait for name-input after focus confirmed (or timed out).
+    // Wait for the title screen to render. 840s = 14 min gives ample headroom for
+    // SoLoader/JNI cold-start on no-KVM CI (cache should be warm from pre-warm step,
+    // but worst-case cold start takes 5-15 min).
+    //
+    // NOTE: waitForWindowFocus (ADB mCurrentFocus polling) was removed — mCurrentFocus
+    // NEVER shows com.llamaquest.app on headless (-no-window) emulators regardless of
+    // wait time (confirmed: 98 polls over 820s with zero matches). Since
+    // detoxEnableSynchronization:0 disables Espresso's window-focus idle barrier,
+    // we can rely directly on Detox's element-polling instead.
     await waitFor(element(by.id('name-input')))
       .toBeVisible()
-      .withTimeout(840000) // 14 min — covers the case where focus was just acquired
+      .withTimeout(840000) // 14 min — SoLoader cache warm from pre-warm; covers cold-start
   })
 
   afterAll(async () => {

@@ -1,5 +1,5 @@
 import { device, element, by, expect as detoxExpect, waitFor } from 'detox'
-import { scheduleMetroConnect, clearAsyncStorage, waitForWindowFocus } from '../setup'
+import { scheduleMetroConnect, clearAsyncStorage } from '../setup'
 
 async function goToOverworld() {
   // 300s timeout: expo-dev-client connects to Metro after BROWSABLE intent (~20s),
@@ -36,9 +36,11 @@ describe('Battle mechanics', () => {
     // Belt-and-suspenders call here in case config-level arg doesn't take effect.
     await device.disableSynchronization()
 
-    // Poll via ADB until the app window has focus, tapping the screen each attempt.
-    // See golden-path.test.ts and setup.ts for full explanation.
-    await waitForWindowFocus(840000)
+    // waitForWindowFocus removed — mCurrentFocus never shows com.llamaquest.app on
+    // headless emulators (confirmed: 98 polls, 820s, zero matches). With
+    // detoxEnableSynchronization:0, Espresso's window-focus barrier is bypassed.
+    // SoLoader cache is warm from run-detox.sh pre-warm, so second/third suite
+    // launches complete without ANR.
     await goToOverworld()
   })
 
